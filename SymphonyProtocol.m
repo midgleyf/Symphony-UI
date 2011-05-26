@@ -96,7 +96,7 @@ classdef SymphonyProtocol < handle
                 stimDataList.Add(Measurement(stimulusData(i), 'V'));
             end
 
-            outputData = OutputData(stimDataList, Measurement(obj.controller.DAQController.SampleRate.QuantityInBaseUnit, 'Hz'), true);
+            outputData = OutputData(stimDataList, Measurement(obj.controller.DAQController.GetStream('OUT').SampleRate.QuantityInBaseUnit, 'Hz'), true);
 
             stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
 
@@ -113,7 +113,7 @@ classdef SymphonyProtocol < handle
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            obj.epoch.Background.Add(device, Epoch.EpochBackground(Measurement(volts, 'V'), Measurement(obj.controller.DAQController.SampleRate.QuantityInBaseUnit, 'Hz')));
+            obj.epoch.Background.Add(device, Epoch.EpochBackground(Measurement(volts, 'V'), Measurement(obj.controller.DAQController.GetStream('OUT').SampleRate.QuantityInBaseUnit, 'Hz')));
         end
         
         
