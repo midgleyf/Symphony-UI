@@ -13,7 +13,7 @@ function Symphony()
         % Add Symphony.Core assemblies
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.Core.dll'));
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.ExternalDevices.dll'));
-        NET.addAssembly(fullfile(symphonyPath, 'HekaDAQInterface.dll'));
+        %NET.addAssembly(fullfile(symphonyPath, 'HekaDAQInterface.dll'));
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.SimulationDAQController.dll'));
     end
     
@@ -95,6 +95,8 @@ end
 
 
 function showMainWindow()
+    import Symphony.Core.*;
+    
     handles.controller = createSymphonyController('simulation', Measurement(10000, 'Hz'));
     
     % Get the list of protocols from the 'Protocols' folder.
@@ -164,7 +166,6 @@ function showMainWindow()
     handles.saveEpochsCheckbox = uicontrol(...
         'Parent', handles.figure,...
         'Units', 'points', ...
-        'Callback', @(hObject,eventdata)saveEpochsCallback(hObject,eventdata,guidata(hObject)), ...
         'FontSize', 12,...
         'Position', [7.2 222.4 100.8 18.4], ...
         'String', 'Save Epochs', ...
@@ -490,33 +491,37 @@ end
 
 
 function startAcquisition(~, ~, handles)
-    runProtocol(handles.pluginInstance, get(handles.saveEpochsCheckbox, 'Value'));
+    import Symphony.Core.*;
+    
+    xmlPath = get(handles.epochGroupOutputPathText, 'String');
+    if isempty(xmlPath)
+        xmlPath = uiputfile();
+    end
+    persistor = EpochXMLPersistor(System.String(xmlPath));
+    
+    if isempty(which('NET.createGeneric'))
+        parents = GenericList();
+        sources = GenericList();
+        keywords = GenericList();
+        uid = char(java.util.UUID.randomUUID());
+    else
+        parents = NET.createArray('System.String',  0);
+        sources = NET.createArray('System.String',  0);
+        keywords = NET.createArray('System.String',  0);
+        uid = System.Guid.NewGuid();
+    end
+    % TODO: populate parents, sources and keywords
+    label = get(handles.epochGroupLabelText, 'String');
+    
+    runProtocol(handles.pluginInstance, persistor, label, parents, sources, keywords, uid);
 end
 
 
-function runProtocol(pluginInstance, persistData)
+function runProtocol(pluginInstance, persistor, label, parents, sources, keywords, identifier)
     import Symphony.Core.*;
-
-    % Check if data should be persisted.
-    if persistData
-        persistor = EpochXMLPersistor(get(handles.epochGroupOutputPathText, 'String'));
-        if isempty(which('NET.createGeneric'))
-            parents = GenericList();
-            sources = GenericList();
-            keywords = GenericList();
-            uid = System.Guid.NewGuid();
-        else
-            parents = NET.createArray('System.String',  0);
-            sources = NET.createArray('System.String',  0);
-            keywords = NET.createArray('System.String',  0);
-            uid = char(java.util.UUID.randomUUID());
-        end
-        % TODO: populate parents, sources and keywords
-        persistor.BeginEpochGroup(get(handles.epochGroupLabelText, 'String'),  parents, sources, keywords, uid);
-    else
-        % TODO: is this the right way to pass a "NULL" to .NET?
-        persistor = [];
-    end
+    
+    % Set up the persistor.
+    persistor.BeginEpochGroup(label, parents, sources, keywords, identifier);
     
     % Initialize the run.
     pluginInstance.epoch = [];
@@ -542,7 +547,7 @@ function runProtocol(pluginInstance, persistData)
             % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
             if (isa(e, 'NET.NetException'))
                 eObj = e.ExceptionObject;
-                errordlg(eObj)
+                errordlg(char(eObj.Message))
             else
                 errordlg(e);
             end
@@ -555,9 +560,6 @@ function runProtocol(pluginInstance, persistData)
     % Let the sub-class perform any final analysis, clean up, etc.
     pluginInstance.completeEpochGroup();
     
-    if persistData
-        persistor.EndEpochGroup();
-        persistor.Close();
-    end
-    
+    persistor.EndEpochGroup();
+    persistor.Close();
 end
