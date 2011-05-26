@@ -14,6 +14,10 @@ classdef RenderedStimulus < handle
             obj.Parameters = parameters;
             obj.Data = data;
         end
+        
+        function d = Duration(obj)
+            d = obj.Data.Duration;
+        end
     end
     
 end

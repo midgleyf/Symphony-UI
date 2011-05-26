@@ -497,8 +497,11 @@ function startAcquisition(~, ~, handles)
     xmlPath = get(handles.epochGroupOutputPathText, 'String');
     if isempty(xmlPath)
         xmlPath = uiputfile();
+        if xmlPath == 0
+            return
+        end
     end
-    persistor = EpochXMLPersistor(System.String(xmlPath));
+    persistor = EpochXMLPersistor(xmlPath);
     
     if isempty(which('NET.createGeneric'))
         parents = GenericList();
@@ -520,6 +523,12 @@ end
 
 function runProtocol(pluginInstance, persistor, label, parents, sources, keywords, identifier)
     import Symphony.Core.*;
+    
+    % Open a figure window to show the response of each epoch.
+    figure('Name', [class(pluginInstance) ': Response'], ...
+           'NumberTitle', 'off');
+    responseAxes = axes('Position', [0.05 0.05 0.9 0.9]);
+    responsePlot = plot(responseAxes, 1:100, zeros(1, 100));
     
     % Set up the persistor.
     persistor.BeginEpochGroup(label, parents, sources, keywords, identifier);
@@ -545,16 +554,24 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
             % Run the epoch.
             try
                 pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
-
-                % TODO: is this the right place to call Serialize?
-                persistor.Serialize(pluginInstance.epoch);
+                
+                % Plot the response.
+                 responseData = pluginInstance.response();
+                 sampleRate = pluginInstance.responseSampleRate();
+                 duration = numel(responseData) / sampleRate;
+                 samplesPerTenth = sampleRate / 10;
+                 set(responsePlot, 'XData', 1:numel(responseData), ...
+                                   'YData', responseData);
+                 set(responseAxes, 'XTick', 1:samplesPerTenth:numel(responseData), ...
+                                   'XTickLabel', 0:.1:duration);
+                 drawnow expose;
             catch e
                 % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
                 if (isa(e, 'NET.NetException'))
                     eObj = e.ExceptionObject;
                     ed = errordlg(char(eObj.Message));
                 else
-                    ed = errordlg(e);
+                    ed = errordlg(e.message);
                 end
                 waitfor(ed);
             end
@@ -563,7 +580,7 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
             pluginInstance.completeEpoch();
         end
     catch e
-        ed = errordlg(e);
+        ed = errordlg(e.message);
         waitfor(ed);
     end
     
