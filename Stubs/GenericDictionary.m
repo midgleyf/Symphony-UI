@@ -25,7 +25,7 @@ classdef GenericDictionary < handle
             obj.Values{end + 1} = value;
         end
         
-        function v = Get(obj, key)
+        function v = Item(obj, key)
             for i = 1:numel(obj.Keys)
                 if isequal(obj.Keys{i}, key)
                     v = obj.Values{i};
