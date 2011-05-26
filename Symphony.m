@@ -97,7 +97,8 @@ end
 function showMainWindow()
     import Symphony.Core.*;
     
-    handles.controller = createSymphonyController('simulation', Measurement(10000, 'Hz'));
+    sampleRate = Measurement(10000, 'Hz');
+    handles.controller = createSymphonyController('simulation', sampleRate);
     
     % Get the list of protocols from the 'Protocols' folder.
     symphonyPath = mfilename('fullpath');
@@ -523,38 +524,47 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
     % Set up the persistor.
     persistor.BeginEpochGroup(label, parents, sources, keywords, identifier);
     
-    % Initialize the run.
-    pluginInstance.epoch = [];
-    pluginInstance.epochNum = 0;
-    pluginInstance.prepareEpochGroup()
-    
-    % Loop through all of the epochs.
-    while pluginInstance.continueEpochGroup()
-        % Create a new epoch.
-        pluginInstance.epochNum = pluginInstance.epochNum + 1;
-        pluginInstance.epoch = Epoch(pluginInstance.identifier);
-        
-        % Let sub-classes add stimulii, record responses, tweak params, etc.
-        pluginInstance.prepareEpoch();
-        
-        % Set the params now that the sub-class has had a chance to tweak them.
-        pluginInstance.epoch.ProtocolParameters = structToDictionary(pluginInstance.parameters());
-        
-        % Run the epoch.
-        try
-            pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
-        catch e
-            % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
-            if (isa(e, 'NET.NetException'))
-                eObj = e.ExceptionObject;
-                errordlg(char(eObj.Message))
-            else
-                errordlg(e);
+    try
+        % Initialize the run.
+        pluginInstance.epoch = [];
+        pluginInstance.epochNum = 0;
+        pluginInstance.prepareEpochGroup()
+
+        % Loop through all of the epochs.
+        while pluginInstance.continueEpochGroup()
+            % Create a new epoch.
+            pluginInstance.epochNum = pluginInstance.epochNum + 1;
+            pluginInstance.epoch = Epoch(pluginInstance.identifier);
+
+            % Let sub-classes add stimulii, record responses, tweak params, etc.
+            pluginInstance.prepareEpoch();
+
+            % Set the params now that the sub-class has had a chance to tweak them.
+            pluginInstance.epoch.ProtocolParameters = structToDictionary(pluginInstance.parameters());
+
+            % Run the epoch.
+            try
+                pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
+
+                % TODO: is this the right place to call Serialize?
+                persistor.Serialize(pluginInstance.epoch);
+            catch e
+                % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
+                if (isa(e, 'NET.NetException'))
+                    eObj = e.ExceptionObject;
+                    ed = errordlg(char(eObj.Message));
+                else
+                    ed = errordlg(e);
+                end
+                waitfor(ed);
             end
+            
+            % Let the sub-class perform any post-epoch analysis, clean up, etc.
+            pluginInstance.completeEpoch();
         end
-        
-        % Let the sub-class perform any post-epoch analysis, clean up, etc.
-        pluginInstance.completeEpoch();
+    catch e
+        ed = errordlg(e);
+        waitfor(ed);
     end
     
     % Let the sub-class perform any final analysis, clean up, etc.
