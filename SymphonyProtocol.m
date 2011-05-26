@@ -1,11 +1,17 @@
 classdef SymphonyProtocol < handle
     % Create a sub-class of this class to define a protocol.
+    %
     % Interesting methods to override:
     % * prepareEpochGroup
     % * prepareEpoch
     % * completeEpoch
     % * continueEpochGroup
     % * completeEpochGroup
+    %
+    % Useful methods:
+    % * addStimulus
+    % + setDeviceBackground
+    % + recordResponse
     
     properties (Constant, Abstract)
         identifier
@@ -74,12 +80,14 @@ classdef SymphonyProtocol < handle
         
         function addStimulus(obj, deviceName, stimulusID, stimulusData)
             % Queue data to send to the named device when the epoch is run.
-            % TODO: totally untested
+            % TODO: need to specify data units?
+            
+            import Symphony.Core.*;
             
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            if isempty(which('NET'))
+            if isempty(which('NET.createGeneric'))
                 stimDataList = GenericList();
             else
                 stimDataList = NET.createGeneric('System.Collections.Generic.List', {'Symphony.Core.Measurement'}, length(stimulusData));
@@ -96,9 +104,24 @@ classdef SymphonyProtocol < handle
         end
         
         
+        function setDeviceBackground(obj, deviceName, volts)
+            % Set a constant stimulus value to be sent to the device.
+            % TODO: totally untested
+            
+            import Symphony.Core.*;
+            
+            device = obj.controller.GetDevice(deviceName);
+            % TODO: what happens when there is no device with that name?
+            
+            obj.epoch.Background.Add(device, Epoch.EpochBackground(Measurement(volts, 'V'), Measurement(obj.controller.DAQController.SampleRate.QuantityInBaseUnit, 'Hz')));
+        end
+        
+        
         function recordResponse(obj, deviceName)
             % Record the response from the device with the given name when the epoch runs.
             % TODO: totally untested
+            
+            import Symphony.Core.*;
             
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
@@ -119,8 +142,7 @@ classdef SymphonyProtocol < handle
             end
             
             % Extract the raw data.
-            % TODO: how to Get in .NET via MATLAB?
-            response = obj.epoch.Responses.Get(device);
+            response = obj.epoch.Responses.Item(device);
             data = response.Data.Data;
             r = zeros(1, data.Count);
             for i = 1:data.Count
@@ -139,8 +161,7 @@ classdef SymphonyProtocol < handle
                 device = obj.controller.GetDevice(deviceName);
                 % TODO: what happens when there is no device with that name?
             end
-            % TODO: how to Get in .NET via MATLAB?
-            response = obj.epoch.Responses.Get(device);
+            response = obj.epoch.Responses.Item(device);
             r = response.Data.SampleRate.QuantityInBaseUnit;
             % TODO: do we care about the units of the SampleRate measurement?
         end

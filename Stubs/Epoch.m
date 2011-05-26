@@ -8,11 +8,15 @@ classdef Epoch < handle
     end
     
     methods
-        function obj = Epoch(identifier)
+        function obj = Epoch(identifier, parameters)
             obj = obj@handle();
             
             obj.ProtocolID = identifier;
-            obj.ProtocolParameters = GenericDictionary();
+            if nargin == 2
+                obj.ProtocolParameters = parameters;
+            else
+                obj.ProtocolParameters = GenericDictionary();
+            end
             obj.Stimuli = GenericDictionary();
             obj.Responses = GenericDictionary();
         end

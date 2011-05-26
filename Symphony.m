@@ -1,23 +1,31 @@
 function Symphony()
-    import Symphony.Core.*;
     
     % Add our utility folder to the search path.
     symphonyPath = mfilename('fullpath');
     parentDir = fileparts(symphonyPath);
     addpath(fullfile(parentDir, filesep, 'Utility'));
     
-    if isempty(which('NET'))
+    if isempty(which('NET.createGeneric'))
         addpath(fullfile(parentDir, filesep, 'Stubs'));
+    else
+        symphonyPath = 'C:\Program Files\Physion\Symphony';
+
+        % Add Symphony.Core assemblies
+        NET.addAssembly(fullfile(symphonyPath, 'Symphony.Core.dll'));
+        NET.addAssembly(fullfile(symphonyPath, 'Symphony.ExternalDevices.dll'));
+        NET.addAssembly(fullfile(symphonyPath, 'HekaDAQInterface.dll'));
+        NET.addAssembly(fullfile(symphonyPath, 'Symphony.SimulationDAQController.dll'));
     end
     
     showMainWindow();
 end
 
 
-function controller = createSymphonyController(daqName)
-%    import Symphony.SimulationDAQController.*;
-%    import Heka.*;
-%    
+function controller = createSymphonyController(daqName, sampleRate)
+    import Symphony.Core.*;
+    import Symphony.SimulationDAQController.*;
+    import Heka.*;
+    
 %    % Register Unit Converters
 %    HekaDAQInputStream.RegisterConverters();
 %    HekaDAQOutputStream.RegisterConverters();
@@ -28,9 +36,28 @@ function controller = createSymphonyController(daqName)
     
     if(strcmpi(daqName, 'heka'))
         daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
-        daq.SampleRate = Measurement(10000, 'Hz');
+        daq.SampleRate = sampleRate;
+        
+        % Finding input and output streams by name
+        outStream = daq.GetStream('ANALOG_OUT.0');
+        inStream = daq.GetStreams('ANALOG_IN.0');
     elseif(strcmpi(daqName, 'simulation'))
         daq = SimulationDAQController();
+        
+        outStream = DAQOutputStream('OUT');
+        outStream.SampleRate = sampleRate;
+        outStream.MeasurementConversionTarget = 'V';
+        outStream.Clock = daq;
+        daq.AddStream(outStream);
+        
+        inStream = DAQInputStream('IN');
+        inStream.SampleRate = sampleRate;
+        inStream.MeasurementConversionTarget = 'V';
+        inStream.Clock = daq;
+        daq.AddStream(inStream);
+        
+        daq.SimulationRunner = Simulation(@(output,step) loopbackSimulation(output,step,outStream,inStream));
+       
     else
         error(['Unknown daqName: ' daqName]);
     end
@@ -41,20 +68,34 @@ function controller = createSymphonyController(daqName)
     controller.DAQController = daq;
     controller.Clock = daq;
     
-    % Finding input and output streams by name
-    outStream = daq.GetStream('ANALOG_OUT.0');
-    inStream = daq.GetStream('ANALOG_IN.0');
-    
     % Create external device and bind streams
+    % TODO: set default background?
     dev = ExternalDevice('test-device', controller, Measurement(0,'V'));
+    dev.Clock = daq;
     dev.MeasurementConversionTarget = 'V';
     dev.BindStream(outStream);
-    dev.BindStream(inStream);
+    dev.BindStream('input', inStream);
+end
+
+
+function input = loopbackSimulation(output, ~, outStream, inStream)
+    import Symphony.Core.*;
+    
+    if ~isempty(which('NET.createGeneric'))
+        input = NET.createGeneric('System.Collections.Generic.Dictionary', {'Symphony.Core.IDAQInputStream','Symphony.Core.IInputData'});
+        time = System.DateTimeOffset.Now;
+    else
+        input = GenericDictionary();
+        time = now;
+    end
+    outData = output.Item(outStream);
+    inData = InputData(outData.Data, outData.SampleRate, time, inStream.Configuration);
+    input.Add(inStream, inData);
 end
 
 
 function showMainWindow()
-    handles.controller = createSymphonyController('simulation');
+    handles.controller = createSymphonyController('simulation', Measurement(10000, 'Hz'));
     
     % Get the list of protocols from the 'Protocols' folder.
     symphonyPath = mfilename('fullpath');
@@ -454,14 +495,26 @@ end
 
 
 function runProtocol(pluginInstance, persistData)
+    import Symphony.Core.*;
+
     % Check if data should be persisted.
     if persistData
         persistor = EpochXMLPersistor(get(handles.epochGroupOutputPathText, 'String'));
-        persistor.BeginEpochGroup(get(handles.epochGroupLabelText, 'String'),  ...
-            NET.createArray('System.String',  0),  ...   % parents
-            NET.createArray('System.String',  0) ...     % source hierarchy
-            );
+        if isempty(which('NET.createGeneric'))
+            parents = GenericList();
+            sources = GenericList();
+            keywords = GenericList();
+            uid = System.Guid.NewGuid();
+        else
+            parents = NET.createArray('System.String',  0);
+            sources = NET.createArray('System.String',  0);
+            keywords = NET.createArray('System.String',  0);
+            uid = char(java.util.UUID.randomUUID());
+        end
+        % TODO: populate parents, sources and keywords
+        persistor.BeginEpochGroup(get(handles.epochGroupLabelText, 'String'),  parents, sources, keywords, uid);
     else
+        % TODO: is this the right way to pass a "NULL" to .NET?
         persistor = [];
     end
     
@@ -483,7 +536,17 @@ function runProtocol(pluginInstance, persistData)
         pluginInstance.epoch.ProtocolParameters = structToDictionary(pluginInstance.parameters());
         
         % Run the epoch.
-        pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
+        try
+            pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
+        catch e
+            % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
+            if (isa(e, 'NET.NetException'))
+                eObj = e.ExceptionObject;
+                errordlg(eObj)
+            else
+                errordlg(e);
+            end
+        end
         
         % Let the sub-class perform any post-epoch analysis, clean up, etc.
         pluginInstance.completeEpoch();

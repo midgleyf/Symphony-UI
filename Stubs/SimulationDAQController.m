@@ -1,22 +1,15 @@
-classdef SimulationDAQController < handle
+classdef SimulationDAQController < IDAQController 
    
     properties
-        Clock
         SampleRate
+        SimulationRunner
     end
     
     methods
         function obj = SimulationDAQController()
-            obj = obj@handle();
+            obj = obj@IDAQController ();
             
             obj.SampleRate = Measurement(100, 'hz');
-        end
-        
-        function Setup(obj) %#ok<MANU>
-        end
-        
-        function s = GetStream(obj, name) %#ok<INUSD,MANU>
-            s = [];
         end
     end
 end
