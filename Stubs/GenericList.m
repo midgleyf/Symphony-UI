@@ -16,7 +16,7 @@ classdef GenericList < handle
         end
         
         function i = Item(obj, index)
-            i = obj.Items{index};
+            i = obj.Items{index + 1};   % index is zero based
         end
         
         function c = Count(obj)
