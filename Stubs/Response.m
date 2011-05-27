@@ -8,7 +8,7 @@ classdef Response < handle
         function obj = Response()
             obj = obj@handle();
             
-            obj.Data = InputData(GenericList(), Measurement(10000, 'hz'), now);
+            obj.Data = InputData(GenericList(), Measurement(10000, 'Hz'), now);
         end
     end
     

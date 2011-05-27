@@ -9,7 +9,7 @@ classdef SimulationDAQController < IDAQController
         function obj = SimulationDAQController()
             obj = obj@IDAQController ();
             
-            obj.SampleRate = Measurement(100, 'hz');
+            obj.SampleRate = Measurement(100, 'Hz');
         end
     end
 end
