@@ -129,7 +129,7 @@ classdef SymphonyProtocol < handle
         end
         
         
-        function r = response(obj, deviceName)
+        function [r, s, u] = response(obj, deviceName)
             % Return the response recorded from the device with the given name.
             
             if nargin == 1
@@ -149,30 +149,15 @@ classdef SymphonyProtocol < handle
             response = obj.epoch.Responses.Item(device);
             data = response.Data.Data;
             r = zeros(1, data.Count);
+            u = [];
             for i = 1:data.Count
+                if i == 1
+                    u = response.Data.Data.Item(0).Unit;
+                end
                 r(i) = data.Item(i - 1).Quantity;
             end
-        end
-        
-        
-        function r = responseSampleRate(obj, deviceName)
-            % Return the sample rate of the response recorded from the device with the given name.
-            % TODO: totally untested
             
-            if nargin == 1
-                if isempty(which('NET.createGeneric'))
-                    device = obj.epoch.Responses.Keys{1};
-                else
-                    keys = obj.epoch.Responses.Keys.GetEnumerator();
-                    keys.MoveNext();
-                    device = keys.Current();
-                end
-            else
-                device = obj.controller.GetDevice(deviceName);
-                % TODO: what happens when there is no device with that name?
-            end
-            response = obj.epoch.Responses.Item(device);
-            r = response.Data.SampleRate.QuantityInBaseUnit;
+            s = response.Data.SampleRate.QuantityInBaseUnit;
             % TODO: do we care about the units of the SampleRate measurement?
         end
         
