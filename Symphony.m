@@ -23,7 +23,6 @@ end
 
 function controller = createSymphonyController(daqName, sampleRate)
     import Symphony.Core.*;
-    import Symphony.Core.Converters.*;
     import Symphony.SimulationDAQController.*;
     import Heka.*;
     
@@ -43,7 +42,9 @@ function controller = createSymphonyController(daqName, sampleRate)
         outStream = daq.GetStream('ANALOG_OUT.0');
         inStream = daq.GetStreams('ANALOG_IN.0');
     elseif(strcmpi(daqName, 'simulation'))
-        Register('V','V', @(m) m);
+        if ~isempty(which('NET.createGeneric'))
+            Symphony.Core.Converters.Register('V','V', @(m) m);
+        end
         daq = SimulationDAQController();
         
         outStream = DAQOutputStream('OUT');
@@ -99,7 +100,11 @@ end
 function showMainWindow()
     import Symphony.Core.*;
     
-    sampleRate = Measurement(10000, 'Hz');
+    if isempty(which('NET.createGeneric'))
+        sampleRate = Measurement(10000, 'Hz');
+    else
+        sampleRate = Symphony.Core.Measurement(10000, 'Hz');
+    end
     handles.controller = createSymphonyController('simulation', sampleRate);
     
     % Get the list of protocols from the 'Protocols' folder.
