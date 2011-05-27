@@ -7,6 +7,7 @@ classdef Epoch < handle
         Responses
         Identifier
         StartTime
+        Background
     end
     
     methods
@@ -22,7 +23,14 @@ classdef Epoch < handle
             obj.Stimuli = GenericDictionary();
             obj.Responses = GenericDictionary();
             obj.Identifier = char(java.util.UUID.randomUUID());
+            obj.Background = GenericDictionary();
         end
     end
     
+    methods (Static)
+        function eb = EpochBackground(background, sampleRate)
+            eb.Background = background;
+            eb.SampleRate = sampleRate;
+        end
+    end
 end

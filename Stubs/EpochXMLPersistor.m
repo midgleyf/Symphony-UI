@@ -47,9 +47,21 @@ classdef EpochXMLPersistor < EpochPersistor
             epochNode.setAttribute('startTime', obj.formatDate(epoch.StartTime));
             obj.groupNode.appendChild(epochNode);
             
-            % Serialize the background node.
-            % TODO: add attributes/child elements
-            epochNode.appendChild(obj.docNode.createElement('background'));
+            % Serialize the device backgrounds.
+            backgroundsNode = obj.docNode.createElement('background');
+            epochNode.appendChild(backgroundsNode);
+            for i = 1:epoch.Background.Count
+                device = epoch.Background.Keys{i};
+                background = epoch.Background.Values{i};
+                backgroundNode = obj.docNode.createElement(device.Name);
+                backgroundsNode.appendChild(backgroundNode);
+                backgroundMeasurementNode = obj.docNode.createElement('backgroundMeasurement');
+                backgroundNode.appendChild(backgroundMeasurementNode);
+                obj.addMeasurementNode(backgroundMeasurementNode, background.Background, 'measurement');
+                sampleRateNode = obj.docNode.createElement('sampleRate');
+                backgroundNode.appendChild(sampleRateNode);
+                obj.addMeasurementNode(sampleRateNode, background.SampleRate, 'measurement');
+            end
             
             % Serialize the protocol parameters.
             obj.serializeParameters(epochNode, epoch.ProtocolParameters, 'protocolParameters');
@@ -57,7 +69,7 @@ classdef EpochXMLPersistor < EpochPersistor
             % Serialize the stimuli.
             stimuliNode = obj.docNode.createElement('stimuli');
             epochNode.appendChild(stimuliNode);
-            for i = 1:numel(epoch.Stimuli.Keys)
+            for i = 1:epoch.Stimuli.Count
                 device = epoch.Stimuli.Keys{i};
                 stimulus = epoch.Stimuli.Values{i};
                 stimulusNode = obj.docNode.createElement('stimulus');
@@ -71,7 +83,7 @@ classdef EpochXMLPersistor < EpochPersistor
             % Serialize the responses.
             responsesNode = obj.docNode.createElement('responses');
             epochNode.appendChild(responsesNode);
-            for i = 1:numel(epoch.Responses.Keys)
+            for i = 1:epoch.Responses.Count
                 device = epoch.Responses.Keys{i};
                 response = epoch.Responses.Values{i};
                 responseNode = obj.docNode.createElement('response');
@@ -83,18 +95,11 @@ classdef EpochXMLPersistor < EpochPersistor
                 responseNode.appendChild(inputTimeNode);
                 sampleRateNode = obj.docNode.createElement('sampleRate');
                 responseNode.appendChild(sampleRateNode);
-                measurementNode = obj.docNode.createElement('measurement');
-                measurementNode.setAttribute('qty', num2str(response.Data.SampleRate.Quantity));
-                measurementNode.setAttribute('unit', response.Data.SampleRate.Unit);
-                sampleRateNode.appendChild(measurementNode);
+                obj.addMeasurementNode(sampleRateNode, response.Data.SampleRate, 'measurement');
                 dataNode = obj.docNode.createElement('data');
                 responseNode.appendChild(dataNode);
                 for i = 1:response.Data.Data.Count
-                    dataPoint = response.Data.Data.Item(i - 1);
-                    measurementNode = obj.docNode.createElement('measurement');
-                    measurementNode.setAttribute('qty', num2str(dataPoint.Quantity));
-                    measurementNode.setAttribute('unit', dataPoint.Unit);
-                    dataNode.appendChild(measurementNode);
+                    obj.addMeasurementNode(dataNode, response.Data.Data.Item(i - 1), 'measurement');
                 end
                 obj.serializeParameters(responseNode, response.Data.ExternalDeviceConfiguration, 'externalDeviceConfiguration');
                 obj.serializeParameters(responseNode, response.Data.StreamConfiguration, 'streamConfiguration');
@@ -141,6 +146,13 @@ classdef EpochXMLPersistor < EpochPersistor
                 end
                 paramsNode.appendChild(paramNode);
             end
+        end
+        
+        function addMeasurementNode(obj, rootNode, measurement, nodeName)
+            measurementNode = obj.docNode.createElement(nodeName);
+            measurementNode.setAttribute('qty', num2str(measurement.Quantity));
+            measurementNode.setAttribute('unit', measurement.Unit);
+            rootNode.appendChild(measurementNode);
         end
     end
     
