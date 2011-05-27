@@ -5,7 +5,7 @@ classdef EpochPersistor < handle
     
     methods (Abstract)
         BeginEpochGroup(obj, label, parents, sources, keywords, identifier);
-        SerializeEpoch(obj, epoch);
+        Serialize(obj, epoch);
         EndEpochGroup(obj);
         Close(obj);
     end
