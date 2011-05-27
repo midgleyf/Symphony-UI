@@ -5,6 +5,8 @@ classdef Epoch < handle
         ProtocolParameters
         Stimuli
         Responses
+        Identifier
+        StartTime
     end
     
     methods
@@ -19,6 +21,7 @@ classdef Epoch < handle
             end
             obj.Stimuli = GenericDictionary();
             obj.Responses = GenericDictionary();
+            obj.Identifier = char(java.util.UUID.randomUUID());
         end
     end
     
