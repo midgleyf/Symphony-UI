@@ -152,7 +152,7 @@ classdef SymphonyProtocol < handle
             u = [];
             for i = 1:data.Count
                 if i == 1
-                    u = response.Data.Data.Item(0).Unit;
+                    u = char(response.Data.Data.Item(0).Unit);
                 end
                 r(i) = data.Item(i - 1).Quantity;
             end
