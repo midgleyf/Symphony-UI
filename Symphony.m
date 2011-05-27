@@ -529,8 +529,9 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
     % Open a figure window to show the response of each epoch.
     figure('Name', [class(pluginInstance) ': Response'], ...
            'NumberTitle', 'off');
-    responseAxes = axes('Position', [0.05 0.05 0.9 0.9]);
+    responseAxes = axes('Position', [0.1 0.1 0.85 0.85]);
     responsePlot = plot(responseAxes, 1:100, zeros(1, 100));
+    xlabel(responseAxes, 'sec');
     drawnow expose;
     
     % Set up the persistor.
@@ -561,14 +562,14 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
                 persistor.Serialize(pluginInstance.epoch);
                 
                 % Plot the response.
-                 responseData = pluginInstance.response();
-                 sampleRate = pluginInstance.responseSampleRate();
+                 [responseData, sampleRate, units] = pluginInstance.response();
                  duration = numel(responseData) / sampleRate;
                  samplesPerTenth = sampleRate / 10;
                  set(responsePlot, 'XData', 1:numel(responseData), ...
                                    'YData', responseData);
                  set(responseAxes, 'XTick', 1:samplesPerTenth:numel(responseData), ...
                                    'XTickLabel', 0:.1:duration);
+                 ylabel(responseAxes, units);
                  drawnow expose;
             catch e
                 % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
