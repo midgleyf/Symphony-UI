@@ -42,6 +42,7 @@ function controller = createSymphonyController(daqName, sampleRate)
         outStream = daq.GetStream('ANALOG_OUT.0');
         inStream = daq.GetStreams('ANALOG_IN.0');
     elseif(strcmpi(daqName, 'simulation'))
+        Symphony.Core.Converters.Register('V','V', @(m) m);
         daq = SimulationDAQController();
         
         outStream = DAQOutputStream('OUT');
@@ -70,7 +71,7 @@ function controller = createSymphonyController(daqName, sampleRate)
     
     % Create external device and bind streams
     % TODO: set default background?
-    dev = ExternalDevice('test-device', controller, Measurement(0,'V'));
+    dev = ExternalDevice('test-device', controller, Measurement(0, 'V'));
     dev.Clock = daq;
     dev.MeasurementConversionTarget = 'V';
     dev.BindStream(outStream);
@@ -97,7 +98,7 @@ end
 function showMainWindow()
     import Symphony.Core.*;
     
-    sampleRate = Measurement(10000, 'Hz');
+    sampleRate = Symphony.Core.Measurement(10000, 'Hz');
     handles.controller = createSymphonyController('simulation', sampleRate);
     
     % Get the list of protocols from the 'Protocols' folder.
@@ -529,6 +530,7 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
            'NumberTitle', 'off');
     responseAxes = axes('Position', [0.05 0.05 0.9 0.9]);
     responsePlot = plot(responseAxes, 1:100, zeros(1, 100));
+    drawnow expose;
     
     % Set up the persistor.
     persistor.BeginEpochGroup(label, parents, sources, keywords, identifier);
@@ -554,6 +556,8 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
             % Run the epoch.
             try
                 pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
+                
+                persistor.Serialize(pluginInstance.epoch);
                 
                 % Plot the response.
                  responseData = pluginInstance.response();
