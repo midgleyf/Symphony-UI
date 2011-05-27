@@ -133,10 +133,13 @@ classdef SymphonyProtocol < handle
             % Return the response recorded from the device with the given name.
             
             if nargin == 1
-                keys = obj.epoch.Responses.Keys.GetEnumerator();
-                keys.MoveNext();
-                device = keys.Current();
-                %device = obj.epoch.Responses.Keys{1};
+                if isempty(which('NET.createGeneric'))
+                    device = obj.epoch.Responses.Keys{1};
+                else
+                    keys = obj.epoch.Responses.Keys.GetEnumerator();
+                    keys.MoveNext();
+                    device = keys.Current();
+                end
             else
                 device = obj.controller.GetDevice(deviceName);
                 % TODO: what happens when there is no device with that name?
@@ -157,10 +160,13 @@ classdef SymphonyProtocol < handle
             % TODO: totally untested
             
             if nargin == 1
-                keys = obj.epoch.Responses.Keys.GetEnumerator();
-                keys.MoveNext();
-                device = keys.Current();
-%                device = obj.epoch.Responses.Keys{1};
+                if isempty(which('NET.createGeneric'))
+                    device = obj.epoch.Responses.Keys{1};
+                else
+                    keys = obj.epoch.Responses.Keys.GetEnumerator();
+                    keys.MoveNext();
+                    device = keys.Current();
+                end
             else
                 device = obj.controller.GetDevice(deviceName);
                 % TODO: what happens when there is no device with that name?
