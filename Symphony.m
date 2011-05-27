@@ -273,7 +273,7 @@ function showMainWindow()
     handles.newEpochGroupButton = uicontrol(...
         'Parent', handles.epochPanel,...
         'Units', 'points', ...
-        'Callback', @(hObject,eventdata)newEpochGroupCallback(hObject,eventdata,guidata(hObject)), ...
+        'Callback', @(hObject,eventdata)createNewEpochGroup(hObject,eventdata,guidata(hObject)), ...
         'Position', [224.8 9.6 97.6 20.8], ...
         'String', 'New Epoch Group', ...
         'Tag', 'newEpochGroupButton');
@@ -327,6 +327,16 @@ function chooseProtocol(~, ~, handles)
         end
 
         editParameters(handles.pluginInstance);
+    end
+end
+
+
+function createNewEpochGroup(~, ~, handles)
+    [outputPath, label, source] = NewEpochGroup();
+    if ~isempty(outputPath)
+        set(handles.epochGroupOutputPathText, 'String', outputPath);
+        set(handles.epochGroupLabelText, 'String', label);
+        set(handles.epochGroupSourceText, 'String', source);
     end
 end
 
