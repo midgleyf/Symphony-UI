@@ -16,10 +16,10 @@ classdef Controller < handle
             end
         end
         
-        function RunEpoch(obj, epoch, persistor)
+        function RunEpoch(obj, epoch, persistor) %#ok<INUSD>
             import Symphony.Core.*;
             
-            persistor.SerializeEpoch(epoch);
+            epoch.StartTime = now;
             
             device = obj.GetDevice('test-device');
             duration = epoch.Stimuli.Item(device).Duration;
@@ -32,7 +32,7 @@ classdef Controller < handle
                 for j = 1:samples
                     data.Add(Measurement((rand(1, 1) * 1000 - 500) / 1000000, 'A'));
                 end
-                epoch.Responses.Values{i}.Data = InputData(data, Measurement(10000, 'hz'), now);
+                epoch.Responses.Values{i}.Data = InputData(data, Measurement(10000, 'Hz'), now);
             end
         end
     end
