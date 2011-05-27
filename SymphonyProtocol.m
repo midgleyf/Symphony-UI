@@ -96,7 +96,7 @@ classdef SymphonyProtocol < handle
                 stimDataList.Add(Measurement(stimulusData(i), 'V'));
             end
 
-            outputData = OutputData(stimDataList, Measurement(obj.controller.DAQController.GetStream('OUT').SampleRate.QuantityInBaseUnit, 'Hz'), true);
+            outputData = OutputData(stimDataList, obj.controller.DAQController.GetStream('OUT').SampleRate, true);
 
             stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
 
@@ -113,13 +113,12 @@ classdef SymphonyProtocol < handle
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            obj.epoch.Background.Add(device, Epoch.EpochBackground(Measurement(volts, 'V'), Measurement(obj.controller.DAQController.GetStream('OUT').SampleRate.QuantityInBaseUnit, 'Hz')));
+            obj.epoch.Background.Add(device, Epoch.EpochBackground(Measurement(volts, 'V'), obj.controller.DAQController.GetStream('OUT').SampleRate));
         end
         
         
         function recordResponse(obj, deviceName)
             % Record the response from the device with the given name when the epoch runs.
-            % TODO: totally untested
             
             import Symphony.Core.*;
             
@@ -132,10 +131,12 @@ classdef SymphonyProtocol < handle
         
         function r = response(obj, deviceName)
             % Return the response recorded from the device with the given name.
-            % TODO: totally untested
             
             if nargin == 1
-                device = obj.epoch.Responses.Keys{1};
+                keys = obj.epoch.Responses.Keys.GetEnumerator();
+                keys.MoveNext();
+                device = keys.Current();
+                %device = obj.epoch.Responses.Keys{1};
             else
                 device = obj.controller.GetDevice(deviceName);
                 % TODO: what happens when there is no device with that name?
@@ -146,7 +147,7 @@ classdef SymphonyProtocol < handle
             data = response.Data.Data;
             r = zeros(1, data.Count);
             for i = 1:data.Count
-                r(i) = data.Item(i).Quantity;
+                r(i) = data.Item(i - 1).Quantity;
             end
         end
         
@@ -156,7 +157,10 @@ classdef SymphonyProtocol < handle
             % TODO: totally untested
             
             if nargin == 1
-                device = obj.epoch.Responses.Keys{1};
+                keys = obj.epoch.Responses.Keys.GetEnumerator();
+                keys.MoveNext();
+                device = keys.Current();
+%                device = obj.epoch.Responses.Keys{1};
             else
                 device = obj.controller.GetDevice(deviceName);
                 % TODO: what happens when there is no device with that name?
