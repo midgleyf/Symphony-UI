@@ -315,18 +315,18 @@ function chooseProtocol(~, ~, handles)
     pluginIndex = get(handles.protocolPopup, 'Value');
     pluginClassName = handles.protocolClassNames{pluginIndex};
     
-    if ~isfield(handles, 'pluginInstance') || ~isa(handles.pluginInstance, pluginClassName)
-        handles.pluginInstance = eval([pluginClassName '(handles.controller)']);
+    if ~isfield(handles, 'protocolPlugin') || ~isa(handles.protocolPlugin, pluginClassName)
+        handles.protocolPlugin = eval([pluginClassName '(handles.controller)']);
         guidata(handles.figure, handles);
         
         % Use any previously set parameters.
-        params = getpref('ProtocolDefaults', class(handles.pluginInstance), struct);
+        params = getpref('ProtocolDefaults', class(handles.protocolPlugin), struct);
         paramNames = fieldnames(params);
         for i = 1:numel(paramNames)
-            handles.pluginInstance.(paramNames{i}) = params.(paramNames{i});
+            handles.protocolPlugin.(paramNames{i}) = params.(paramNames{i});
         end
 
-        editParameters(handles.pluginInstance);
+        editParameters(handles.protocolPlugin);
     end
 end
 
@@ -338,173 +338,6 @@ function createNewEpochGroup(~, ~, handles)
         set(handles.epochGroupLabelText, 'String', label);
         set(handles.epochGroupSourceText, 'String', source);
     end
-end
-
-
-function editParameters(pluginInstance)
-    handles.pluginInstance = pluginInstance;
-    
-    params = pluginInstance.parameters();
-    paramNames = sort(fieldnames(params));
-    paramCount = numel(paramNames);
-    
-    dialogHeight = paramCount * 30 + 50;
-    
-    handles.figure = dialog(...
-        'Units', 'points', ...
-        'Name', [class(pluginInstance) ' Parameters'], ...
-        'Position', centerWindowOnScreen(325, dialogHeight), ...
-        'WindowKeyPressFcn', @(hObject, eventdata)editParametersKeyPress(hObject, eventdata, guidata(hObject)), ...
-        'Tag', 'figure');
-    
-    uicontrolcolor = reshape(get(0,'defaultuicontrolbackgroundcolor'),[1,1,3]);
-
-    % array for pushbutton's CData
-    button_size = 16;
-    mid = button_size/2;
-    push_cdata = repmat(uicontrolcolor,button_size,button_size);
-    for r = 4:11
-        start = mid - r + 8 ;
-        last = mid + r - 8;
-        push_cdata(r,start:last,:) = 0;
-    end
-    
-
-    for paramIndex = 1:paramCount
-        paramName = paramNames{paramIndex};
-        paramValue = params.(paramName);
-        
-        paramLabel = regexprep(paramName, '([^A-Z])([A-Z])', '$1 $2');
-        paramLabel = strrep(paramLabel, '_', ' ');
-        paramLabel(1) = upper(paramLabel(1));
-
-        uicontrol(...
-            'Parent', handles.figure,...
-            'Units', 'points', ...
-            'FontSize', 12,...
-            'HorizontalAlignment', 'right', ...
-            'Position', [10 dialogHeight-paramIndex*30 100 18], ...
-            'String',  paramLabel,...
-            'Style', 'text');
-        
-        paramTag = [paramName 'Edit'];
-        if isinteger(paramValue) 
-            handles.(paramTag) = uicontrol(...
-                'Parent', handles.figure,...
-                'Units', 'points', ...
-                'FontSize', 12,...
-                'HorizontalAlignment', 'left', ...
-                'Position', [115 dialogHeight-paramIndex*30-2 189 26], ...
-                'String',  num2str(paramValue),...
-                'Style', 'edit', ...
-                'Tag', paramTag);
-            uicontrol(...
-                'Parent', handles.figure,...
-                'Units', 'points', ...
-                'Position', [301 dialogHeight-paramIndex*30+10 12 12], ...
-                'CData', push_cdata, ...
-                'Callback', @(hObject,eventdata)stepValueUp(hObject, eventdata, guidata(hObject), paramTag));
-            uicontrol(...
-                'Parent', handles.figure,...
-                'Units', 'points', ...
-                'Position', [301 dialogHeight-paramIndex*30-1 12 12], ...
-                'CData', flipdim(push_cdata, 1), ...
-                'Callback', @(hObject,eventdata)stepValueDown(hObject, eventdata, guidata(hObject), paramTag));
-        elseif islogical(paramValue)
-            handles.(paramTag) = uicontrol(...
-                'Parent', handles.figure,...
-                'Units', 'points', ...
-                'FontSize', 12,...
-                'Position', [115 dialogHeight-paramIndex*30-2 200 26], ...
-                'Value', paramValue, ...
-                'Style', 'checkbox', ...
-                'Tag', paramTag);
-        elseif isnumeric(paramValue) || ischar(paramValue)
-            handles.(paramTag) = uicontrol(...
-                'Parent', handles.figure,...
-                'Units', 'points', ...
-                'FontSize', 12,...
-                'HorizontalAlignment', 'left', ...
-                'Position', [115 dialogHeight-paramIndex*30-2 200 26], ...
-                'String',  paramValue,...
-                'Style', 'edit', ...
-                'Tag', paramTag);
-        else
-            error('Unhandled param type');
-        end
-    end
-    
-    handles.cancelButton = uicontrol(...
-        'Parent', handles.figure,...
-        'Units', 'points', ...
-        'Callback', @(hObject,eventdata)cancelEditParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [10 10 56 20], ...
-        'String', 'Cancel', ...
-        'Tag', 'cancelButton');
-    
-    handles.saveButton = uicontrol(...
-        'Parent', handles.figure,...
-        'Units', 'points', ...
-        'Callback', @(hObject,eventdata)saveEditParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [80 10 56 20], ...
-        'String', 'Save', ...
-        'Tag', 'saveButton');
-    
-    guidata(handles.figure, handles);
-end
-
-
-function editParametersKeyPress(hObject, eventdata, handles)
-    if strcmp(eventdata.Key, 'return')
-        % Move focus off of any edit text so the changes can be seen.
-        uicontrol(handles.saveButton);
-        
-        saveEditParameters(hObject, eventdata, handles);
-    elseif strcmp(eventdata.Key, 'escape')
-        cancelEditParameters(hObject, eventdata, handles);
-    end
-end
-
-
-function stepValueUp(~, ~, handles, paramTag)
-    curValue = int32(str2double(get(handles.(paramTag), 'String')));
-    set(handles.(paramTag), 'String', num2str(curValue + 1));
-end
-
-
-function stepValueDown(~, ~, handles, paramTag)
-    curValue = int32(str2double(get(handles.(paramTag), 'String')));
-    set(handles.(paramTag), 'String', num2str(curValue - 1));
-end
-
-
-function cancelEditParameters(~, ~, handles)
-    close(handles.figure);
-end
-
-
-function saveEditParameters(~, ~, handles)
-    params = handles.pluginInstance.parameters();
-    paramNames = sort(fieldnames(params));
-    paramCount = numel(paramNames);
-    
-    for paramIndex = 1:paramCount
-        paramName = paramNames{paramIndex};
-        paramTag = [paramName 'Edit'];
-        if isnumeric(params.(paramName))
-            paramValue = str2num(get(handles.(paramTag), 'String')); %#ok<ST2NM>
-        elseif islogical(params.(paramName))
-            paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
-        elseif ischar(params.(paramName))
-            paramValue = get(handles.(paramTag), 'String');
-        end
-        handles.pluginInstance.(paramName) = paramValue;
-    end
-    
-    % Remember these parameters for the next time the protocol is used.
-    setpref('ProtocolDefaults', class(handles.pluginInstance), handles.pluginInstance.parameters());
-    
-    close(handles.figure);
 end
 
 
@@ -534,15 +367,15 @@ function startAcquisition(~, ~, handles)
     % TODO: populate parents, sources and keywords
     label = get(handles.epochGroupLabelText, 'String');
     
-    runProtocol(handles.pluginInstance, persistor, label, parents, sources, keywords, uid);
+    runProtocol(handles.protocolPlugin, persistor, label, parents, sources, keywords, uid);
 end
 
 
-function runProtocol(pluginInstance, persistor, label, parents, sources, keywords, identifier)
+function runProtocol(protocolPlugin, persistor, label, parents, sources, keywords, identifier)
     import Symphony.Core.*;
     
     % Open a figure window to show the response of each epoch.
-    figure('Name', [class(pluginInstance) ': Response'], ...
+    figure('Name', [class(protocolPlugin) ': Response'], ...
            'NumberTitle', 'off');
     responseAxes = axes('Position', [0.1 0.1 0.85 0.85]);
     responsePlot = plot(responseAxes, 1:100, zeros(1, 100));
@@ -554,30 +387,30 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
     
     try
         % Initialize the run.
-        pluginInstance.epoch = [];
-        pluginInstance.epochNum = 0;
-        pluginInstance.prepareEpochGroup()
+        protocolPlugin.epoch = [];
+        protocolPlugin.epochNum = 0;
+        protocolPlugin.prepareEpochGroup()
 
         % Loop through all of the epochs.
-        while pluginInstance.continueEpochGroup()
+        while protocolPlugin.continueEpochGroup()
             % Create a new epoch.
-            pluginInstance.epochNum = pluginInstance.epochNum + 1;
-            pluginInstance.epoch = Epoch(pluginInstance.identifier);
+            protocolPlugin.epochNum = protocolPlugin.epochNum + 1;
+            protocolPlugin.epoch = Epoch(protocolPlugin.identifier);
 
             % Let sub-classes add stimulii, record responses, tweak params, etc.
-            pluginInstance.prepareEpoch();
+            protocolPlugin.prepareEpoch();
 
             % Set the params now that the sub-class has had a chance to tweak them.
-            pluginInstance.epoch.ProtocolParameters = structToDictionary(pluginInstance.parameters());
+            protocolPlugin.epoch.ProtocolParameters = structToDictionary(protocolPlugin.parameters());
 
             % Run the epoch.
             try
-                pluginInstance.controller.RunEpoch(pluginInstance.epoch, persistor);
+                protocolPlugin.controller.RunEpoch(protocolPlugin.epoch, persistor);
                 
-                persistor.Serialize(pluginInstance.epoch);
+                persistor.Serialize(protocolPlugin.epoch);
                 
                 % Plot the response.
-                 [responseData, sampleRate, units] = pluginInstance.response();
+                 [responseData, sampleRate, units] = protocolPlugin.response();
                  duration = numel(responseData) / sampleRate;
                  samplesPerTenth = sampleRate / 10;
                  set(responsePlot, 'XData', 1:numel(responseData), ...
@@ -598,7 +431,7 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
             end
             
             % Let the sub-class perform any post-epoch analysis, clean up, etc.
-            pluginInstance.completeEpoch();
+            protocolPlugin.completeEpoch();
         end
     catch e
         ed = errordlg(e.message);
@@ -606,7 +439,7 @@ function runProtocol(pluginInstance, persistor, label, parents, sources, keyword
     end
     
     % Let the sub-class perform any final analysis, clean up, etc.
-    pluginInstance.completeEpochGroup();
+    protocolPlugin.completeEpochGroup();
     
     persistor.EndEpochGroup();
     persistor.Close();
