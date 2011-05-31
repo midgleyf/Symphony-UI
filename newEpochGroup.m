@@ -1,4 +1,4 @@
-function [outputPath, label, source] = NewEpochGroup()
+function [outputPath, label, source] = newEpochGroup()
     handles.outputPath = '';
     handles.label = '';
     handles.source = '';
@@ -171,6 +171,9 @@ function saveNewGroup(~, ~, handles)
     handles.label = get(handles.labelEdit, 'String');
     sourceLabels = get(handles.sourcePopup, 'String');
     handles.source = sourceLabels{get(handles.sourcePopup, 'Value')};
+    if strcmp(handles.source, 'None')
+        handles.source = '';
+    end
     guidata(handles.figure, handles);
     
     % Remember these parameters for the next time the protocol is used.

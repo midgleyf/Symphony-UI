@@ -134,6 +134,9 @@ function saveNewSource(~, ~, handles)
     handles.label = get(handles.labelEdit, 'String');
     parentLabels = get(handles.parentPopup, 'String');
     handles.parent = parentLabels{get(handles.parentPopup, 'Value')};
+    if strcmp(handles.parent, 'None')
+        handles.parent = '';
+    end
     guidata(handles.figure, handles);
     
     % Remember these parameters for the next time the protocol is used.
@@ -141,8 +144,8 @@ function saveNewSource(~, ~, handles)
     newSource.parent = handles.parent;
     if ispref('Symphony', 'Sources')
         sources = getpref('Symphony', 'Sources');
-        if any(strcmp({sources.label}, newSource.label))
-            errordlg('A source with that name already exists.', 'Symphony');
+        if strcmp('None', newSource.label) || any(strcmp({sources.label}, newSource.label))
+            errordlg('A source with that label already exists.', 'Symphony');
             return
         end
         sources(end + 1) = newSource;
