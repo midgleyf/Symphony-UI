@@ -347,34 +347,51 @@ function startAcquisition(~, ~, handles)
         return
     end
     
-    import Symphony.Core.*;
+    % Disable/enable the appropriate GUI
+    set([handles.startButton, handles.protocolPopup, handles.saveEpochsCheckbox, handles.newEpochGroupButton], 'Enable', 'off');
+    set(handles.stopButton, 'Enable', 'on');
     
-    xmlRootPath = get(handles.epochGroupOutputPathText, 'String');
-    xmlPath = fullfile(xmlRootPath, [class(handles.protocolPlugin) '_' datestr(now, 30) '.xml']);
-    persistor = EpochXMLPersistor(xmlPath);
+    % Wrap the rest in a try/catch block so we can be sure to reenable the GUI.
+    try
+        import Symphony.Core.*;
     
-    parentArray = NET.createArray('System.String', 0);
-    % TODO: populate parents (from where?)
-    
-    hierarchy = sourceHierarchy(get(handles.epochGroupSourceText, 'String'));
-    sourceArray = NET.createArray('System.String', numel(hierarchy));
-    for i = 1:numel(hierarchy)
-        sourceArray(i) = hierarchy{i};
+        xmlRootPath = get(handles.epochGroupOutputPathText, 'String');
+        xmlPath = fullfile(xmlRootPath, [class(handles.protocolPlugin) '_' datestr(now, 30) '.xml']);
+        persistor = EpochXMLPersistor(xmlPath);
+
+        parentArray = NET.createArray('System.String', 0);
+        % TODO: populate parents (from where?)
+
+        hierarchy = sourceHierarchy(get(handles.epochGroupSourceText, 'String'));
+        sourceArray = NET.createArray('System.String', numel(hierarchy));
+        for i = 1:numel(hierarchy)
+            sourceArray(i) = hierarchy{i};
+        end
+
+        keywordsText = get(handles.keywordsEdit, 'String');
+        keywords = strtrim(regexp(keywordsText, ',', 'split'));
+        if isequal(keywords, {''})
+            keywords = {};
+        end
+        keywordArray = NET.createArray('System.String', numel(keywords));
+        for i = 1:numel(keywords)
+            keywordArray(i) = keywords{i};
+        end
+
+        label = get(handles.epochGroupLabelText, 'String');
+
+        runProtocol(handles.protocolPlugin, persistor, label, parentArray, sourceArray, keywordArray, System.Guid.NewGuid());
+    catch ME
+        % Reenable the GUI.
+        set([handles.startButton, handles.protocolPopup, handles.saveEpochsCheckbox, handles.newEpochGroupButton], 'Enable', 'off');
+        set(handles.stopButton, 'Enable', 'on');
+        
+        rethrow(ME);
     end
     
-    keywordsText = get(handles.keywordsEdit, 'String');
-    keywords = strtrim(regexp(keywordsText, ',', 'split'));
-    if isequal(keywords, {''})
-        keywords = {};
-    end
-    keywordArray = NET.createArray('System.String', numel(keywords));
-    for i = 1:numel(keywords)
-        keywordArray(i) = keywords{i};
-    end
-    
-    label = get(handles.epochGroupLabelText, 'String');
-    
-    runProtocol(handles.protocolPlugin, persistor, label, parentArray, sourceArray, keywordArray, System.Guid.NewGuid());
+    % Reenable the GUI.
+    set([handles.startButton, handles.protocolPopup, handles.saveEpochsCheckbox, handles.newEpochGroupButton], 'Enable', 'off');
+    set(handles.stopButton, 'Enable', 'on');
 end
 
 
