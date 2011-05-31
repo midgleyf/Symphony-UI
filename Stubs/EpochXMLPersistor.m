@@ -25,18 +25,21 @@ classdef EpochXMLPersistor < EpochPersistor
             obj.groupNode.setAttribute('timeZone', tz.getDisplayName(tz.useDaylightTime, java.util.TimeZone.LONG));
             
             parentsNode = obj.groupNode.appendChild(obj.docNode.createElement('parents'));
-            for i = 1:parents.Count
-                parentsNode.appendChild(obj.docNode.createTextNode(parents{i}));
+            for i = 1:numel(parents)
+                parentNode = parentsNode.appendChild(obj.docNode.createElement('parent'));
+                parentNode.appendChild(obj.docNode.createTextNode(parents(i)));
             end
             
             sourcesNode = obj.groupNode.appendChild(obj.docNode.createElement('sources'));
-            for source = 1:sources.Count
-                sourcesNode.appendChild(obj.docNode.createTextNode(sources{i}));
+            for i = 1:numel(sources)
+                sourceNode = sourcesNode.appendChild(obj.docNode.createElement('source'));
+                sourceNode.appendChild(obj.docNode.createTextNode(sources(i)));
             end
             
             keywordsNode = obj.groupNode.appendChild(obj.docNode.createElement('keywords'));
-            for keyword = 1:keywords.Count
-                keywordsNode.appendChild(obj.docNode.createTextNode(keywords{i}));
+            for i = 1:numel(keywords)
+                keywordNode = keywordsNode.appendChild(obj.docNode.createElement('keyword'));
+                keywordNode.appendChild(obj.docNode.createTextNode(keywords(i)));
             end
         end
         

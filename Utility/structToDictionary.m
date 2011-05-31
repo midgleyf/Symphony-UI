@@ -1,9 +1,5 @@
 function d = structToDictionary(s)
-    if ismac
-        d = GenericDictionary();
-    else
-        d = NET.createGeneric('System.Collections.Generic.Dictionary', {'System.String', 'System.Object'});
-    end
+    d = NET.createGeneric('System.Collections.Generic.Dictionary', {'System.String', 'System.Object'});
     keys = fieldnames(s);
     for i=1:length(keys)
         key = keys{i};

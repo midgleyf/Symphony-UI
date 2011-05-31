@@ -87,11 +87,7 @@ classdef SymphonyProtocol < handle
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            if isempty(which('NET.createGeneric'))
-                stimDataList = GenericList();
-            else
-                stimDataList = NET.createGeneric('System.Collections.Generic.List', {'Symphony.Core.Measurement'}, length(stimulusData));
-            end
+            stimDataList = NET.createGeneric('System.Collections.Generic.List', {'Symphony.Core.Measurement'}, length(stimulusData));
             for i=1:length(stimulusData)
                 stimDataList.Add(Measurement(stimulusData(i), 'V'));
             end
@@ -133,7 +129,7 @@ classdef SymphonyProtocol < handle
             % Return the response recorded from the device with the given name.
             
             if nargin == 1
-                if isempty(which('NET.createGeneric'))
+                if isempty(which('NET.convertArray'))
                     device = obj.epoch.Responses.Keys{1};
                 else
                     keys = obj.epoch.Responses.Keys.GetEnumerator();
