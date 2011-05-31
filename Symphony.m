@@ -303,13 +303,12 @@ function showMainWindow()
 end
 
 
-function chooseProtocol(~, ~, handles)
+function chosen = chooseProtocol(~, ~, handles)
     pluginIndex = get(handles.protocolPopup, 'Value');
     pluginClassName = handles.protocolClassNames{pluginIndex};
     
     if ~isfield(handles, 'protocolPlugin') || ~isa(handles.protocolPlugin, pluginClassName)
         handles.protocolPlugin = eval([pluginClassName '(handles.controller)']);
-        guidata(handles.figure, handles);
         
         % Use any previously set parameters.
         params = getpref('ProtocolDefaults', class(handles.protocolPlugin), struct);
@@ -318,7 +317,12 @@ function chooseProtocol(~, ~, handles)
             handles.protocolPlugin.(paramNames{i}) = params.(paramNames{i});
         end
 
-        editParameters(handles.protocolPlugin);
+        chosen = editParameters(handles.protocolPlugin);
+        
+        guidata(handles.figure, handles);
+    else
+        % The protocol has already been chosen.
+        chosen = true;
     end
 end
 
@@ -337,6 +341,12 @@ end
 
 
 function startAcquisition(~, ~, handles)
+    if chooseProtocol([], [], handles)
+        handles = guidata(handles.figure);
+    else
+        return
+    end
+    
     import Symphony.Core.*;
     
     xmlRootPath = get(handles.epochGroupOutputPathText, 'String');
@@ -354,6 +364,9 @@ function startAcquisition(~, ~, handles)
     
     keywordsText = get(handles.keywordsEdit, 'String');
     keywords = strtrim(regexp(keywordsText, ',', 'split'));
+    if isequal(keywords, {''})
+        keywords = {};
+    end
     keywordArray = NET.createArray('System.String', numel(keywords));
     for i = 1:numel(keywords)
         keywordArray(i) = keywords{i};

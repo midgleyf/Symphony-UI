@@ -1,4 +1,4 @@
-function editParameters(protocolPlugin)
+function edited = editParameters(protocolPlugin)
     handles.protocolPlugin = protocolPlugin;
     
     params = protocolPlugin.parameters();
@@ -110,6 +110,8 @@ function editParameters(protocolPlugin)
     guidata(handles.figure, handles);
     
     uiwait;
+    handles = guidata(handles.figure);
+    edited = handles.edited;
     close(handles.figure);
 end
 
@@ -139,6 +141,8 @@ end
 
 
 function cancelEditParameters(~, ~, ~)
+    handles.edited = false;
+    guidata(handles.figure, handles);
     uiresume;
 end
 
@@ -164,5 +168,7 @@ function saveEditParameters(~, ~, handles)
     % Remember these parameters for the next time the protocol is used.
     setpref('ProtocolDefaults', class(handles.protocolPlugin), handles.protocolPlugin.parameters());
     
+    handles.edited = true;
+    guidata(handles.figure, handles);
     uiresume;
 end
