@@ -324,7 +324,7 @@ end
 
 
 function createNewEpochGroup(~, ~, handles)
-    [outputPath, label, source] = NewEpochGroup();
+    [outputPath, label, source] = newEpochGroup();
     if ~isempty(outputPath)
         set(handles.epochGroupOutputPathText, 'String', outputPath);
         set(handles.epochGroupLabelText, 'String', label);
