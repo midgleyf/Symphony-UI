@@ -140,7 +140,7 @@ function stepValueDown(~, ~, handles, paramTag)
 end
 
 
-function cancelEditParameters(~, ~, ~)
+function cancelEditParameters(~, ~, handles)
     handles.edited = false;
     guidata(handles.figure, handles);
     uiresume;
