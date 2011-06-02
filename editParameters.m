@@ -30,10 +30,7 @@ function edited = editParameters(protocolPlugin)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
-        
-        paramLabel = regexprep(paramName, '([^A-Z])([A-Z])', '$1 $2');
-        paramLabel = strrep(paramLabel, '_', ' ');
-        paramLabel(1) = upper(paramLabel(1));
+        paramLabel = humanReadableParameterName(paramName);
 
         uicontrol(...
             'Parent', handles.figure,...
