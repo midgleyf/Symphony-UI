@@ -78,6 +78,11 @@ classdef SymphonyProtocol < handle
         end
         
         
+        function addParameter(obj, name, value)
+            obj.epoch.ProtocolParameters.Add(name, value);
+        end
+        
+        
         function addStimulus(obj, deviceName, stimulusID, stimulusData)
             % Queue data to send to the named device when the epoch is run.
             % TODO: need to specify data units?
