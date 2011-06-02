@@ -31,7 +31,11 @@ function controller = createSymphonyController(daqName, sampleRate)
     
     % Create Symphony.Core.Controller
     
-    controller = Controller();
+    if isempty(which('NET.convertArray'))
+        controller = Controller();
+    else
+        controller = Symphony.Core.Controller();
+    end
     
     if(strcmpi(daqName, 'heka'))
         daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
