@@ -7,7 +7,7 @@ function s = dictionaryToStruct(d)
         keys = {};
         dictKeys = d.Keys.GetEnumerator();
         while dictKeys.MoveNext()
-            keys{end + 1} = dictKeys.Current(); %#ok<AGROW>
+            keys{end + 1} = char(dictKeys.Current()); %#ok<AGROW>
         end
     end
     
