@@ -20,11 +20,12 @@ classdef TestProtocol < SymphonyProtocol
         
         function prepareEpoch(obj)
             if obj.rampFrequency
-                freqScale = 1000 * obj.epochNum;
+                freqScale = 1000 / obj.epochNum;
             else
                 freqScale = 1000;
             end
-            obj.addStimulus('test-device', 'test-stimulus', sin((1:obj.stimSamples) ./ freqScale));
+            obj.addParameter('freqScale', freqScale);
+            obj.addStimulus('test-device', 'test-stimulus', sin((1:obj.stimSamples) / freqScale));
             
             obj.recordResponse('test-device');
         end
