@@ -4,17 +4,7 @@ function Symphony()
     parentDir = fileparts(symphonyPath);
     addpath(fullfile(parentDir, filesep, 'Utility'));
     
-    if isempty(which('NET.convertArray'))
-        addpath(fullfile(parentDir, filesep, 'Stubs'));
-    else
-        symphonyPath = 'C:\Program Files\Physion\Symphony';
-
-        % Add Symphony.Core assemblies
-        NET.addAssembly(fullfile(symphonyPath, 'Symphony.Core.dll'));
-        NET.addAssembly(fullfile(symphonyPath, 'Symphony.ExternalDevices.dll'));
-        %NET.addAssembly(fullfile(symphonyPath, 'HekaDAQInterface.dll'));
-        NET.addAssembly(fullfile(symphonyPath, 'Symphony.SimulationDAQController.dll'));
-    end
+    addSymphonyFramework();
     
     showMainWindow();
 end
@@ -31,11 +21,7 @@ function controller = createSymphonyController(daqName, sampleRate)
     
     % Create Symphony.Core.Controller
     
-    if isempty(which('NET.convertArray'))
-        controller = Controller();
-    else
-        controller = Symphony.Core.Controller();
-    end
+    controller = Controller();
     
     if(strcmpi(daqName, 'heka'))
         daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
@@ -97,11 +83,7 @@ end
 function showMainWindow()
     import Symphony.Core.*;
     
-    if isempty(which('NET.convertArray'))
-        sampleRate = Measurement(10000, 'Hz');
-    else
-        sampleRate = Symphony.Core.Measurement(10000, 'Hz');
-    end
+    sampleRate = Measurement(10000, 'Hz');
     handles.controller = createSymphonyController('simulation', sampleRate);
     
     % Get the list of protocols from the 'Protocols' folder.
