@@ -153,7 +153,9 @@ function saveEditParameters(~, ~, handles)
         paramName = paramNames{paramIndex};
         paramTag = [paramName 'Edit'];
         if isnumeric(params.(paramName))
-            paramValue = str2num(get(handles.(paramTag), 'String')); %#ok<ST2NM>
+            paramValue = str2double(get(handles.(paramTag), 'String'));
+            convFunc = str2func(class(params.(paramName)));
+            paramValue = convFunc(paramValue);
         elseif islogical(params.(paramName))
             paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
         elseif ischar(params.(paramName))
