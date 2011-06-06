@@ -26,16 +26,18 @@ function controller = createSymphonyController(daqName, sampleRate)
     
     if(strcmpi(daqName, 'heka'))
         daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
+        daq.InitHardware();
         daq.SampleRate = sampleRate;
         
         % Finding input and output streams by name
         outStream = daq.GetStream('ANALOG_OUT.0');
-        inStream = daq.GetStreams('ANALOG_IN.0');
+        inStream = daq.GetStream('ANALOG_IN.0');
     elseif(strcmpi(daqName, 'simulation'))
         if ~isempty(which('NET.convertArray'))
             Symphony.Core.Converters.Register('V','V', @(m) m);
         end
         daq = SimulationDAQController();
+        daq.Setup();
         
         outStream = DAQOutputStream('OUT');
         outStream.SampleRate = sampleRate;
@@ -56,7 +58,6 @@ function controller = createSymphonyController(daqName, sampleRate)
     end
         
     daq.Clock = daq;
-    daq.Setup();
     
     controller.DAQController = daq;
     controller.Clock = daq;
@@ -66,7 +67,7 @@ function controller = createSymphonyController(daqName, sampleRate)
     dev.Clock = daq;
     dev.MeasurementConversionTarget = 'V';
     dev.BindStream(outStream);
-    dev.BindStream('input', inStream);
+    dev.BindStream(inStream);
 end
 
 
@@ -478,8 +479,9 @@ function startAcquisition(~, ~, handles)
         end
 
         label = get(handles.epochGroupLabelText, 'String');
-
-        runProtocol(handles, persistor, label, parentArray, sourceArray, keywordArray, System.Guid.NewGuid());
+        properties = structToDictionary(struct);
+        
+        runProtocol(handles, persistor, label, parentArray, sourceArray, keywordArray, properties, System.Guid.NewGuid());
     catch ME
         % Reenable the GUI.
         set([handles.startButton, handles.protocolPopup, handles.saveEpochsCheckbox, handles.newEpochGroupButton], 'Enable', 'on');
@@ -521,7 +523,7 @@ function p = sourceParent(source)
 end
 
 
-function runProtocol(handles, persistor, label, parents, sources, keywords, identifier)
+function runProtocol(handles, persistor, label, parents, sources, keywords, properties, identifier)
     import Symphony.Core.*;
     
     
@@ -529,7 +531,7 @@ function runProtocol(handles, persistor, label, parents, sources, keywords, iden
     guidata(handles.figure, handles);
     
     % Set up the persistor.
-    persistor.BeginEpochGroup(label, parents, sources, keywords, identifier);
+    persistor.BeginEpochGroup(label, parents, sources, keywords, properties, identifier);
     
     try
         % Initialize the run.
