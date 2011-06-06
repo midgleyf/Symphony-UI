@@ -10,12 +10,13 @@ classdef SymphonyProtocol < handle
     %
     % Useful methods:
     % * addStimulus
-    % + setDeviceBackground
-    % + recordResponse
+    % * setDeviceBackground
+    % * recordResponse
     
     properties (Constant, Abstract)
         identifier
         version
+        displayName
     end
     
     
@@ -46,7 +47,7 @@ classdef SymphonyProtocol < handle
             
             % TODO: exclude parameters that start with an underscore?
             
-            excludeNames = {'identifier', 'version', 'controller', 'epoch', 'epochNum'};
+            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum'};
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)
@@ -80,6 +81,14 @@ classdef SymphonyProtocol < handle
         
         function addParameter(obj, name, value)
             obj.epoch.ProtocolParameters.Add(name, value);
+        end
+        
+        
+        function p = epochSpecificParameters(obj)
+            % Determine the parameters unique to the current epoch.
+            % TODO: diff against the previous epoch's parameters instead?
+            protocolParams = obj.parameters();
+            p = structDiff(dictionaryToStruct(obj.epoch.ProtocolParameters), protocolParams);
         end
         
         
@@ -131,9 +140,10 @@ classdef SymphonyProtocol < handle
         
         
         function [r, s, u] = response(obj, deviceName)
-            % Return the response recorded from the device with the given name.
+            % Return the response, sample rate and units recorded from the device with the given name.
             
             if nargin == 1
+                % If no device specified then pick the first one.
                 if isempty(which('NET.convertArray'))
                     device = obj.epoch.Responses.Keys{1};
                 else
@@ -150,9 +160,10 @@ classdef SymphonyProtocol < handle
             response = obj.epoch.Responses.Item(device);
             data = response.Data.Data;
             r = zeros(1, data.Count);
-            u = [];
+            u = '';
             for i = 1:data.Count
                 if i == 1
+                    % Grab the units from the first data point, the rest should be the same.
                     u = char(response.Data.Data.Item(0).Unit);
                 end
                 r(i) = data.Item(i - 1).Quantity;
@@ -160,6 +171,11 @@ classdef SymphonyProtocol < handle
             
             s = response.Data.SampleRate.QuantityInBaseUnit;
             % TODO: do we care about the units of the SampleRate measurement?
+        end
+        
+        
+        function stats = responseStatistics(obj) %#ok<MANU>
+            stats = {};
         end
         
         

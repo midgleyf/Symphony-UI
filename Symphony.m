@@ -3,6 +3,7 @@ function Symphony()
     symphonyPath = mfilename('fullpath');
     parentDir = fileparts(symphonyPath);
     addpath(fullfile(parentDir, filesep, 'Utility'));
+    addpath(fullfile(parentDir, filesep, 'Figure Handlers'));
     
     addSymphonyFramework();
     
@@ -80,6 +81,9 @@ function input = loopbackSimulation(output, ~, outStream, inStream)
 end
 
 
+%% GUI layout/control
+
+
 function showMainWindow()
     import Symphony.Core.*;
     
@@ -101,6 +105,8 @@ function showMainWindow()
         end
     end
     handles.protocolClassNames = sort(handles.protocolClassNames(1:protocolCount));
+    lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', handles.protocolClassNames{1});
+    protocolValue = find(strcmp(handles.protocolClassNames, lastChosenProtocol));
     
     handles.figure = figure(...
         'Units', 'points', ...
@@ -143,7 +149,7 @@ function showMainWindow()
         'String', {  'Pop-up Menu' }, ...
         'Style', 'popupmenu', ...
         'String', handles.protocolClassNames, ...
-        'Value', 1, ...
+        'Value', protocolValue, ...
         'Tag', 'protocolPopup');
 
     handles.protocolLabel = uicontrol(...
@@ -323,7 +329,7 @@ function showMainWindow()
         if ~isempty(jWindow)
             jWindow.setMinimumSize(java.awt.Dimension(figPos(3), figPos(4)));
         end
-    catch ME
+    catch ME %#ok<NASGU>
     end
 end
 
@@ -346,6 +352,7 @@ function chosen = chooseProtocol(~, ~, handles)
         
         if chosen
             guidata(handles.figure, handles);
+            setpref('Symphony', 'LastChosenProtocol', pluginClassName);
         end
     else
         % The protocol has already been chosen.
@@ -424,6 +431,9 @@ function windowDidResize(~, ~, handles)
 end
 
 
+%% Protocol starting/stopping
+
+
 function startAcquisition(~, ~, handles)
     if chooseProtocol([], [], handles)
         handles = guidata(handles.figure);
@@ -442,9 +452,11 @@ function startAcquisition(~, ~, handles)
     try
         import Symphony.Core.*;
     
-        xmlRootPath = get(handles.epochGroupOutputPathText, 'String');
-        xmlPath = fullfile(xmlRootPath, [class(handles.protocolPlugin) '_' datestr(now, 30) '.xml']);
-        persistor = EpochXMLPersistor(xmlPath);
+        rootPath = get(handles.epochGroupOutputPathText, 'String');
+        rigName = 'C';      % TODO: add UI to input this
+        cellName = 'c1';    % TODO: add UI to input this
+        savePath = fullfile(rootPath, [datestr(now, 'mmddyy') rigName cellName '.hdf5']);
+        persistor = EpochHDF5Persistor(savePath);
 
         parentArray = NET.createArray('System.String', 0);
         % TODO: populate parents (from where?)
@@ -512,14 +524,9 @@ end
 function runProtocol(handles, persistor, label, parents, sources, keywords, identifier)
     import Symphony.Core.*;
     
-    % Open a figure window to show the response of each epoch.
-    figure('Name', [class(handles.protocolPlugin) ': Response'], ...
-           'NumberTitle', 'off', ...
-           'Toolbar', 'none');
-    responseAxes = axes('Position', [0.1 0.1 0.85 0.85]);
-    responsePlot = plot(responseAxes, 1:100, zeros(1, 100));
-    xlabel(responseAxes, 'sec');
-    drawnow expose;
+    
+    handles.figureHandlers = {CurrentResponseFigureHandler(handles.protocolPlugin), MeanResponseFigureHandler(handles.protocolPlugin), ResponseStatisticsFigureHandler(handles.protocolPlugin)};
+    guidata(handles.figure, handles);
     
     % Set up the persistor.
     persistor.BeginEpochGroup(label, parents, sources, keywords, identifier);
@@ -552,36 +559,12 @@ function runProtocol(handles, persistor, label, parents, sources, keywords, iden
                 
                 persistor.Serialize(handles.protocolPlugin.epoch);
                 
-                % Update the plot title with the epoch number and any paramaters that are different from the protocol default.
-                % TODO: diff against the previous epoch's parameters instead?
-                epochParams = structDiff(dictionaryToStruct(handles.protocolPlugin.epoch.ProtocolParameters), pluginParams);
-                paramsText = '';
-                for field = sort(fieldnames(epochParams))'
-                    paramValue = epochParams.(field{1});
-                    if islogical(paramValue)
-                        if paramValue
-                            paramValue = 'True';
-                        else
-                            paramValue = 'False';
-                        end
-                    elseif isnumeric(paramValue)
-                        paramValue = num2str(paramValue);
-                    end
-                    paramsText = [paramsText ', ' humanReadableParameterName(field{1}) ' = ' paramValue]; %#ok<AGROW>
+                for index = 1:numel(handles.figureHandlers)
+                    figureHandler = handles.figureHandlers{index};
+                    figureHandler.handleCurrentEpoch();
                 end
-                set(get(gca,'Title') ,'String', ['Epoch #' num2str(handles.protocolPlugin.epochNum) paramsText]);
                 
-                % Plot the response.
-                [responseData, sampleRate, units] = handles.protocolPlugin.response();
-                duration = numel(responseData) / sampleRate;
-                samplesPerTenth = sampleRate / 10;
-                set(responsePlot, 'XData', 1:numel(responseData), ...
-                                  'YData', responseData);
-                set(responseAxes, 'XTick', 1:samplesPerTenth:numel(responseData), ...
-                                  'XTickLabel', 0:.1:duration);
-                ylabel(responseAxes, units);
-                
-                % Force the figure to redraw and any events (clicking the Stop button in particular) to get processed.
+                % Force any figures to redraw and any events (clicking the Stop button in particular) to get processed.
                 drawnow;
             catch e
                 % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
