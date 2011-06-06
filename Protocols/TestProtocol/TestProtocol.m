@@ -3,6 +3,7 @@ classdef TestProtocol < SymphonyProtocol
     properties (Constant)
         identifier = 'org.janelia.research.murphy.test'
         version = 1
+        displayName = 'Test'
     end
     
     properties
@@ -28,6 +29,14 @@ classdef TestProtocol < SymphonyProtocol
             obj.addStimulus('test-device', 'test-stimulus', sin((1:single(obj.stimSamples)) / freqScale));
             
             obj.recordResponse('test-device');
+        end
+        
+        
+        function stats = responseStatistics(obj)
+            r = obj.response();
+            
+            stats.mean = mean(r);
+            stats.var = var(r);
         end
         
         
