@@ -16,7 +16,7 @@ classdef EpochXMLPersistor < EpochPersistor
             obj.groupNode = obj.docNode.getDocumentElement;
         end
         
-        function BeginEpochGroup(obj, label, parents, sources, keywords, identifier)
+        function BeginEpochGroup(obj, label, parents, sources, keywords, properties, identifier)
             tz = java.util.TimeZone.getDefault();
             
             obj.groupNode.setAttribute('label', label);
@@ -41,6 +41,8 @@ classdef EpochXMLPersistor < EpochPersistor
                 keywordNode = keywordsNode.appendChild(obj.docNode.createElement('keyword'));
                 keywordNode.appendChild(obj.docNode.createTextNode(keywords(i)));
             end
+            
+            obj.serializeParameters(obj.groupNode, properties, 'properties');
         end
         
         function Serialize(obj, epoch)
