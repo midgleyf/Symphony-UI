@@ -109,15 +109,23 @@ function showMainWindow()
     lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', handles.protocolClassNames{1});
     protocolValue = find(strcmp(handles.protocolClassNames, lastChosenProtocol));
     
+    if ispref('Symphony', 'MainWindow_Position')
+        addlProps = {'Position', getpref('Symphony', 'MainWindow_Position')};
+    else
+        addlProps = {};
+    end
+    
     handles.figure = figure(...
         'Units', 'points', ...
         'Menubar', 'none', ...
         'Name', 'Symphony', ...
         'NumberTitle', 'off', ...
         'ResizeFcn', @(hObject,eventdata)windowDidResize(hObject,eventdata,guidata(hObject)), ...
+        'CloseRequestFcn', @(hObject,eventdata)closeRequestFcn(hObject,eventdata,guidata(hObject)), ...
         'Position', centerWindowOnScreen(364, 280), ...
         'UserData', [], ...
-        'Tag', 'figure');
+        'Tag', 'figure', ...
+        addlProps{:});
     
     bgColor = get(handles.figure, 'Color');
     
@@ -315,6 +323,8 @@ function showMainWindow()
         'Style', 'text', ...
         'Tag', 'mouseIDText');
     
+    handles.figureHandlers = {};
+    
     guidata(handles.figure, handles);
     
     drawnow
@@ -429,6 +439,19 @@ function windowDidResize(~, ~, handles)
     newGroupPos = get(handles.newEpochGroupButton, 'Position');
     newGroupPos(1) = epochPanelPos(3) - 10 - newGroupPos(3);
     set(handles.newEpochGroupButton, 'Position', newGroupPos);
+end
+
+
+function closeRequestFcn(~, ~, handles)
+    % Close any figures that were opened.
+    for index = 1:numel(handles.figureHandlers)
+        figureHandler = handles.figureHandlers{index};
+        close(figureHandler.figureHandle);
+    end
+    
+    % Remember the window position.
+    setpref('Symphony', 'MainWindow_Position', get(handles.figure, 'Position'));
+    delete(handles.figure);
 end
 
 
