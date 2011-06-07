@@ -14,17 +14,18 @@ end
 function controller = createSymphonyController(daqName, sampleRate)
     import Symphony.Core.*;
     import Symphony.SimulationDAQController.*;
-    import Heka.*;
-    
-%    % Register Unit Converters
-%    HekaDAQInputStream.RegisterConverters();
-%    HekaDAQOutputStream.RegisterConverters();
     
     % Create Symphony.Core.Controller
     
     controller = Controller();
     
     if(strcmpi(daqName, 'heka'))
+        import Heka.*;
+
+        % Register Unit Converters
+        HekaDAQInputStream.RegisterConverters();
+        HekaDAQOutputStream.RegisterConverters();
+        
         daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
         daq.InitHardware();
         daq.SampleRate = sampleRate;
@@ -479,8 +480,8 @@ function startAcquisition(~, ~, handles)
         rootPath = get(handles.epochGroupOutputPathText, 'String');
         rigName = 'C';      % TODO: add UI to input this
         cellName = 'c1';    % TODO: add UI to input this
-        savePath = fullfile(rootPath, [datestr(now, 'mmddyy') rigName cellName '.hdf5']);
-        persistor = EpochHDF5Persistor(savePath);
+        savePath = fullfile(rootPath, [datestr(now, 'mmddyy') rigName cellName '.xml']);
+        persistor = EpochXMLPersistor(savePath);
 
         parentArray = NET.createArray('System.String', 0);
         % TODO: populate parents (from where?)
