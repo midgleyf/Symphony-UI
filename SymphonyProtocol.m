@@ -101,10 +101,7 @@ classdef SymphonyProtocol < handle
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            stimDataList = NET.createGeneric('System.Collections.Generic.List', {'Symphony.Core.Measurement'}, length(stimulusData));
-            for i=1:length(stimulusData)
-                stimDataList.Add(Measurement(stimulusData(i), 'V'));
-            end
+            stimDataList = Measurement.FromArray(stimulusData, 'V');
 
             outputData = OutputData(stimDataList, obj.controller.DAQController.GetStream('OUT').SampleRate, true);
 
@@ -123,7 +120,31 @@ classdef SymphonyProtocol < handle
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            obj.epoch.Background.Add(device, Epoch.EpochBackground(Measurement(volts, 'V'), obj.controller.DAQController.GetStream('OUT').SampleRate));
+            % Copy the sample rate from an existing output stream.
+            sampleRate = [];
+            if isempty(which('NET.convertArray'))
+                for index = 1:numel(device.Streams.Values)
+                    stream = device.Streams.Values{index};
+                    if isa(stream, 'DAQOutputStream')
+                        sampleRate = stream.SampleRate;
+                        break;
+                    end
+                end
+            else
+                streams = device.Streams.Keys.GetEnumerator();
+                while streams.MoveNext()
+                    stream = streams.Current();
+                    if isa(stream, 'DAQOutputStream')
+                        sampleRate = stream.SampleRate;
+                        break;
+                    end
+                end
+            end
+            if isempty(sampleRate)
+                sampleRate = Measurement(10000, 'Hz');
+            end
+            
+            obj.epoch.SetBackground(device, Measurement(volts, 'V'), sampleRate);
         end
         
         

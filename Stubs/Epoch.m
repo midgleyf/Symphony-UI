@@ -25,6 +25,10 @@ classdef Epoch < handle
             obj.Identifier = char(java.util.UUID.randomUUID());
             obj.Background = GenericDictionary();
         end
+        
+        function SetBackground(obj, device, background, sampleRate)
+            obj.Background.Add(device, Epoch.EpochBackground(background, sampleRate));
+        end
     end
     
     methods (Static)

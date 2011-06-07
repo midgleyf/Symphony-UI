@@ -39,6 +39,8 @@ classdef LEDFamily < SymphonyProtocol
             data(obj.prePoints:obj.prePoints+obj.stimPoints) = lightAmplitude;
             obj.addStimulus('test-device', 'test-stimulus', data);
             
+            obj.setDeviceBackground('test-device', obj.lightMean);
+            
             obj.recordResponse('test-device');
         end
         

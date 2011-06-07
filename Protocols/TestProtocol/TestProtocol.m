@@ -26,7 +26,9 @@ classdef TestProtocol < SymphonyProtocol
                 freqScale = 1000;
             end
             obj.addParameter('freqScale', freqScale);
-            obj.addStimulus('test-device', 'test-stimulus', sin((1:single(obj.stimSamples)) / freqScale));
+            obj.addStimulus('test-device', 'test-stimulus', sin((1:double(obj.stimSamples)) / freqScale));
+            
+            obj.setDeviceBackground('test-device', 0);
             
             obj.recordResponse('test-device');
         end
