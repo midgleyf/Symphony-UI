@@ -450,6 +450,10 @@ function closeRequestFcn(~, ~, handles)
         close(figureHandler.figureHandle);
     end
     
+    if isa(handles.controller.DAQController, 'Heka.HekaDAQController')
+        handles.controller.DAQController.CloseHardware();
+    end
+    
     % Remember the window position.
     setpref('Symphony', 'MainWindow_Position', get(handles.figure, 'Position'));
     delete(handles.figure);
