@@ -550,9 +550,16 @@ end
 function runProtocol(handles, persistor, label, parents, sources, keywords, properties, identifier)
     import Symphony.Core.*;
     
-    
-    handles.figureHandlers = {CurrentResponseFigureHandler(handles.protocolPlugin), MeanResponseFigureHandler(handles.protocolPlugin), ResponseStatisticsFigureHandler(handles.protocolPlugin)};
-    guidata(handles.figure, handles);
+    if isempty(handles.figureHandlers)
+        handles.figureHandlers = {CurrentResponseFigureHandler(handles.protocolPlugin), MeanResponseFigureHandler(handles.protocolPlugin), ResponseStatisticsFigureHandler(handles.protocolPlugin)};
+        guidata(handles.figure, handles);
+    else
+        for index = 1:numel(handles.figureHandlers)
+            figureHandler = handles.figureHandlers{index};
+            figureHandler.clearFigure();
+        end
+        drawnow
+    end
     
     % Set up the persistor.
     persistor.BeginEpochGroup(label, parents, sources, keywords, properties, identifier);

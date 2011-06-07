@@ -34,7 +34,13 @@ classdef FigureHandler < handle
         end
         
         
-        function closeRequestFcn(obj, source, event)
+        function clearFigure(obj)
+            set(get(obj.axesHandle, 'Title'), 'String', '');
+            cla(obj.axesHandle);
+        end
+        
+        
+        function closeRequestFcn(obj, ~, ~)
             % Remember the window position.
             prefName = [class(obj) '_Position'];
             setpref('Symphony', prefName, get(obj.figureHandle, 'Position'));

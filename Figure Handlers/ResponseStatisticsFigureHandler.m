@@ -17,7 +17,7 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
             xlabel(obj.axesHandle, 'epoch');
             hold(obj.axesHandle, 'on');
             
-            obj.statPlots = struct();
+            obj.statPlots = struct;
         end
 
 
@@ -46,6 +46,13 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
                     obj.statPlots.(statName) = statPlot;
                 end
             end
+        end
+        
+        
+        function clearFigure(obj)
+            obj.statPlots = struct;
+            
+            clearFigure@FigureHandler(obj);
         end
         
     end

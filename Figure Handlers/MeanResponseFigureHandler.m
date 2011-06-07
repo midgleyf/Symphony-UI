@@ -15,7 +15,7 @@ classdef MeanResponseFigureHandler < FigureHandler
             
             xlabel(obj.axesHandle, 'sec');
             
-            obj.meanPlots = struct('params', {}, 'data', {}, 'sampleRate', {}, 'units', {}, 'count', {}, 'plotHandle', {});
+            obj.resetPlots();
         end
 
 
@@ -59,6 +59,18 @@ classdef MeanResponseFigureHandler < FigureHandler
                                          'YData', meanPlot.data);
                 obj.meanPlots(i) = meanPlot;
             end
+        end
+        
+        
+        function clearFigure(obj)
+            obj.resetPlots();
+            
+            clearFigure@FigureHandler(obj);
+        end
+        
+        
+        function resetPlots(obj)
+            obj.meanPlots = struct('params', {}, 'data', {}, 'sampleRate', {}, 'units', {}, 'count', {}, 'plotHandle', {});
         end
         
     end

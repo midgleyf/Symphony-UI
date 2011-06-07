@@ -48,6 +48,13 @@ classdef CurrentResponseFigureHandler < FigureHandler
             ylabel(obj.axesHandle, units);
         end
         
+        
+        function clearFigure(obj)
+            clearFigure@FigureHandler(obj);
+            
+            obj.plotHandle = plot(obj.axesHandle, 1:100, zeros(1, 100));
+        end
+        
     end
     
 end
