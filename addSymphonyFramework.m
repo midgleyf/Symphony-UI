@@ -10,7 +10,7 @@ function addSymphonyFramework()
         % Add Symphony.Core assemblies
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.Core.dll'));
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.ExternalDevices.dll'));
-        %NET.addAssembly(fullfile(symphonyPath, 'HekaDAQInterface.dll'));
+        NET.addAssembly(fullfile(symphonyPath, 'HekaDAQInterface.dll'));
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.SimulationDAQController.dll'));
     end
 end
