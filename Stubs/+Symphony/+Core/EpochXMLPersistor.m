@@ -1,4 +1,4 @@
-classdef EpochXMLPersistor < EpochPersistor
+classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
    
     properties
         path
@@ -9,7 +9,7 @@ classdef EpochXMLPersistor < EpochPersistor
     methods
         
         function obj = EpochXMLPersistor(xmlPath)
-            obj = obj@EpochPersistor();
+            obj = obj@Symphony.Core.EpochPersistor();
             
             obj.path = xmlPath;
             obj.docNode = com.mathworks.xml.XMLUtils.createDocument('epochGroup');

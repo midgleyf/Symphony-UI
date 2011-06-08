@@ -8,7 +8,7 @@ classdef Response < handle
         function obj = Response()
             obj = obj@handle();
             
-            obj.Data = InputData(GenericList(), Measurement(10000, 'Hz'), now);
+            obj.Data = Symphony.Core.InputData(GenericList(), Symphony.Core.Measurement(10000, 'Hz'), now);
         end
     end
     

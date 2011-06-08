@@ -1,4 +1,4 @@
-classdef IDAQController < ITimelineProducer
+classdef IDAQController < Symphony.Core.ITimelineProducer
    
     properties
         Streams
@@ -6,7 +6,7 @@ classdef IDAQController < ITimelineProducer
     
     methods
         function obj = IDAQController()
-            obj = obj@ITimelineProducer();
+            obj = obj@Symphony.Core.ITimelineProducer();
             
             obj.Streams = GenericDictionary();
         end

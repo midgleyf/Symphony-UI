@@ -1,4 +1,4 @@
-classdef InputData < IOData
+classdef InputData < Symphony.Core.IOData
    
     properties
         InputTime
@@ -13,7 +13,7 @@ classdef InputData < IOData
                 deviceConfig = GenericDictionary();
             end
             
-            obj = obj@IOData(data, sampleRate, deviceConfig, streamConfig);
+            obj = obj@Symphony.Core.IOData(data, sampleRate, deviceConfig, streamConfig);
             
             obj.InputTime = inputTime;
         end

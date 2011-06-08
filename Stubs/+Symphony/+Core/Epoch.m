@@ -27,7 +27,7 @@ classdef Epoch < handle
         end
         
         function SetBackground(obj, device, background, sampleRate)
-            obj.Background.Add(device, Epoch.EpochBackground(background, sampleRate));
+            obj.Background.Add(device, Symphony.Core.Epoch.EpochBackground(background, sampleRate));
         end
     end
     

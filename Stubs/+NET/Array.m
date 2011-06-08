@@ -1,4 +1,4 @@
-classdef NETArray < handle
+classdef Array < handle
     % A stub class to support MATLAB style arrays of .NET types.
     
     properties
@@ -7,7 +7,7 @@ classdef NETArray < handle
     end
     
     methods
-        function obj = NETArray(itemType, varargin)
+        function obj = Array(itemType, varargin)
             obj = obj@handle();
             
             if numel(varargin) == 1
@@ -29,7 +29,7 @@ classdef NETArray < handle
         function obj = subsasgn(obj, s, val)
             % TODO: make sure val is compatible with obj.itemType?
             
-            if isempty(s) && strcmp(class(val),'NETArray')
+            if isempty(s) && strcmp(class(val),'Array')
                 % When would this ever happen? copy constructor? untested...
                 obj = NETArray(val.itemType, 0);
                 obj.items = val.items;
@@ -41,7 +41,7 @@ classdef NETArray < handle
                     obj = builtin('subsasgn', obj, s, val);
                 case '()'
                     if length(s) < 2
-                        if strcmp(class(val), 'NETArray')
+                        if strcmp(class(val), 'Array')
                             error('NETArray:subsasgn', 'Object must be scalar')
                         elseif ischar(val)
                           snew = substruct('.', 'items', '{}', s(1).subs(:));

@@ -1,4 +1,4 @@
-classdef IOData < IIOData
+classdef IOData < Symphony.Core.IIOData
    
     properties
         Time
@@ -6,7 +6,7 @@ classdef IOData < IIOData
     
     methods
         function obj = IOData(data, sampleRate, deviceConfig, streamConfig)
-            obj = obj@IIOData(data, sampleRate);
+            obj = obj@Symphony.Core.IIOData(data, sampleRate);
             
             obj.Time = [];
             

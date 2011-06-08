@@ -17,6 +17,8 @@ classdef Controller < handle
         end
         
         function RunEpoch(obj, epoch, persistor) %#ok<MANU,INUSD>
+            import Symphony.Core.*;
+            
             epoch.StartTime = now;
             
             % Create dummy responses.

@@ -1,4 +1,4 @@
-classdef ExternalDevice < ITimelineProducer
+classdef ExternalDevice < Symphony.Core.ITimelineProducer
    
     properties
         Name
@@ -10,7 +10,7 @@ classdef ExternalDevice < ITimelineProducer
     
     methods
         function obj = ExternalDevice(name, controller, background)
-            obj = obj@ITimelineProducer();
+            obj = obj@Symphony.Core.ITimelineProducer();
             
             obj.Name = name;
             obj.Controller = controller;

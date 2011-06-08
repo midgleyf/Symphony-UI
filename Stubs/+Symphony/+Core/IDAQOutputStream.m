@@ -1,4 +1,4 @@
-classdef IDAQOutputStream < IDAQStream
+classdef IDAQOutputStream < Symphony.Core.IDAQStream
    
     properties
         Device
@@ -8,7 +8,7 @@ classdef IDAQOutputStream < IDAQStream
     
     methods
         function obj = IDAQOutputStream()
-            obj = obj@IDAQStream();
+            obj = obj@Symphony.Core.IDAQStream();
         end
     end
 end

@@ -22,7 +22,7 @@ classdef Measurement < handle
         function m = FromArray(array, unit)
             m = NET.createGeneric('System.Collections.Generic.List', {'Symphony.Core.Measurement'}, length(array));
             for i=1:length(array)
-                m.Add(Measurement(array(i), unit));
+                m.Add(Symphony.Core.Measurement(array(i), unit));
             end
         end
     end

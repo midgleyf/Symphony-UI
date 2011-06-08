@@ -1,4 +1,4 @@
-classdef OutputData < IOData
+classdef OutputData < Symphony.Core.IOData
    
     properties
         IsLast
@@ -6,7 +6,7 @@ classdef OutputData < IOData
     
     methods
         function obj = OutputData(data, sampleRate, isLast)
-            obj = obj@IOData(data, sampleRate);
+            obj = obj@Symphony.Core.IOData(data, sampleRate);
             
             obj.IsLast = isLast;
         end

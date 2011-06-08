@@ -1,4 +1,4 @@
-classdef IDAQInputStream < IDAQStream
+classdef IDAQInputStream < Symphony.Core.IDAQStream
    
     properties
         Devices
@@ -6,7 +6,7 @@ classdef IDAQInputStream < IDAQStream
     
     methods
         function obj = IDAQInputStream()
-            obj = obj@IDAQStream();
+            obj = obj@Symphony.Core.IDAQStream();
             
             obj.Devices = GenericList();
         end
