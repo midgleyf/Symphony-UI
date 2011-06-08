@@ -34,9 +34,7 @@ function controller = createSymphonyController(daqName, sampleRate)
         outStream = daq.GetStream('ANALOG_OUT.0');
         inStream = daq.GetStream('ANALOG_IN.0');
     elseif(strcmpi(daqName, 'simulation'))
-        if ~isempty(which('NET.convertArray'))
-            Symphony.Core.Converters.Register('V','V', @(m) m);
-        end
+        Converters.Register('V','V', @(m) m);
         daq = SimulationDAQController();
         daq.Setup();
         
@@ -512,14 +510,14 @@ function startAcquisition(~, ~, handles)
         runProtocol(handles, persistor, label, parentArray, sourceArray, keywordArray, properties, System.Guid.NewGuid());
     catch ME
         % Reenable the GUI.
-        set([handles.startButton, handles.protocolPopup, handles.saveEpochsCheckbox, handles.newEpochGroupButton], 'Enable', 'on');
+        set([handles.startButton, handles.protocolPopup, handles.newEpochGroupButton], 'Enable', 'on');
         set(handles.stopButton, 'Enable', 'off');
         
         rethrow(ME);
     end
     
     % Reenable the GUI.
-    set([handles.startButton, handles.protocolPopup, handles.saveEpochsCheckbox, handles.newEpochGroupButton], 'Enable', 'on');
+    set([handles.startButton, handles.protocolPopup, handles.newEpochGroupButton], 'Enable', 'on');
     set(handles.stopButton, 'Enable', 'off');
 end
 

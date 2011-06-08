@@ -1,7 +1,7 @@
 function s = dictionaryToStruct(d)
     s = {};
     
-    if isempty(which('NET.convertArray'))
+    if isa(d, 'GenericDictionary')
         keys = d.Keys;
     else
         keys = {};
