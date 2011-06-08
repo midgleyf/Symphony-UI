@@ -92,6 +92,23 @@ classdef SymphonyProtocol < handle
         end
         
         
+        function r = deviceSampleRate(obj, device, inOrOut) %#ok<MANU>
+            % Return the output sample rate for the given device based on any bound stream.
+            
+            import Symphony.Core.*;
+            
+            r = Measurement(10000, 'Hz');   % default if no output stream is found
+            [~, streams] = dictionaryKeysAndValues(device.Streams);
+            for index = 1:numel(streams)
+                stream = streams{index};
+                if (strcmp(inOrOut, 'IN') && isa(stream, 'DAQInputStream')) || (strcmp(inOrOut, 'OUT') && isa(stream, 'DAQOutputStream'))
+                    r = stream.SampleRate;
+                    break;
+                end
+            end
+        end
+        
+        
         function addStimulus(obj, deviceName, stimulusID, stimulusData)
             % Queue data to send to the named device when the epoch is run.
             % TODO: need to specify data units?
@@ -103,7 +120,7 @@ classdef SymphonyProtocol < handle
             
             stimDataList = Measurement.FromArray(stimulusData, 'V');
 
-            outputData = OutputData(stimDataList, obj.controller.DAQController.GetStream('OUT').SampleRate, true);
+            outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
 
             stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
 
@@ -120,31 +137,7 @@ classdef SymphonyProtocol < handle
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            % Copy the sample rate from an existing output stream.
-            sampleRate = [];
-            if isempty(which('NET.convertArray'))
-                for index = 1:numel(device.Streams.Values)
-                    stream = device.Streams.Values{index};
-                    if isa(stream, 'DAQOutputStream')
-                        sampleRate = stream.SampleRate;
-                        break;
-                    end
-                end
-            else
-                streams = device.Streams.Keys.GetEnumerator();
-                while streams.MoveNext()
-                    stream = streams.Current();
-                    if isa(stream, 'DAQOutputStream')
-                        sampleRate = stream.SampleRate;
-                        break;
-                    end
-                end
-            end
-            if isempty(sampleRate)
-                sampleRate = Measurement(10000, 'Hz');
-            end
-            
-            obj.epoch.SetBackground(device, Measurement(volts, 'V'), sampleRate);
+            obj.epoch.SetBackground(device, Measurement(volts, 'V'), obj.deviceSampleRate(device, 'OUT'));
         end
         
         
@@ -165,13 +158,11 @@ classdef SymphonyProtocol < handle
             
             if nargin == 1
                 % If no device specified then pick the first one.
-                if isempty(which('NET.convertArray'))
-                    device = obj.epoch.Responses.Keys{1};
-                else
-                    keys = obj.epoch.Responses.Keys.GetEnumerator();
-                    keys.MoveNext();
-                    device = keys.Current();
+                devices = dictionaryKeysAndValues(obj.epoch.Responses);
+                if isempty(devices)
+                    error('Symphony:NoDevicesRecorded', 'No devices have had their responses recorded.');
                 end
+                device = devices{1};
             else
                 device = obj.controller.GetDevice(deviceName);
                 % TODO: what happens when there is no device with that name?
