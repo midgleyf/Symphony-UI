@@ -104,9 +104,11 @@ function showMainWindow()
             addpath(fullfile(protocolsDir, filesep, protocolDirs(i).name));
         end
     end
-    handles.protocolClassNames = sort(handles.protocolClassNames(1:protocolCount));
+    handles.protocolClassNames = sort(handles.protocolClassNames(1:protocolCount)); % TODO: use display names
     lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', handles.protocolClassNames{1});
     protocolValue = find(strcmp(handles.protocolClassNames, lastChosenProtocol));
+    handles.protocolPlugin = createProtocolPlugin(lastChosenProtocol, handles.controller);
+    handles.protocolParametersEdited = false;
     
     if ispref('Symphony', 'MainWindow_Position')
         addlProps = {'Position', getpref('Symphony', 'MainWindow_Position')};
@@ -182,6 +184,15 @@ function showMainWindow()
         'Value', 1, ...
         'Style', 'checkbox', ...
         'Tag', 'saveEpochsCheckbox');
+    
+    handles.editParametersButton = uicontrol(...
+        'Parent', handles.figure, ...
+        'Units', 'points', ...
+        'Callback', @(hObject,eventdata)editProtocolParameters(hObject,eventdata,guidata(hObject)), ...
+        'Position', [224.8 252 80 20.8], ...
+        'BackgroundColor', bgColor, ...
+        'String', 'Parameters...', ...
+        'Tag', 'editParametersButton');
 
     handles.keywordsLabel = uicontrol(...
         'Parent', handles.figure, ...
@@ -344,29 +355,50 @@ function showMainWindow()
 end
 
 
-function chosen = chooseProtocol(~, ~, handles)
+function plugin = createProtocolPlugin(className, controller) %#ok<INUSD>
+    % Create an instance of the protocol class.
+    % TODO: can str2func be used here instead of eval?
+    plugin = eval([className '(controller)']);
+
+    % Use any previously set parameters.
+    params = getpref('Symphony', [className '_Defaults'], struct);
+    paramNames = fieldnames(params);
+    for i = 1:numel(paramNames)
+        plugin.(paramNames{i}) = params.(paramNames{i});
+    end
+end
+
+
+function editProtocolParameters(~, ~, handles)
+    % The user clicked the "Parameters..." button.
+    
+    if editParameters(handles.protocolPlugin)
+        handles.protocolParametersEdited = true;
+        guidata(handles.figure, handles);
+    end
+end
+
+
+function chooseProtocol(~, ~, handles)
+    % The user chose a protocol from the pop-up.
+    
     pluginIndex = get(handles.protocolPopup, 'Value');
     pluginClassName = handles.protocolClassNames{pluginIndex};
     
-    if ~isfield(handles, 'protocolPlugin') || ~isa(handles.protocolPlugin, pluginClassName)
-        handles.protocolPlugin = eval([pluginClassName '(handles.controller)']);
-        
-        % Use any previously set parameters.
-        params = getpref('ProtocolDefaults', class(handles.protocolPlugin), struct);
-        paramNames = fieldnames(params);
-        for i = 1:numel(paramNames)
-            handles.protocolPlugin.(paramNames{i}) = params.(paramNames{i});
-        end
+    % Create a new plugin if the user chose a different protocol.
+    if ~isa(handles.protocolPlugin, pluginClassName)
+        newPlugin = createProtocolPlugin(pluginClassName, handles.controller);
 
-        chosen = editParameters(handles.protocolPlugin);
-        
-        if chosen
+        if editParameters(newPlugin)
+            handles.protocolPlugin = newPlugin;
+            handles.protocolParametersEdited = true;
             guidata(handles.figure, handles);
             setpref('Symphony', 'LastChosenProtocol', pluginClassName);
+        else
+            % The user cancelled editing the parameters so switch back to the previous protocol.
+            protocolValue = find(strcmp(handles.protocolClassNames, class(handles.protocolPlugin)));
+            set(handles.protocolPopup, 'Value', protocolValue);
         end
-    else
-        % The protocol has already been chosen.
-        chosen = true;
     end
 end
 
@@ -411,6 +443,10 @@ function windowDidResize(~, ~, handles)
     labelPos(1) = popupPos(1) - 5 - labelPos(3);
     labelPos(2) = figHeight - 10 - labelPos(4);
     set(handles.protocolLabel, 'Position', labelPos);
+    buttonPos = get(handles.editParametersButton, 'Position');
+    buttonPos(1) = popupPos(1);
+    buttonPos(2) = popupPos(2) - 2 - buttonPos(4);
+    set(handles.editParametersButton, 'Position', buttonPos);
     
     % Keep the keywords controls at the top and full width.
     keywordsLabelPos = get(handles.keywordsLabel, 'Position');
@@ -462,10 +498,13 @@ end
 
 
 function startAcquisition(~, ~, handles)
-    if chooseProtocol([], [], handles)
-        handles = guidata(handles.figure);
-    else
-        return
+    % Edit the protocol parameters if the user hasn't already.
+    if ~handles.protocolParametersEdited
+        if ~editParameters(handles.protocolPlugin)
+            return
+        else
+            handles.protocolParametersEdited = true;
+        end
     end
     
     % Disable/enable the appropriate GUI
