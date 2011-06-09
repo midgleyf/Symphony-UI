@@ -74,9 +74,8 @@ function input = loopbackSimulation(output, ~, outStream, inStream)
     import Symphony.Core.*;
     
     input = NET.createGeneric('System.Collections.Generic.Dictionary', {'Symphony.Core.IDAQInputStream','Symphony.Core.IInputData'});
-    time = System.DateTimeOffset.Now;
     outData = output.Item(outStream);
-    inData = InputData(outData.Data, outData.SampleRate, time, inStream.Configuration);
+    inData = InputData(outData.Data, outData.SampleRate, System.DateTimeOffset.Now, inStream.Configuration);
     input.Add(inStream, inData);
 end
 
@@ -663,13 +662,21 @@ function runProtocol(handles, persistor, label, parents, sources, keywords, prop
                 % Force any figures to redraw and any events (clicking the Stop button in particular) to get processed.
                 drawnow;
             catch e
-                % TODO: is it OK to hold up the run with the error dialog or should errors be displayed at the end?
+                % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
+                message = ['An error occurred while running the epoch.' char(10) char(10)];
                 if (isa(e, 'NET.NetException'))
                     eObj = e.ExceptionObject;
-                    ed = errordlg(char(eObj.Message));
+                    message = [message char(eObj.Message)]; %#ok<AGROW>
+                    indent = '    ';
+                    while ~isempty(eObj.InnerException)
+                        eObj = eObj.InnerException;
+                        message = [message char(10) indent char(eObj.Message)]; %#ok<AGROW>
+                        indent = [indent '    ']; %#ok<AGROW>
+                    end
                 else
-                    ed = errordlg(e.message);
+                    message = [message e.message]; %#ok<AGROW>
                 end
+                ed = errordlg(message);
                 waitfor(ed);
             end
             
