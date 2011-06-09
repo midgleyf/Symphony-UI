@@ -87,6 +87,7 @@ end
 function showMainWindow()
     import Symphony.Core.*;
     
+    % Create the controller.
     sampleRate = Measurement(10000, 'Hz');
     handles.controller = createSymphonyController('simulation', sampleRate);
     
@@ -105,17 +106,21 @@ function showMainWindow()
         end
     end
     handles.protocolClassNames = sort(handles.protocolClassNames(1:protocolCount)); % TODO: use display names
+    
+    % Create a default protocol plug-in.
     lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', handles.protocolClassNames{1});
     protocolValue = find(strcmp(handles.protocolClassNames, lastChosenProtocol));
     handles.protocolPlugin = createProtocolPlugin(lastChosenProtocol, handles.controller);
     handles.protocolParametersEdited = false;
     
+    % Restore the window position if possible.
     if ispref('Symphony', 'MainWindow_Position')
         addlProps = {'Position', getpref('Symphony', 'MainWindow_Position')};
     else
         addlProps = {};
     end
     
+    % Create the user interface.
     handles.figure = figure(...
         'Units', 'points', ...
         'Menubar', 'none', ...
@@ -337,10 +342,9 @@ function showMainWindow()
     
     guidata(handles.figure, handles);
     
-    drawnow
-    
     % Attempt to set the minimum window size using Java.
     try
+        drawnow
         set(handles.figure, 'Units', 'pixels');
         figPos = get(handles.figure, 'OuterPosition');
         set(handles.figure, 'Units', 'points');
@@ -484,6 +488,7 @@ function closeRequestFcn(~, ~, handles)
         figureHandler.close();
     end
     
+    % Release any hold we have on hardware.
     if isa(handles.controller.DAQController, 'Heka.HekaDAQController')
         handles.controller.DAQController.CloseHardware();
     end
@@ -562,6 +567,9 @@ end
 
 
 function stopAcquisition(~, ~, handles)
+    % The user clicked the Stop button.
+    
+    % Set a flag that will be checked after the current epoch completes.
     handles.stopProtocol = true;
     guidata(handles.figure, handles);
 end
@@ -596,8 +604,11 @@ end
 
 
 function runProtocol(handles, persistor, label, parents, sources, keywords, properties, identifier)
+    % This is the core method that runs a protocol, everything else is preparation for this.
+    
     import Symphony.Core.*;
     
+    % Open or reset the figure handlers.
     if isempty(handles.figureHandlers)
         handles.figureHandlers = cell(1, 3);
         handles.figureHandlers{1} = CurrentResponseFigureHandler(handles.protocolPlugin);

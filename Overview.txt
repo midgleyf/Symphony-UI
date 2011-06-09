@@ -1,0 +1,67 @@
+Overview of the Symphony user interface code.
+
+StartSymphony.m:
+    calls addSymphonyFramework() to load the Symphony .NET framework
+    calls Symphony() to launch the GUI
+
+
+Symphony.m:
+    Main source file, everything is controlled from here.
+    All persistant data is attached to the main figure via guidata():
+     * handles.controller: the Symphony.Core.Controller instance
+     * handles.protocolPlugin: the current protocol plug-in instance
+     * handles.figureHandlers: a cell array of the open figure handlers
+    
+    Symphony():
+        adds to MATLAB path
+        calls showMainWindow()
+    
+    showMainWindow():
+        calls createSymphonyController()
+        examines the 'Protocols' folder to find protocol plug-ins
+        creates a default protocol plugin
+        builds and displays the UI
+    
+    createSymphonyController():
+        creates a simulation or Heka controller using the .NET framework
+        sets up input and output streams for the device
+    
+    startAcquisition():
+        extracts values from the UI and passes them to runProtocol()
+    
+    stopAcquisition():
+        sets a flag so that the protocol will stop after the current epoch completes
+    
+    runProtocol():
+        opens or resets the plot figures
+        sets up XML/HDF5 persistence
+        runs each epoch until the protocol plugin says it's done or the "stop" flag has been set:
+            create and set up a new epoch
+            tell the controller to run it
+            plot the results
+        close the XML/HDF5 file
+
+
+editParameters.m:
+    Dynamic GUI for editing the parameters of a protocol.
+
+
+SymphonyProtocol.m:
+    Base class that provides default behaviors for protocols.  All protocols must be sub-classes of this class.
+    
+    prepareEpoch():
+        override to add stimuli, set device backgrounds, record responses, etc.
+    completeEpoch():
+        override to perform any post-epoch analysis, etc.
+    continueEpochGroup():
+        override to indicate when all epochs have been run
+        
+    
+    addStimulus():
+        queue a MATLAB vector of voltages to be sent to a device
+    setDeviceBackground():
+        set the voltage to be sent to a device when no stimulus is being applied
+    recordResponse():
+        indicate that the response from a device should be recorded
+    response():
+        after an epoch has run, returns the response of a device as a MATLAB vector
