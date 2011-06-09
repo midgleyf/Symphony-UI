@@ -481,7 +481,7 @@ function closeRequestFcn(~, ~, handles)
     % Close any figures that were opened.
     for index = 1:numel(handles.figureHandlers)
         figureHandler = handles.figureHandlers{index};
-        close(figureHandler.figureHandle);
+        figureHandler.close();
     end
     
     if isa(handles.controller.DAQController, 'Heka.HekaDAQController')
@@ -588,12 +588,25 @@ function p = sourceParent(source)
 end
 
 
+function figureClosed(handler, ~, handles)
+    % Remove the handler from our list.
+    handles.figureHandlers(find(cellfun(@(x) x == handler, handles.figureHandlers))) = []; %#ok<FNDSB>
+    guidata(handles.figure, handles);
+end
+
+
 function runProtocol(handles, persistor, label, parents, sources, keywords, properties, identifier)
     import Symphony.Core.*;
     
     if isempty(handles.figureHandlers)
-        handles.figureHandlers = {CurrentResponseFigureHandler(handles.protocolPlugin), MeanResponseFigureHandler(handles.protocolPlugin), ResponseStatisticsFigureHandler(handles.protocolPlugin)};
+        handles.figureHandlers = cell(1, 3);
+        handles.figureHandlers{1} = CurrentResponseFigureHandler(handles.protocolPlugin);
+        handles.figureHandlers{2} = MeanResponseFigureHandler(handles.protocolPlugin);
+        handles.figureHandlers{3} = ResponseStatisticsFigureHandler(handles.protocolPlugin);
         guidata(handles.figure, handles);
+        for index = 1:numel(handles.figureHandlers)
+            addlistener(handles.figureHandlers{index}, 'FigureClosed', @(source, event)figureClosed(source, event, guidata(handles.figure)));
+        end
     else
         for index = 1:numel(handles.figureHandlers)
             figureHandler = handles.figureHandlers{index};

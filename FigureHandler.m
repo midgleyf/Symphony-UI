@@ -10,6 +10,10 @@ classdef FigureHandler < handle
         axesHandle
     end
     
+    events
+        FigureClosed
+    end
+    
     methods
         
         function obj = FigureHandler(protocolPlugin)
@@ -40,11 +44,21 @@ classdef FigureHandler < handle
         end
         
         
+        function close(obj)
+            if ~isempty(obj.figureHandle)
+                close(obj.figureHandle);
+            end
+        end
+        
+        
         function closeRequestFcn(obj, ~, ~)
             % Remember the window position.
             prefName = [class(obj) '_Position'];
             setpref('Symphony', prefName, get(obj.figureHandle, 'Position'));
             delete(obj.figureHandle);
+            obj.figureHandle = [];
+            
+            notify(obj, 'FigureClosed');
         end
     end
     
