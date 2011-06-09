@@ -16,7 +16,7 @@ classdef Controller < handle
             end
         end
         
-        function RunEpoch(obj, epoch, persistor) %#ok<MANU,INUSD>
+        function RunEpoch(obj, epoch, persistor) %#ok<MANU>
             import Symphony.Core.*;
             
             epoch.StartTime = now;
@@ -39,6 +39,8 @@ classdef Controller < handle
                     epoch.Responses.Values{i}.Data = InputData(data, Measurement(10000, 'Hz'), now);
                 end
             end
+            
+            persistor.Serialize(epoch);
         end
     end
 end

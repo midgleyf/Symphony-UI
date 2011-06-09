@@ -655,8 +655,6 @@ function runProtocol(handles, persistor, label, parents, sources, keywords, prop
             try
                 handles.protocolPlugin.controller.RunEpoch(handles.protocolPlugin.epoch, persistor);
                 
-                persistor.Serialize(handles.protocolPlugin.epoch);
-                
                 for index = 1:numel(handles.figureHandlers)
                     figureHandler = handles.figureHandlers{index};
                     figureHandler.handleCurrentEpoch();
