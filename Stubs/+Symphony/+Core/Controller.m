@@ -40,7 +40,9 @@ classdef Controller < handle
                 end
             end
             
-            persistor.Serialize(epoch);
+            if ~isempty(persistor)
+                persistor.Serialize(epoch);
+            end
         end
     end
 end
