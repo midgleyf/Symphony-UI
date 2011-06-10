@@ -21,9 +21,10 @@ classdef SymphonyProtocol < handle
     
     
     properties
-        controller      % A Symphony.Core.Controller instance.
-        epoch = []      % A Symphony.Core.Epoch instance.
-        epochNum = 0    % The number of epochs that have been run.
+        controller                  % A Symphony.Core.Controller instance.
+        epoch = []                  % A Symphony.Core.Epoch instance.
+        epochNum = 0                % The number of epochs that have been run.
+        parametersEdited = false    % A flag indicating whether the user has edited the parameters.
     end
     
     
@@ -47,7 +48,7 @@ classdef SymphonyProtocol < handle
             
             % TODO: exclude parameters that start with an underscore?
             
-            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum'};
+            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited'};
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)

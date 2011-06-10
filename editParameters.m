@@ -169,6 +169,8 @@ function saveEditParameters(~, ~, handles)
         handles.protocolPlugin.(paramName) = paramValue;
     end
     
+    handles.protocolPlugin.parametersEdited = true;
+    
     % Remember these parameters for the next time the protocol is used.
     setpref('Symphony', [class(handles.protocolPlugin) '_Defaults'], handles.protocolPlugin.parameters());
     
