@@ -1,0 +1,67 @@
+Writing a new protocol
+======================
+
+To define a new protocol you need to create a sub-class of the SymphonyProtocol class.  
+
+Each run of a protocol consists of a single epoch group containing a protocol-defined number of epochs.
+
+Your sub-class should:
+1. Define the identifier, version and display name of the protocol as constant properties.
+2. Define any user-modifiable parameters and their default values.
+3. Define at least the prepareEpoch() and continueEpochGroup() methods.
+
+The SymphonyProtocol class provides some convenience methods that you can call from your methods:
+
+    setDeviceBackground():
+        set the voltage to be sent to a device when no stimulus is being applied
+    addStimulus():
+        queue a MATLAB vector of voltages to be sent to a device
+    recordResponse():
+        indicate that the response from a device should be recorded
+    addParameter():
+        add a parameter value that should be saved to the log file for the current epoch
+    response():
+        after an epoch has run, returns the response of a device as a MATLAB vector
+
+The complete list of methods that you can override is:
+
+    prepareEpochGroup():
+        define this method to do any setup before any epochs have been run
+    prepareEpoch():
+        define this method to add stimuli, set device backgrounds, record responses, etc.
+    responseStatistics():
+        define this method to return statistics about an epoch after it completes
+    completeEpoch():
+        define this method to perform any post-epoch clean up, analysis, etc.
+    continueEpochGroup():
+        define this method to indicate when all epochs have been run
+    completeEpochGroup():
+        define this method to perform any clean up, post-analysis, etc. after all epochs have been run
+
+A minimal protocol:
+
+    class MyProtocol < SymphonyProtocol
+        properties (Constant)
+            identifier = 'edu.school.department.lab.MyProtocol'
+            version = 1
+            displayName = 'My Protocol'
+        end
+
+        properties
+            numberOfEpochs = uint8(4);
+        end
+
+        methods
+            function prepareEpoch(obj)
+                obj.setDeviceBackground('test-device', 0);
+                obj.addStimulus('test-device', 'test-stimulus', zeros(1, 10000));
+                obj.recordResponse('test-device');
+            end
+
+            function continueEpochGroup(obj)
+                return obj.epochNum < obj.numberOfEpochs;
+            end
+        end
+    end
+
+Save this to MyProtocol.m in a folder named 'MyProtocol' and place the folder in the Symphony 'Protocols' folder.
