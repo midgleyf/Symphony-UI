@@ -10,6 +10,8 @@ classdef Symphony < handle
         runDisabledControls         % A vector of control handles that should be disabled while a protocol is running.
         stopProtocol                % A flag indicating whether the protocol should stop after the current epoch completes.
         rigNames
+        commander
+        amp_chan1
     end
     
     methods
@@ -65,8 +67,10 @@ classdef Symphony < handle
                 % No streams, etc. are required here.  The MultiClamp device is used internally by the Symphony framework to
                 % listen for changes from the MultiClamp Commander program.  Those settings are then used to alter the scale 
                 % and units of responses from the Heka device.
-                commander = MultiClampCommander(831400, 1, daq);
-                MulticlampDevice(commander, obj.controller, Measurement(0, 'V'));
+                obj.commander = MultiClampCommander(831400, 1, daq);
+                obj.amp_chan1 = MulticlampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
+                obj.amp_chan1.MeasurementConversionTarget = 'V';
+                obj.amp_chan1.Clock = daq;
                 
             elseif strcmpi(daqName, 'simulation')
                 Converters.Register('V','V', @(m) m);
