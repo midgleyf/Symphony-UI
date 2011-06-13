@@ -23,16 +23,23 @@ The SymphonyProtocol class provides some convenience methods that you can call f
     response():
         after an epoch has run, returns the response of a device as a MATLAB vector
 
+If the convenience methods provided by the base class are not sufficient to implement the protocol then you can access the Symphony framework objects directly:
+
+    obj.controller: the Symphony.Core.Controller
+    obj.controller.GetDevice(): access to any of the Symphony.Core.ExternalDevice instances
+    obj.controller.DAQController: the Symphony.Core.IDAQController
+    obj.currentEpoch: the current Symphony.Core.Epoch instance
+
 The complete list of methods that you can override is:
 
     prepareEpochGroup():
         define this method to do any setup before any epochs have been run
     prepareEpoch():
         define this method to add stimuli, set device backgrounds, record responses, etc.
-    responseStatistics():
-        define this method to return statistics about an epoch after it completes
     completeEpoch():
         define this method to perform any post-epoch clean up, analysis, etc.
+    responseStatistics():
+        define this method to return statistics about an epoch after it completes
     continueEpochGroup():
         define this method to indicate when all epochs have been run
     completeEpochGroup():
@@ -52,6 +59,10 @@ A minimal protocol:
         end
 
         methods
+            function obj = MyProtocol(controller)
+                obj = obj@SymphonyProtocol(controller);
+            end
+            
             function prepareEpoch(obj)
                 obj.setDeviceBackground('test-device', 0);
                 obj.addStimulus('test-device', 'test-stimulus', zeros(1, 10000));
