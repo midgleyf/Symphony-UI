@@ -18,7 +18,7 @@ classdef Symphony < handle
             obj = obj@handle();
             
             % Create the controller.
-            obj.createSymphonyController('simulation', 10000);
+            obj.createSymphonyController('heka', 10000);
             
             % See what protocols are available.
             obj.discoverProtocols();
@@ -47,6 +47,7 @@ classdef Symphony < handle
             
             if strcmpi(daqName, 'heka')
                 import Heka.*;
+                import Symphony.ExternalDevices.*;
                 
                 % Register Unit Converters
                 HekaDAQInputStream.RegisterConverters();
@@ -59,6 +60,14 @@ classdef Symphony < handle
                 % Finding input and output streams by name
                 outStream = daq.GetStream('ANALOG_OUT.0');
                 inStream = daq.GetStream('ANALOG_IN.0');
+                
+                % Setup the MultiClamp device
+                % No streams, etc. are required here.  The MultiClamp device is used internally by the Symphony framework to
+                % listen for changes from the MultiClamp Commander program.  Those settings are then used to alter the scale 
+                % and units of responses from the Heka device.
+                commander = MultiClampCommander(831400, 1, daq);
+                MulticlampDevice(commander, obj.controller, Measurement(0, 'V'));
+                
             elseif strcmpi(daqName, 'simulation')
                 Converters.Register('V','V', @(m) m);
                 daq = SimulationDAQController();
