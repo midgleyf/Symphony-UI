@@ -25,6 +25,7 @@ classdef SymphonyProtocol < handle
         epoch = []                  % A Symphony.Core.Epoch instance.
         epochNum = 0                % The number of epochs that have been run.
         parametersEdited = false    % A flag indicating whether the user has edited the parameters.
+        responses                   % A structure for caching converted responses.
     end
     
     
@@ -34,7 +35,8 @@ classdef SymphonyProtocol < handle
             obj = obj@handle();
             
             obj.controller = controller;
-        end
+            obj.responses = containers.Map();
+        end 
         
         
         function prepareEpochGroup(obj) %#ok<MANU>
@@ -48,7 +50,7 @@ classdef SymphonyProtocol < handle
             
             % TODO: exclude parameters that start with an underscore?
             
-            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited'};
+            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited', 'responses'};
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)
@@ -126,6 +128,10 @@ classdef SymphonyProtocol < handle
             stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
 
             obj.epoch.Stimuli.Add(device, stim);
+            
+            % Clear out the cache of responses now that we're starting a new epoch.
+            % TODO: this would be cleaner to do in prepareEpoch() but that would require all protocols to call the super method...
+            obj.responses = containers.Map();
         end
         
         
@@ -169,21 +175,33 @@ classdef SymphonyProtocol < handle
                 % TODO: what happens when there is no device with that name?
             end
             
-            % Extract the raw data.
-            response = obj.epoch.Responses.Item(device);
-            data = response.Data.Data;
-            r = zeros(1, data.Count);
-            u = '';
-            for i = 1:data.Count
-                if i == 1
-                    % Grab the units from the first data point, the rest should be the same.
-                    u = char(response.Data.Data.Item(0).Unit);
+            if isKey(obj.responses, device.Name)
+                % Use the cached response data.
+                response = obj.responses(device.Name);
+                r = response.data;
+                s = response.sampleRate;
+                u = response.units;
+            else
+
+                % Extract the raw data.
+                response = obj.epoch.Responses.Item(device);
+                data = response.Data.Data;
+                r = zeros(1, data.Count);
+                u = '';
+                for i = 1:data.Count
+                    if i == 1
+                        % Grab the units from the first data point, the rest should be the same.
+                        u = char(response.Data.Data.Item(0).Unit);
+                    end
+                    r(i) = data.Item(i - 1).Quantity;
                 end
-                r(i) = data.Item(i - 1).Quantity;
+                
+                s = response.Data.SampleRate.QuantityInBaseUnit;
+                % TODO: do we care about the units of the SampleRate measurement?
+                
+                % Cache the results.
+                obj.responses(device.Name) = struct('data', r, 'sampleRate', s, 'units', u);
             end
-            
-            s = response.Data.SampleRate.QuantityInBaseUnit;
-            % TODO: do we care about the units of the SampleRate measurement?
         end
         
         
