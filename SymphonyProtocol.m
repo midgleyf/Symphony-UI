@@ -175,14 +175,15 @@ classdef SymphonyProtocol < handle
                 % TODO: what happens when there is no device with that name?
             end
             
-            if isKey(obj.responses, device.Name)
+            deviceName = char(device.Name);
+            
+            if isKey(obj.responses, deviceName)
                 % Use the cached response data.
-                response = obj.responses(device.Name);
+                response = obj.responses(deviceName);
                 r = response.data;
                 s = response.sampleRate;
                 u = response.units;
             else
-
                 % Extract the raw data.
                 response = obj.epoch.Responses.Item(device);
                 data = response.Data.Data;
@@ -200,7 +201,7 @@ classdef SymphonyProtocol < handle
                 % TODO: do we care about the units of the SampleRate measurement?
                 
                 % Cache the results.
-                obj.responses(device.Name) = struct('data', r, 'sampleRate', s, 'units', u);
+                obj.responses(deviceName) = struct('data', r, 'sampleRate', s, 'units', u);
             end
         end
         
