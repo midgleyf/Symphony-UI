@@ -25,6 +25,17 @@ classdef Measurement < handle
                 m.Add(Symphony.Core.Measurement(array(i), unit));
             end
         end
+        
+        function a = ToQuantityArray(list)
+            a = zeros(1, list.Count);
+            for i = 1:list.Count
+                a(i) = list.Item(i - 1).Quantity;
+            end
+        end
+        
+        function u = HomogenousUnits(list)
+            u = list.Item(0).Unit;
+        end
     end
     
 end

@@ -163,6 +163,8 @@ classdef SymphonyProtocol < handle
         function [r, s, u] = response(obj, deviceName)
             % Return the response, sample rate and units recorded from the device with the given name.
             
+            import Symphony.Core.*;
+            
             if nargin == 1
                 % If no device specified then pick the first one.
                 devices = dictionaryKeysAndValues(obj.epoch.Responses);
@@ -187,15 +189,8 @@ classdef SymphonyProtocol < handle
                 % Extract the raw data.
                 response = obj.epoch.Responses.Item(device);
                 data = response.Data.Data;
-                r = zeros(1, data.Count);
-                u = '';
-                for i = 1:data.Count
-                    if i == 1
-                        % Grab the units from the first data point, the rest should be the same.
-                        u = char(response.Data.Data.Item(0).Unit);
-                    end
-                    r(i) = data.Item(i - 1).Quantity;
-                end
+                r = double(Measurement.ToQuantityArray(data));
+                u = char(Measurement.HomogenousUnits(data));
                 
                 s = response.Data.SampleRate.QuantityInBaseUnit;
                 % TODO: do we care about the units of the SampleRate measurement?
