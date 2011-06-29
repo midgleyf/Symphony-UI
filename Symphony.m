@@ -743,6 +743,7 @@ classdef Symphony < handle
                 for index = 1:numel(obj.figureHandlers)
                     figureHandler = obj.figureHandlers{index};
                     figureHandler.clearFigure();
+                    figureHandler.protocolPlugin = obj.protocolPlugin;
                 end
                 drawnow
             end
