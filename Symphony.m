@@ -20,7 +20,7 @@ classdef Symphony < handle
             obj = obj@handle();
             
             % Create the controller.
-            obj.createSymphonyController('heka', 10000);
+            obj.createSymphonyController('simulation', 10000);
             
             % See what protocols are available.
             obj.discoverProtocols();
@@ -150,7 +150,10 @@ classdef Symphony < handle
             params = getpref('Symphony', [className '_Defaults'], struct);
             paramNames = fieldnames(params);
             for i = 1:numel(paramNames)
-                plugin.(paramNames{i}) = params.(paramNames{i});
+                paramProps = findprop(plugin, paramNames{i});
+                if ~paramProps.Dependent
+                    plugin.(paramNames{i}) = params.(paramNames{i});
+                end
             end
         end
         
