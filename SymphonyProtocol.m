@@ -1,4 +1,4 @@
-classdef SymphonyProtocol < handle
+classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     % Create a sub-class of this class to define a protocol.
     %
     % Interesting methods to override:

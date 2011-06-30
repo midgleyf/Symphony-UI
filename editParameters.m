@@ -1,11 +1,12 @@
 function edited = editParameters(protocolPlugin)
     handles.protocolPlugin = protocolPlugin;
+    handles.pluginCopy = copy(protocolPlugin);
     
     params = protocolPlugin.parameters();
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     
-    % TODO: determinet the width from the actual labels.
+    % TODO: determine the width from the actual labels.
     labelWidth = 120;
     
     dialogHeight = paramCount * 30 + 50;
@@ -34,6 +35,7 @@ function edited = editParameters(protocolPlugin)
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
         paramLabel = humanReadableParameterName(paramName);
+        paramProps = findprop(protocolPlugin, paramName);
         
         uicontrol(...
             'Parent', handles.figure,...
@@ -45,7 +47,7 @@ function edited = editParameters(protocolPlugin)
             'Style', 'text');
         
         paramTag = [paramName 'Edit'];
-        if isinteger(paramValue) 
+        if isinteger(paramValue) && ~paramProps.Dependent
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
@@ -73,6 +75,7 @@ function edited = editParameters(protocolPlugin)
                 'Units', 'points', ...
                 'FontSize', 12,...
                 'Position', [labelWidth+15 dialogHeight-paramIndex*30-2 200 26], ...
+                'Callback', @(hObject,eventdata)checkboxToggled(hObject, eventdata, guidata(hObject)), ...
                 'Value', paramValue, ...
                 'Style', 'checkbox', ...
                 'Tag', paramTag);
@@ -88,6 +91,10 @@ function edited = editParameters(protocolPlugin)
                 'Tag', paramTag);
         else
             error('Unhandled param type');
+        end
+        
+        if paramProps.Dependent
+            set(handles.(paramTag), 'Enable', 'off');
         end
     end
     
@@ -118,6 +125,54 @@ function edited = editParameters(protocolPlugin)
 end
 
 
+function updateDependentValues(handles)
+    % Push all values into the copy of the plug-in.
+    params = handles.pluginCopy.parameters();
+    paramNames = fieldnames(params);
+    paramCount = numel(paramNames);
+    for paramIndex = 1:paramCount
+        paramName = paramNames{paramIndex};
+        paramTag = [paramName 'Edit'];
+        paramProps = findprop(handles.pluginCopy, paramName);
+        if ~paramProps.Dependent
+            if isnumeric(params.(paramName))
+                paramValue = str2double(get(handles.(paramTag), 'String'));
+                convFunc = str2func(class(params.(paramName)));
+                paramValue = convFunc(paramValue);
+            elseif islogical(params.(paramName))
+                paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
+            elseif ischar(params.(paramName))
+                paramValue = get(handles.(paramTag), 'String');
+            end
+            handles.pluginCopy.(paramName) = paramValue;
+        end
+    end
+    
+    % Now update the value of any dependent properties.
+    params = handles.pluginCopy.parameters();
+    paramNames = fieldnames(params);
+    paramCount = numel(paramNames);
+    for paramIndex = 1:paramCount
+        paramName = paramNames{paramIndex};
+        paramValue = params.(paramName);
+        paramProps = findprop(handles.pluginCopy, paramName);
+        paramTag = [paramName 'Edit'];
+        
+        if paramProps.Dependent
+            if islogical(paramValue)
+                set(handles.(paramTag), 'Value', paramValue);
+            elseif isnumeric(paramValue) || ischar(paramValue)
+                set(handles.(paramTag), 'String', paramValue);
+            end
+        end
+        
+        if paramProps.Dependent
+            set(handles.(paramTag), 'Enable', 'off');
+        end
+    end
+end
+
+
 function editParametersKeyPress(hObject, eventdata, handles)
     if strcmp(eventdata.Key, 'return')
         % Move focus off of any edit text so the changes can be seen.
@@ -126,19 +181,28 @@ function editParametersKeyPress(hObject, eventdata, handles)
         saveEditParameters(hObject, eventdata, handles);
     elseif strcmp(eventdata.Key, 'escape')
         cancelEditParameters(hObject, eventdata, handles);
+    else
+        updateDependentValues(handles);
     end
+end
+
+
+function checkboxToggled(~, ~, handles)
+    updateDependentValues(handles);
 end
 
 
 function stepValueUp(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue + 1));
+    updateDependentValues(handles);
 end
 
 
 function stepValueDown(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue - 1));
+    updateDependentValues(handles);
 end
 
 
@@ -157,16 +221,19 @@ function saveEditParameters(~, ~, handles)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramTag = [paramName 'Edit'];
-        if isnumeric(params.(paramName))
-            paramValue = str2double(get(handles.(paramTag), 'String'));
-            convFunc = str2func(class(params.(paramName)));
-            paramValue = convFunc(paramValue);
-        elseif islogical(params.(paramName))
-            paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
-        elseif ischar(params.(paramName))
-            paramValue = get(handles.(paramTag), 'String');
+        paramProps = findprop(handles.protocolPlugin, paramName);
+        if ~paramProps.Dependent
+            if isnumeric(params.(paramName))
+                paramValue = str2double(get(handles.(paramTag), 'String'));
+                convFunc = str2func(class(params.(paramName)));
+                paramValue = convFunc(paramValue);
+            elseif islogical(params.(paramName))
+                paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
+            elseif ischar(params.(paramName))
+                paramValue = get(handles.(paramTag), 'String');
+            end
+            handles.protocolPlugin.(paramName) = paramValue;
         end
-        handles.protocolPlugin.(paramName) = paramValue;
     end
     
     handles.protocolPlugin.parametersEdited = true;

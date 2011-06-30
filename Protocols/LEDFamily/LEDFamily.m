@@ -13,12 +13,16 @@ classdef LEDFamily < SymphonyProtocol
         tailPoints = uint16(4000);
         baseLightAmplitude = 0.5;
         stepsInFamily = uint8(3);
-        ampOfLastStep = 2.0;
+        ampStepScale = 2.0;
         lightMean = 0.0;
         preSynapticHold = int16(-60);
         numberOfAverages = uint8(5);
         interpulseInterval = 0.6;
         continuousRun = false;
+    end
+    
+    properties (Dependent = true, SetAccess = private)
+        ampOfLastStep;
     end
     
     methods
@@ -31,7 +35,7 @@ classdef LEDFamily < SymphonyProtocol
         function prepareEpoch(obj)
             % Calculate the light amplitude for this epoch.
             phase = single(mod(obj.epochNum - 1, obj.stepsInFamily));
-            lightAmplitude = obj.baseLightAmplitude * obj.ampOfLastStep ^ phase;
+            lightAmplitude = obj.baseLightAmplitude * obj.ampStepScale ^ phase;
             obj.addParameter('lightAmplitude', lightAmplitude);
             
             % Create the stimulus
@@ -61,6 +65,11 @@ classdef LEDFamily < SymphonyProtocol
         
         function keepGoing = continueEpochGroup(obj)
             keepGoing = obj.epochNum < obj.stepsInFamily * obj.numberOfAverages;
+        end
+        
+        
+        function amp = get.ampOfLastStep(obj)
+            amp = obj.baseLightAmplitude * obj.ampStepScale ^ (obj.stepsInFamily - 1);
         end
 
     end
