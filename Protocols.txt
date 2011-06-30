@@ -53,11 +53,11 @@ A minimal protocol:
             version = 1
             displayName = 'My Protocol'
         end
-
+        
         properties
             numberOfEpochs = uint8(4);
         end
-
+        
         methods
             function obj = MyProtocol(controller)
                 obj = obj@SymphonyProtocol(controller);
@@ -68,7 +68,7 @@ A minimal protocol:
                 obj.addStimulus('test-device', 'test-stimulus', zeros(1, 10000));
                 obj.recordResponse('test-device');
             end
-
+            
             function continueEpochGroup(obj)
                 return obj.epochNum < obj.numberOfEpochs;
             end
@@ -76,3 +76,28 @@ A minimal protocol:
     end
 
 Save this to MyProtocol.m in a folder named 'MyProtocol' and place the folder in the Symphony 'Protocols' folder.
+
+When defining a protocol's properties you can indicate that any number of them are derived from other properties and therefore should not be editable.  This is done using MATLAB's concept of "dependent" properties:
+
+    class MyProtocol2 < SymphonyProtocol
+        properties (Constant)
+            ... standard properties ...
+        end
+        
+        properties
+            a = uint8(1);
+            b = uint8(2);
+        end
+        
+        properties (Dependent = true, SetAccess = private)
+            c;
+        end
+        
+        methods
+            function c = get.c(obj)
+                c = obj.a + obj.b;
+            end
+            
+            ... other methods ...
+        end
+    end
