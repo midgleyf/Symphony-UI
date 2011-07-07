@@ -19,8 +19,12 @@ classdef Symphony < handle
         function obj = Symphony()
             obj = obj@handle();
             
+            symphonyDir = fileparts(mfilename('fullpath'));
+            symphonyParentDir = fileparts(symphonyDir);
+            Symphony.Core.Logging.ConfigureLogging(fullfile(symphonyDir, 'debug_log.xml'), symphonyParentDir);
+            
             % Create the controller.
-            obj.createSymphonyController('simulation', 10000);
+            obj.createSymphonyController('heka', 10000);
             
             % See what protocols are available.
             obj.discoverProtocols();
@@ -68,7 +72,7 @@ classdef Symphony < handle
                 % listen for changes from the MultiClamp Commander program.  Those settings are then used to alter the scale 
                 % and units of responses from the Heka device.
                 obj.commander = MultiClampCommander(831400, 1, daq);
-                obj.amp_chan1 = MulticlampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
+                obj.amp_chan1 = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
                 obj.amp_chan1.MeasurementConversionTarget = 'V';
                 obj.amp_chan1.Clock = daq;
                 
