@@ -12,4 +12,10 @@ clear symphonyPath parentDir
 addSymphonyFramework();
 
 % Launch the user interface
-Symphony();
+global symphonyInstance;
+
+if isempty(symphonyInstance)
+    symphonyInstance = Symphony();
+else
+    symphonyInstance.showMainWindow();
+end
