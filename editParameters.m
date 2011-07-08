@@ -153,7 +153,7 @@ function updateStimuli(handles)
         end
         hold off
         set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
-        xlabel('Epoch');
+        xlabel('Sample');
         ylabel('Time');
         set(gca,'YDir','reverse');
         zlabel('Stimulus');
