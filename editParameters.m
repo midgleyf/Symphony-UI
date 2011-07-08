@@ -105,7 +105,7 @@ function edited = editParameters(protocolPlugin)
     
     % Create axes for displaying sample stimuli.
     figure(handles.figure);
-    handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight]);
+    handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight - 10]);
     updateStimuli(handles);
     
     handles.cancelButton = uicontrol(...
@@ -139,19 +139,28 @@ function updateStimuli(handles)
     set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
     cla;
     stimuli = handles.pluginCopy.sampleStimuli();
-    stimulusCount = length(stimuli);
-    for i = 1:stimulusCount
-        stimulus = stimuli{i};
-        plot3(ones(1, length(stimulus)) * i, 1:length(stimulus), stimulus);
-        hold on
+    if isempty(stimuli)
+        plot3(0, 0, 0);
+        set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
+        grid on;
+        text('Units', 'normalized', 'Position', [0.5 0.5], 'String', 'No samples available', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle');
+    else
+        stimulusCount = length(stimuli);
+        for i = 1:stimulusCount
+            stimulus = stimuli{i};
+            plot3(ones(1, length(stimulus)) * i, 1:length(stimulus), stimulus);
+            hold on
+        end
+        hold off
+        set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
+        xlabel('Epoch');
+        ylabel('Time');
+        set(gca,'YDir','reverse');
+        zlabel('Stimulus');
+        grid on;
     end
-    set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
-    xlabel('Epoch');
-    ylabel('Time');
-    set(gca,'YDir','reverse');
-    zlabel('Stimulus');
-    grid on;
     axis square;
+    title(handles.stimuliAxes, 'Sample Stimuli');
 end
 
 
