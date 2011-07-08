@@ -75,6 +75,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
+        function stimuli = sampleStimuli(~)
+            stimuli = {};
+        end
+        
+        
         function prepareEpoch(obj) %#ok<MANU>
             % Override this method to add stimulii, record responses, change parameters, etc.
             

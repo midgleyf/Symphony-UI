@@ -9,12 +9,14 @@ function edited = editParameters(protocolPlugin)
     % TODO: determine the width from the actual labels.
     labelWidth = 120;
     
-    dialogHeight = paramCount * 30 + 50;
+    paramsHeight = paramCount * 30;
+    axesHeight = max([paramsHeight 300]);
+    dialogHeight = axesHeight + 50;
     
     handles.figure = dialog(...
         'Units', 'points', ...
         'Name', [class(protocolPlugin) ' Parameters'], ...
-        'Position', centerWindowOnScreen(labelWidth + 225, dialogHeight), ...
+        'Position', centerWindowOnScreen(labelWidth + 225 + 30 + axesHeight + 10, dialogHeight), ...
         'WindowKeyPressFcn', @(hObject, eventdata)editParametersKeyPress(hObject, eventdata, guidata(hObject)), ...
         'Tag', 'figure');
     
@@ -99,6 +101,12 @@ function edited = editParameters(protocolPlugin)
     end
     
     % TODO: add "Reset to Defaults" button.
+    % TODO: add save/load settings functionality
+    
+    % Create axes for displaying sample stimuli.
+    figure(handles.figure);
+    handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight]);
+    updateStimuli(handles);
     
     handles.cancelButton = uicontrol(...
         'Parent', handles.figure,...
@@ -118,10 +126,32 @@ function edited = editParameters(protocolPlugin)
     
     guidata(handles.figure, handles);
     
+    % Wait for the user to cancel or save.
     uiwait;
+    
     handles = guidata(handles.figure);
     edited = handles.edited;
     close(handles.figure);
+end
+
+
+function updateStimuli(handles)
+    set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
+    cla;
+    stimuli = handles.pluginCopy.sampleStimuli();
+    stimulusCount = length(stimuli);
+    for i = 1:stimulusCount
+        stimulus = stimuli{i};
+        plot3(ones(1, length(stimulus)) * i, 1:length(stimulus), stimulus);
+        hold on
+    end
+    set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
+    xlabel('Epoch');
+    ylabel('Time');
+    set(gca,'YDir','reverse');
+    zlabel('Stimulus');
+    grid on;
+    axis square;
 end
 
 
@@ -183,12 +213,14 @@ function editParametersKeyPress(hObject, eventdata, handles)
         cancelEditParameters(hObject, eventdata, handles);
     else
         updateDependentValues(handles);
+        updateStimuli(handles);
     end
 end
 
 
 function checkboxToggled(~, ~, handles)
     updateDependentValues(handles);
+    updateStimuli(handles);
 end
 
 
@@ -196,6 +228,7 @@ function stepValueUp(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue + 1));
     updateDependentValues(handles);
+    updateStimuli(handles);
 end
 
 
@@ -203,6 +236,7 @@ function stepValueDown(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue - 1));
     updateDependentValues(handles);
+    updateStimuli(handles);
 end
 
 

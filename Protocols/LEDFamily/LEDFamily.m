@@ -32,16 +32,29 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function prepareEpoch(obj)
+        function [stimulus, lightAmplitude] = stimulusForEpoch(obj, epochNum)
             % Calculate the light amplitude for this epoch.
-            phase = single(mod(obj.epochNum - 1, obj.stepsInFamily));
+            phase = single(mod(epochNum - 1, obj.stepsInFamily));
             lightAmplitude = obj.baseLightAmplitude * obj.ampStepScale ^ phase;
-            obj.addParameter('lightAmplitude', lightAmplitude);
             
             % Create the stimulus
-            data = ones(1, obj.prePoints + obj.stimPoints + obj.tailPoints) * obj.lightMean;
-            data(obj.prePoints:obj.prePoints+obj.stimPoints) = lightAmplitude;
-            obj.addStimulus('test-device', 'test-stimulus', data);
+            stimulus = ones(1, obj.prePoints + obj.stimPoints + obj.tailPoints) * obj.lightMean;
+            stimulus(obj.prePoints:obj.prePoints+obj.stimPoints) = lightAmplitude;
+        end
+        
+        
+        function stimuli = sampleStimuli(obj)
+            stimuli = cell(obj.stepsInFamily, 1);
+            for i = 1:obj.stepsInFamily
+                stimuli{i} = obj.stimulusForEpoch(i);
+            end
+        end
+        
+        
+        function prepareEpoch(obj)
+            [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
+            obj.addParameter('lightAmplitude', lightAmplitude);
+            obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             obj.setDeviceBackground('test-device', obj.lightMean);
             
