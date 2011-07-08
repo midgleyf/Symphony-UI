@@ -26,7 +26,16 @@ classdef Symphony < handle
             Logging.ConfigureLogging(fullfile(symphonyDir, 'debug_log.xml'), symphonyParentDir);
             
             % Create the controller.
-            obj.createSymphonyController('heka', 10000);
+            try
+                obj.createSymphonyController('heka', 10000);
+            catch ME
+                if strcmp(ME.identifier, 'MATLAB:undefinedVarOrClass')
+                    % The Heka controller is unavaible (probably on a Mac), use the simulator instead.
+                    obj.createSymphonyController('simulation', 10000);
+                else
+                    rethrow(ME);
+                end
+            end
             
             % See what protocols are available.
             obj.discoverProtocols();
@@ -478,7 +487,7 @@ classdef Symphony < handle
         
         function editProtocolParameters(obj, ~, ~)
             % The user clicked the "Parameters..." button.
-            editParameters(obj.protocolPlugin)
+            editParameters(obj.protocolPlugin);
         end
         
         
