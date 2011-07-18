@@ -25,7 +25,7 @@ classdef TestProtocol < SymphonyProtocol
             else
                 freqScale = 1000.0;
             end
-            stimulus = sin((1:double(obj.stimSamples)) / freqScale);
+            stimulus = 1000.*sin((1:double(obj.stimSamples)) / freqScale);
         end
         
         

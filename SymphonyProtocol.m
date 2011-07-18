@@ -126,7 +126,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            stimDataList = Measurement.FromArray(stimulusData, 'V');
+            stimDataList = Measurement.FromArray(stimulusData.*1e-3, 'V');
 
             outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
 
