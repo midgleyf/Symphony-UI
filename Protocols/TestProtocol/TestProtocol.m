@@ -32,6 +32,12 @@ classdef TestProtocol < SymphonyProtocol
         end
         
         
+        function prepareEpochGroup(obj)
+            obj.openFigure('Response');
+            obj.openFigure('ResponseStatistics');
+        end
+        
+        
         function prepareEpoch(obj)
             [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('freqScale', freqScale);

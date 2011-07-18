@@ -5,7 +5,6 @@ classdef Symphony < handle
         controller                  % The Symphony.Core.Controller instance.
         protocolClassNames          % The list of protocol plug-in names.
         protocolPlugin              % The current protocol plug-in instance.
-        figureHandlers              % A cell array of the open figure handlers.
         controls                    % A structure containing the handles for most of the controls in the UI.
         runDisabledControls         % A vector of control handles that should be disabled while a protocol is running.
         stopProtocol                % A flag indicating whether the protocol should stop after the current epoch completes.
@@ -45,10 +44,6 @@ classdef Symphony < handle
             
             % Create and open the main window.
             obj.showMainWindow();
-            
-            % Begin with no figure windows
-            % TODO: restore any left open?
-            obj.figureHandlers = {};
         end
         
         
@@ -162,8 +157,8 @@ classdef Symphony < handle
         
         function plugin = createProtocolPlugin(obj, className)
             % Create an instance of the protocol class.
-            % TODO: can str2func or meta.class be used here instead of eval?
-            plugin = eval([className '()']);
+            constructor = str2func(className);
+            plugin = constructor();
             
             plugin.controller = obj.controller;
             
@@ -508,6 +503,8 @@ classdef Symphony < handle
                 newPlugin = obj.createProtocolPlugin(pluginClassName);
                 
                 if editParameters(newPlugin)
+                    obj.protocolPlugin.closeFigures();
+                    
                     obj.protocolPlugin = newPlugin;
                     setpref('Symphony', 'LastChosenProtocol', pluginClassName);
                 else
@@ -620,10 +617,7 @@ classdef Symphony < handle
         
         
         function closeRequestFcn(obj, ~, ~)
-            % Close any figures that were opened.
-            while ~isempty(obj.figureHandlers)
-                obj.figureHandlers{1}.close();
-            end
+            obj.protocolPlugin.closeFigures();
             
             % Release any hold we have on hardware.
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController')
@@ -749,34 +743,10 @@ classdef Symphony < handle
         end
         
         
-        function figureClosed(obj, handler, ~)
-            % Remove the handler from our list.
-            obj.figureHandlers(find(cellfun(@(x) x == handler, obj.figureHandlers))) = []; %#ok<FNDSB>
-        end
-        
-        
         function runProtocol(obj, persistor, label, parents, sources, keywords, properties, identifier)
             % This is the core method that runs a protocol, everything else is preparation for this.
             
             import Symphony.Core.*;
-            
-            % Open or reset the figure handlers.
-            if isempty(obj.figureHandlers)
-                obj.figureHandlers = cell(1, 3);
-                obj.figureHandlers{1} = CurrentResponseFigureHandler(obj.protocolPlugin);
-                obj.figureHandlers{2} = MeanResponseFigureHandler(obj.protocolPlugin);
-                obj.figureHandlers{3} = ResponseStatisticsFigureHandler(obj.protocolPlugin);
-                for index = 1:numel(obj.figureHandlers)
-                    addlistener(obj.figureHandlers{index}, 'FigureClosed', @(source, event)figureClosed(obj, source, event));
-                end
-            else
-                for index = 1:numel(obj.figureHandlers)
-                    figureHandler = obj.figureHandlers{index};
-                    figureHandler.clearFigure();
-                    figureHandler.protocolPlugin = obj.protocolPlugin;
-                end
-                drawnow
-            end
             
             % Set up the persistor.
             if ~isempty(persistor)
@@ -809,10 +779,7 @@ classdef Symphony < handle
                     try
                         obj.protocolPlugin.controller.RunEpoch(obj.protocolPlugin.epoch, persistor);
                         
-                        for index = 1:numel(obj.figureHandlers)
-                            figureHandler = obj.figureHandlers{index};
-                            figureHandler.handleCurrentEpoch();
-                        end
+                        obj.protocolPlugin.updateFigures();
                         
                         % Force any figures to redraw and any events (clicking the Stop button in particular) to get processed.
                         drawnow;

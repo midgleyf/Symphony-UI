@@ -38,6 +38,11 @@ classdef FigureHandler < handle
         end
         
         
+        function showFigure(obj)
+            figure(obj.figureHandle);
+        end
+        
+        
         function clearFigure(obj)
             set(get(obj.axesHandle, 'Title'), 'String', '');
             cla(obj.axesHandle);

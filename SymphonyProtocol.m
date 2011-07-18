@@ -26,6 +26,8 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         epochNum = 0                % The number of epochs that have been run.
         parametersEdited = false    % A flag indicating whether the user has edited the parameters.
         responses                   % A structure for caching converted responses.
+        figureHandlers = {}
+        figureHandlerParams = {}
     end
     
     
@@ -49,7 +51,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             % TODO: exclude parameters that start with an underscore?
             
-            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited', 'responses'};
+            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited', 'responses', 'figureHandlers', 'figureHandlerParams'};
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)
@@ -225,6 +227,52 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         function completeEpochGroup(obj) %#ok<MANU>
             % Override this method to perform any actions after the last epoch has completed.
+        end
+    end
+    
+    
+    methods
+        
+        function handler = openFigure(obj, figureType, varargin)
+            handlerClass = [figureType 'FigureHandler'];
+            
+            % Check if the figure is open already.
+            for i = 1:length(obj.figureHandlers)
+                if strcmp(class(obj.figureHandlers{i}), handlerClass) && isequal(obj.figureHandlerParams{i}, varargin)
+                    handler = obj.figureHandlers{i};
+                    handler.showFigure();
+                    return
+                end
+            end
+            
+            % Create a new handler.
+            constructor = str2func(handlerClass);
+            handler = constructor(obj, varargin{:});
+            addlistener(handler, 'FigureClosed', @(source, event)figureClosed(obj, source, event));
+            obj.figureHandlers{end + 1} = handler;
+            obj.figureHandlerParams{end + 1} = varargin;
+        end
+        
+        
+        function updateFigures(obj)
+            for index = 1:numel(obj.figureHandlers)
+                figureHandler = obj.figureHandlers{index};
+                figureHandler.handleCurrentEpoch();
+            end
+        end
+        
+        
+        function closeFigures(obj)
+            % Close any figures that were opened.
+            while ~isempty(obj.figureHandlers)
+                obj.figureHandlers{1}.close();
+            end
+        end
+        
+        
+        function figureClosed(obj, handler, ~)
+            % Remove the handler from our list.
+            obj.figureHandlers(find(cellfun(@(x) x == handler, obj.figureHandlers))) = []; %#ok<FNDSB>
         end
         
     end

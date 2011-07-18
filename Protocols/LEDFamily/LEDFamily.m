@@ -46,6 +46,13 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
+        function prepareEpochGroup(obj)
+            obj.openFigure('Response');
+            obj.openFigure('MeanResponse', {'lightAmplitude'});
+            obj.openFigure('ResponseStatistics');
+        end
+        
+        
         function prepareEpoch(obj)
             [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('lightAmplitude', lightAmplitude);
