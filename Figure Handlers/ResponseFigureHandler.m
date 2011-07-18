@@ -1,7 +1,7 @@
-classdef CurrentResponseFigureHandler < FigureHandler
+classdef ResponseFigureHandler < FigureHandler
     
     properties (Constant)
-        figureName = 'Current Response'
+        figureName = 'Response'
     end
     
     properties
@@ -10,7 +10,7 @@ classdef CurrentResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = CurrentResponseFigureHandler(protocolPlugin)
+        function obj = ResponseFigureHandler(protocolPlugin)
             obj = obj@FigureHandler(protocolPlugin);
             
             obj.plotHandle = plot(obj.axesHandle, 1:100, zeros(1, 100));
