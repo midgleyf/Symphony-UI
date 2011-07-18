@@ -54,7 +54,7 @@ classdef Symphony < handle
         
         function createSymphonyController(obj, daqName, sampleRateInHz)
             import Symphony.Core.*;
-            import Symphony.SimulationDAQController.*;
+            import Symphony.ExternalDevices.*;
             
             % Create Symphony.Core.Controller
             
@@ -64,7 +64,6 @@ classdef Symphony < handle
             
             if strcmpi(daqName, 'heka')
                 import Heka.*;
-                import Symphony.ExternalDevices.*;
                 
                 % Register Unit Converters
                 HekaDAQInputStream.RegisterConverters();
@@ -78,16 +77,9 @@ classdef Symphony < handle
                 outStream = daq.GetStream('ANALOG_OUT.0');
                 inStream = daq.GetStream('ANALOG_IN.0');
                 
-                % Setup the MultiClamp device
-                % No streams, etc. are required here.  The MultiClamp device is used internally by the Symphony framework to
-                % listen for changes from the MultiClamp Commander program.  Those settings are then used to alter the scale 
-                % and units of responses from the Heka device.
-                obj.commander = MultiClampCommander(831400, 1, daq);
-                obj.amp_chan1 = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
-                obj.amp_chan1.MeasurementConversionTarget = 'V';
-                obj.amp_chan1.Clock = daq;
-                
             elseif strcmpi(daqName, 'simulation')
+                
+                import Symphony.SimulationDAQController.*;
                 Converters.Register('V','V', @(m) m);
                 daq = SimulationDAQController();
                 daq.Setup();
@@ -105,10 +97,18 @@ classdef Symphony < handle
                 daq.AddStream(inStream);
                 
                 daq.SimulationRunner = Simulation(@(output,step) loopbackSimulation(obj, output, step, outStream, inStream));
-
+                
             else
                 error(['Unknown daqName: ' daqName]);
             end
+            
+            % Setup the MultiClamp device
+            % No streams, etc. are required here.  The MultiClamp device is used internally by the Symphony framework to
+            % listen for changes from the MultiClamp Commander program.  Those settings are then used to alter the scale
+            % and units of responses from the Heka device.
+            obj.commander = MultiClampCommander(0, 1, daq); %Using serial 0 for simulation device; was 831400
+            obj.amp_chan1 = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
+            obj.amp_chan1.Clock = daq;
             
             daq.Clock = daq;
             
@@ -116,11 +116,15 @@ classdef Symphony < handle
             obj.controller.Clock = daq;
             
             % Create external device and bind streams
-            dev = ExternalDevice('test-device', obj.controller, Measurement(0, 'V'));
+            dev = UnitConvertingExternalDevice('test-device', obj.controller, Measurement(0, 'V'));
             dev.Clock = daq;
             dev.MeasurementConversionTarget = 'V';
-            dev.BindStream(outStream);
+            
+            %obj.amp_chan1.BindStream(outStream);
+            %obj.amp_chan1.BindStream(inStream);
+            
             dev.BindStream(inStream);
+            dev.BindStream(outStream);
         end
         
         
