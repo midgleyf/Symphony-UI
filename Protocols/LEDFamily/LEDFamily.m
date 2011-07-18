@@ -27,11 +27,6 @@ classdef LEDFamily < SymphonyProtocol
     
     methods
         
-        function obj = LEDFamily(controller)
-            obj = obj@SymphonyProtocol(controller);
-        end
-        
-        
         function [stimulus, lightAmplitude] = stimulusForEpoch(obj, epochNum)
             % Calculate the light amplitude for this epoch.
             phase = single(mod(epochNum - 1, obj.stepsInFamily));

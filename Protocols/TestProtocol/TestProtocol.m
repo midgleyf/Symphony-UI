@@ -14,11 +14,6 @@ classdef TestProtocol < SymphonyProtocol
     
     methods
         
-        function obj = TestProtocol(controller)
-            obj = obj@SymphonyProtocol(controller);
-        end
-        
-        
         function [stimulus, freqScale] = stimulusForEpoch(obj, epochNum)
             if obj.rampFrequency
                 freqScale = 1000.0 / double(epochNum);

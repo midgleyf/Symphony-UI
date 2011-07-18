@@ -160,10 +160,12 @@ classdef Symphony < handle
         end
         
         
-        function plugin = createProtocolPlugin(obj, className) %#ok<MANU>
+        function plugin = createProtocolPlugin(obj, className)
             % Create an instance of the protocol class.
-            % TODO: can str2func be used here instead of eval?
-            plugin = eval([className '(obj.controller)']);
+            % TODO: can str2func or meta.class be used here instead of eval?
+            plugin = eval([className '()']);
+            
+            plugin.controller = obj.controller;
             
             % Use any previously set parameters.
             params = getpref('Symphony', [className '_Defaults'], struct);

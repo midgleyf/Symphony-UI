@@ -31,10 +31,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     
     methods
         
-        function obj = SymphonyProtocol(controller)
+        function obj = SymphonyProtocol()
             obj = obj@handle();
             
-            obj.controller = controller;
             obj.responses = containers.Map();
         end 
         
