@@ -6,25 +6,47 @@ classdef MeanResponseFigureHandler < FigureHandler
     
     properties
         meanPlots   % array of structures to store the properties of each class of epoch.
+        meanParamNames
     end
     
     methods
         
-        function obj = MeanResponseFigureHandler(protocolPlugin)
+        function obj = MeanResponseFigureHandler(protocolPlugin, paramNames)
             obj = obj@FigureHandler(protocolPlugin);
             
             xlabel(obj.axesHandle, 'sec');
             
             obj.resetPlots();
+            
+            obj.meanParamNames = {};
+            if nargin > 1
+                if iscell(paramNames)
+                    if all(cellfun(@ischar, paramNames))
+                        obj.meanParamNames = paramNames;
+                    end
+                elseif ischar(paramNames)
+                    obj.meanParamNames = {paramNames};
+                end
+            end
         end
         
         
         function handleCurrentEpoch(obj)
             [responseData, sampleRate, units] = obj.protocolPlugin.response();
             
-            % Check if we have existing data for this "class" of epoch.
-            % The class of the epoch is defined by the set of its unique parameters.
-            epochParams = obj.protocolPlugin.epochSpecificParameters();
+            % Get the parameters for this "class" of epoch.
+            % An epoch class is defined by a set of parameter values.
+            if isempty(obj.meanParamNames)
+                % Automatically detect the set of parameters.
+                epochParams = obj.protocolPlugin.epochSpecificParameters();
+            else
+                % The protocol has specified which parameters to use.
+                for i = 1:length(obj.meanParamNames)
+                    epochParams.(obj.meanParamNames{i}) = obj.protocolPlugin.epoch.ProtocolParameters.Item(obj.meanParamNames{i});
+                end
+            end
+            
+            % Check if we have existing data for this class of epoch.
             meanPlot = struct([]);
             for i = 1:numel(obj.meanPlots)
                 if isequal(obj.meanPlots(i).params, epochParams)
@@ -64,6 +86,16 @@ classdef MeanResponseFigureHandler < FigureHandler
             
             % Update the y axis with the units of the response.
             ylabel(obj.axesHandle, units);
+            
+            paramNames = fieldnames(epochParams);
+            titleString = ['Grouped by ' humanReadableParameterName(paramNames{1})];
+            for i = 2:length(paramNames) - 1
+                titleString = [titleString ', ' humanReadableParameterName(paramNames{i})];
+            end
+            if length(paramNames) > 1
+                titleString = [titleString ' and ' humanReadableParameterName(paramNames{end})];
+            end
+            title(obj.axesHandle, titleString);
         end
         
         
