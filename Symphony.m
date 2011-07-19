@@ -793,6 +793,7 @@ classdef Symphony < handle
                 % Initialize the run.
                 obj.protocolPlugin.epoch = [];
                 obj.protocolPlugin.epochNum = 0;
+                obj.protocolPlugin.clearFigures();
                 obj.protocolPlugin.prepareEpochGroup()
                 
                 % Loop through all of the epochs.

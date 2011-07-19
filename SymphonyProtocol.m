@@ -263,6 +263,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
+        function clearFigures(obj)
+            for index = 1:numel(obj.figureHandlers)
+                figureHandler = obj.figureHandlers{index};
+                figureHandler.clearFigure();
+            end
+        end
+        
+        
         function closeFigures(obj)
             % Close any figures that were opened.
             while ~isempty(obj.figureHandlers)
