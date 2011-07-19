@@ -138,7 +138,7 @@ end
 function updateStimuli(handles)
     set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
     cla;
-    stimuli = handles.pluginCopy.sampleStimuli();
+    [stimuli, sampleRate] = handles.pluginCopy.sampleStimuli();
     if isempty(stimuli)
         plot3(0, 0, 0);
         set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
@@ -148,13 +148,13 @@ function updateStimuli(handles)
         stimulusCount = length(stimuli);
         for i = 1:stimulusCount
             stimulus = stimuli{i};
-            plot3(ones(1, length(stimulus)) * i, 1:length(stimulus), stimulus);
+            plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / sampleRate, stimulus);
             hold on
         end
         hold off
         set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
-        xlabel('Sample');
-        ylabel('Time');
+        xlabel('Sample #');
+        ylabel('Time (s)');
         set(gca,'YDir','reverse');
         zlabel('Stimulus');
         grid on;

@@ -24,11 +24,12 @@ classdef TestProtocol < SymphonyProtocol
         end
         
         
-        function stimuli = sampleStimuli(obj)
+        function [stimuli, sampleRate] = sampleStimuli(obj)
             stimuli = cell(obj.epochMax, 1);
             for i = 1:obj.epochMax
                 stimuli{i} = obj.stimulusForEpoch(i);
             end
+            sampleRate = 10000;
         end
         
         

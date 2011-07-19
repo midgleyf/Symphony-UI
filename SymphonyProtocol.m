@@ -77,8 +77,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function stimuli = sampleStimuli(~)
+        function [stimuli, sampleRate] = sampleStimuli(~)
             stimuli = {};
+            sampleRate = 10000;
         end
         
         
