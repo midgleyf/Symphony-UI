@@ -53,7 +53,8 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
                     obj.statPlots.(statName) = statPlot;
                 end
                 
-                set(obj.axesHandle, 'XTick', 1:obj.protocolPlugin.epochNum);
+                set(obj.axesHandle, 'XTick', 1:obj.protocolPlugin.epochNum, ...
+                                    'XLim', [0.5 obj.protocolPlugin.epochNum + 0.5]);
             end
         end
         

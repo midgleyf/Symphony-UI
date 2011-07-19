@@ -64,7 +64,7 @@ classdef MeanResponseFigureHandler < FigureHandler
                 meanPlot.units = units;
                 meanPlot.count = 1;
                 hold(obj.axesHandle, 'on');
-                meanPlot.plotHandle = plot(obj.axesHandle, 1:numel(meanPlot.data), meanPlot.data);
+                meanPlot.plotHandle = plot(obj.axesHandle, (1:length(meanPlot.data)) / sampleRate, meanPlot.data);
                 obj.meanPlots(end + 1) = meanPlot;
             else
                 % This class of epoch has been seen before, add the current response to the mean.
@@ -72,7 +72,7 @@ classdef MeanResponseFigureHandler < FigureHandler
                 % TODO: if the length of data is varying then the mean will not be correct beyond the min length.
                 meanPlot.data = (meanPlot.data * meanPlot.count + responseData) / (meanPlot.count + 1);
                 meanPlot.count = meanPlot.count + 1;
-                set(meanPlot.plotHandle, 'XData', 1:numel(meanPlot.data), ...
+                set(meanPlot.plotHandle, 'XData', (1:length(meanPlot.data)) / sampleRate, ...
                                          'YData', meanPlot.data);
                 obj.meanPlots(i) = meanPlot;
             end
