@@ -5,6 +5,7 @@ classdef Symphony < handle
         controller                  % The Symphony.Core.Controller instance.
         protocolClassNames          % The list of protocol plug-in names.
         protocolPlugin              % The current protocol plug-in instance.
+        figureHandlerClasses        % The list of available figure handlers.
         controls                    % A structure containing the handles for most of the controls in the UI.
         runDisabledControls         % A vector of control handles that should be disabled while a protocol is running.
         stopProtocol                % A flag indicating whether the protocol should stop after the current epoch completes.
@@ -12,6 +13,7 @@ classdef Symphony < handle
         commander
         amp_chan1
     end
+    
     
     methods
         
@@ -36,8 +38,9 @@ classdef Symphony < handle
                 end
             end
             
-            % See what protocols are available.
+            % See what protocols and figure handlers are available.
             obj.discoverProtocols();
+            obj.discoverFigureHandlers();
             
             % The possible values for the name of the rig.
             obj.rigNames = {'A', 'B', 'C'};
@@ -140,7 +143,7 @@ classdef Symphony < handle
             % Get the list of protocols from the 'Protocols' folder.
             symphonyPath = mfilename('fullpath');
             parentDir = fileparts(symphonyPath);
-            protocolsDir = fullfile(parentDir, filesep, 'Protocols');
+            protocolsDir = fullfile(parentDir, 'Protocols');
             protocolDirs = dir(protocolsDir);
             obj.protocolClassNames = cell(length(protocolsDir), 1);
             protocolCount = 0;
@@ -161,6 +164,7 @@ classdef Symphony < handle
             plugin = constructor();
             
             plugin.controller = obj.controller;
+            plugin.figureHandlerClasses = obj.figureHandlerClasses;
             
             % Use any previously set parameters.
             params = getpref('Symphony', [className '_Defaults'], struct);
@@ -169,6 +173,38 @@ classdef Symphony < handle
                 paramProps = findprop(plugin, paramNames{i});
                 if ~paramProps.Dependent
                     plugin.(paramNames{i}) = params.(paramNames{i});
+                end
+            end
+        end
+        
+        
+        %% Figure Handlers
+        
+        
+        function discoverFigureHandlers(obj)
+            % Get the list of figure handlers from the 'Figure Handlers' folder.
+            symphonyPath = mfilename('fullpath');
+            parentDir = fileparts(symphonyPath);
+            handlersDir = fullfile(parentDir, 'Figure Handlers', '*.m');
+            handlerFileNames = dir(handlersDir);
+            obj.figureHandlerClasses = containers.Map;
+            for i = 1:length(handlerFileNames)
+                if ~handlerFileNames(i).isdir && handlerFileNames(i).name(1) ~= '.'
+                    className = handlerFileNames(i).name(1:end-2);
+                    mcls = meta.class.fromName(className);
+                    if ~isempty(mcls)
+                        % Get the type name
+                        props = mcls.PropertyList;
+                        for i = 1:length(props)
+                            prop = props(i);
+                            if strcmp(prop.Name, 'figureType')
+                                typeName = prop.DefaultValue;
+                                break;
+                            end
+                        end
+                        
+                        obj.figureHandlerClasses(typeName) = className;
+                    end
                 end
             end
         end

@@ -26,6 +26,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         epochNum = 0                % The number of epochs that have been run.
         parametersEdited = false    % A flag indicating whether the user has edited the parameters.
         responses                   % A structure for caching converted responses.
+        figureHandlerClasses
         figureHandlers = {}
         figureHandlerParams = {}
     end
@@ -51,7 +52,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             % TODO: exclude parameters that start with an underscore?
             
-            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited', 'responses', 'figureHandlers', 'figureHandlerParams'};
+            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited', 'responses', 'figureHandlerClasses', 'figureHandlers', 'figureHandlerParams'};
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)
@@ -207,11 +208,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function stats = responseStatistics(obj) %#ok<MANU>
-            stats = {};
-        end
-        
-        
         function completeEpoch(obj) %#ok<MANU>
             % Override this method to perform any post-analysis, etc. on the current epoch.
         end
@@ -234,7 +230,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     methods
         
         function handler = openFigure(obj, figureType, varargin)
-            handlerClass = [figureType 'FigureHandler'];
+            if ~isKey(obj.figureHandlerClasses, figureType)
+                error('The ''%s'' figure handler is not available.', figureType);
+            end
+            
+            handlerClass = obj.figureHandlerClasses(figureType);
             
             % Check if the figure is open already.
             for i = 1:length(obj.figureHandlers)

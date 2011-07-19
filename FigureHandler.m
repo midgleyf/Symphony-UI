@@ -1,7 +1,7 @@
 classdef FigureHandler < handle
     
     properties (Constant, Abstract)
-        figureName
+        figureType
     end
     
     properties
@@ -29,7 +29,7 @@ classdef FigureHandler < handle
                 addlProps = {};
             end
             
-            obj.figureHandle = figure('Name', [protocolPlugin.displayName ': ' obj.figureName], ...
+            obj.figureHandle = figure('Name', [obj.protocolPlugin.displayName ': ' obj.figureType], ...
                                 'NumberTitle', 'off', ...
                                 'Toolbar', 'none', ...
                                 'CloseRequestFcn', @(source, event)closeRequestFcn(obj, source, event), ...

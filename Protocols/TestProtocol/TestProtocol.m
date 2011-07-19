@@ -34,7 +34,15 @@ classdef TestProtocol < SymphonyProtocol
         
         function prepareEpochGroup(obj)
             obj.openFigure('Response');
-            obj.openFigure('ResponseStatistics');
+            obj.openFigure('Custom', 'Name', 'Foo', ...
+                                     'UpdateCallback', @updateFigure);
+        end
+        
+        
+        function updateFigure(obj, axesHandle)
+            cla(axesHandle)
+            set(axesHandle, 'XTick', [], 'YTick', []);
+            text(0.5, 0.5, ['Epoch ' num2str(obj.epochNum)], 'FontSize', 48, 'HorizontalAlignment', 'center');
         end
         
         
@@ -46,14 +54,6 @@ classdef TestProtocol < SymphonyProtocol
             obj.setDeviceBackground('test-device', 0);
             
             obj.recordResponse('test-device');
-        end
-        
-        
-        function stats = responseStatistics(obj)
-            r = obj.response();
-            
-            stats.mean = mean(r);
-            stats.var = var(r);
         end
         
         

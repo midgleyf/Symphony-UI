@@ -1,7 +1,7 @@
 classdef MeanResponseFigureHandler < FigureHandler
     
     properties (Constant)
-        figureName = 'Mean Response'
+        figureType = 'Mean Response'
     end
     
     properties
@@ -11,22 +11,21 @@ classdef MeanResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = MeanResponseFigureHandler(protocolPlugin, paramNames)
+        function obj = MeanResponseFigureHandler(protocolPlugin, varargin)
             obj = obj@FigureHandler(protocolPlugin);
             
             xlabel(obj.axesHandle, 'sec');
             
             obj.resetPlots();
             
-            obj.meanParamNames = {};
-            if nargin > 1
-                if iscell(paramNames)
-                    if all(cellfun(@ischar, paramNames))
-                        obj.meanParamNames = paramNames;
-                    end
-                elseif ischar(paramNames)
-                    obj.meanParamNames = {paramNames};
-                end
+            ip = inputParser;
+            ip.addParamValue('GroupByParams', {}, @(x)iscell(x) || ischar(x));
+            ip.parse(varargin{:});
+            
+            if iscell(ip.Results.GroupByParams)
+                obj.meanParamNames = ip.Results.GroupByParams;
+            else
+                obj.meanParamNames = {ip.Results.GroupByParams};
             end
         end
         

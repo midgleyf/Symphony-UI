@@ -1,7 +1,7 @@
 classdef ResponseFigureHandler < FigureHandler
     
     properties (Constant)
-        figureName = 'Response'
+        figureType = 'Response'
     end
     
     properties

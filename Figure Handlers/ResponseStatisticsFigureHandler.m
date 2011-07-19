@@ -1,18 +1,25 @@
 classdef ResponseStatisticsFigureHandler < FigureHandler
     
     properties (Constant)
-        figureName = 'Response Statistics'
+        figureType = 'Response Statistics'
         plotColors = 'rbykmc';
     end
     
     properties
+        statsCallback
         statPlots
     end
     
     methods
         
-        function obj = ResponseStatisticsFigureHandler(protocolPlugin)
+        function obj = ResponseStatisticsFigureHandler(protocolPlugin, varargin)
             obj = obj@FigureHandler(protocolPlugin);
+            
+            ip = inputParser;
+            ip.addParamValue('StatsCallback', [], @(x)isa(x, 'function_handle'));
+            ip.parse(varargin{:});
+            
+            obj.statsCallback = ip.Results.StatsCallback;
             
             xlabel(obj.axesHandle, 'epoch');
             hold(obj.axesHandle, 'on');
@@ -22,8 +29,8 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
 
 
         function handleCurrentEpoch(obj)
-            % Ask the protocol plug-in for the statistics
-            stats = obj.protocolPlugin.responseStatistics();
+            % Ask the callback for the statistics
+            stats = obj.statsCallback(obj.protocolPlugin);
             
             statNames = fieldnames(stats);
             for i = 1:numel(statNames)
@@ -45,6 +52,8 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
                                                'MarkerFaceColor', plotColor);
                     obj.statPlots.(statName) = statPlot;
                 end
+                
+                set(obj.axesHandle, 'XTick', 1:obj.protocolPlugin.epochNum);
             end
         end
         
