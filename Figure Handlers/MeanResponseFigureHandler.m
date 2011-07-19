@@ -15,6 +15,7 @@ classdef MeanResponseFigureHandler < FigureHandler
             obj = obj@FigureHandler(protocolPlugin);
             
             xlabel(obj.axesHandle, 'sec');
+            set(obj.axesHandle, 'XTickMode', 'auto');
             
             obj.resetPlots();
             
@@ -75,13 +76,6 @@ classdef MeanResponseFigureHandler < FigureHandler
                                          'YData', meanPlot.data);
                 obj.meanPlots(i) = meanPlot;
             end
-            
-            % Draw ticks every 0.1 seconds.
-            maxSamples = max(arrayfun(@(x) numel(x.data), obj.meanPlots));
-            duration = maxSamples / sampleRate;
-            samplesPerTenth = sampleRate / 10;
-            set(obj.axesHandle, 'XTick', 1:samplesPerTenth:maxSamples, ...
-                                'XTickLabel', 0:.1:duration);
             
             % Update the y axis with the units of the response.
             ylabel(obj.axesHandle, units);

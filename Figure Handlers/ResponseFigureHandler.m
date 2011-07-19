@@ -15,6 +15,7 @@ classdef ResponseFigureHandler < FigureHandler
             
             obj.plotHandle = plot(obj.axesHandle, 1:100, zeros(1, 100));
             xlabel(obj.axesHandle, 'sec');
+            set(obj.axesHandle, 'XTickMode', 'auto');
         end
 
 
@@ -39,13 +40,10 @@ classdef ResponseFigureHandler < FigureHandler
 
             % Plot the response
             [responseData, sampleRate, units] = obj.protocolPlugin.response();
-            duration = numel(responseData) / sampleRate;
-            samplesPerTenth = sampleRate / 10;
-            set(obj.plotHandle, 'XData', 1:numel(responseData), ...
+            set(obj.plotHandle, 'XData', (1:numel(responseData))/sampleRate, ...
                                 'YData', responseData);
-            set(obj.axesHandle, 'XTick', 1:samplesPerTenth:numel(responseData), ...
-                                'XTickLabel', 0:.1:duration);
             ylabel(obj.axesHandle, units);
+            %axis 'auto x'
         end
         
         
