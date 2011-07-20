@@ -7,7 +7,7 @@ classdef LEDFamily < SymphonyProtocol
     end
     
     properties
-        sampleInterval = uint16(80);
+        sampleInterval = uint16(80);    % in microseconds
         stimPoints = uint16(100);
         prePoints = uint16(1000);
         tailPoints = uint16(4000);
@@ -27,23 +27,24 @@ classdef LEDFamily < SymphonyProtocol
     
     methods
         
-        function [stimulus, lightAmplitude] = stimulusForEpoch(obj, epochNum)
+        function [stimulus, lightAmplitude] = stimulusForEpoch(obj, epochNum, sampleRate)
             % Calculate the light amplitude for this epoch.
             phase = single(mod(epochNum - 1, obj.stepsInFamily));
             lightAmplitude = obj.baseLightAmplitude * obj.ampStepScale ^ phase;
             
             % Create the stimulus
-            stimulus = ones(1, obj.prePoints + obj.stimPoints + obj.tailPoints) * obj.lightMean;
-            stimulus(obj.prePoints:obj.prePoints+obj.stimPoints) = lightAmplitude;
+            samplesPerPoint = sampleRate * (double(obj.sampleInterval) / 1000000);
+            stimulus = ones(1, (obj.prePoints + obj.stimPoints + obj.tailPoints) * samplesPerPoint) * obj.lightMean;
+            stimulus(obj.prePoints * samplesPerPoint:(obj.prePoints+obj.stimPoints) * samplesPerPoint) = lightAmplitude;
         end
         
         
         function [stimuli, sampleRate] = sampleStimuli(obj)
+            sampleRate = 10000;
             stimuli = cell(obj.stepsInFamily, 1);
             for i = 1:obj.stepsInFamily
-                stimuli{i} = obj.stimulusForEpoch(i);
+                stimuli{i} = obj.stimulusForEpoch(i, sampleRate);
             end
-            sampleRate = 10000;
         end
         
         
@@ -55,7 +56,8 @@ classdef LEDFamily < SymphonyProtocol
         
         
         function prepareEpoch(obj)
-            [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
+            % TODO: use the sample rate of the device
+            [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum, 10000);
             obj.addParameter('lightAmplitude', lightAmplitude);
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
