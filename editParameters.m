@@ -164,6 +164,30 @@ function updateStimuli(handles)
 end
 
 
+function value = getParamValueFromUI(handles, params, paramName)
+    paramTag = [paramName 'Edit'];
+    if isnumeric(params.(paramName))
+        paramValue = str2double(get(handles.(paramTag), 'String'));
+        convFunc = str2func(class(params.(paramName)));
+        value = convFunc(paramValue);
+    elseif islogical(params.(paramName))
+        value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
+    elseif ischar(params.(paramName))
+        value = get(handles.(paramTag), 'String');
+    end
+end
+
+
+function setParamValueInUI(handles, paramName, value)
+    paramTag = [paramName 'Edit'];
+    if islogical(value)
+        set(handles.(paramTag), 'Value', value);
+    elseif isnumeric(value) || ischar(value)
+        set(handles.(paramTag), 'String', value);
+    end
+end
+
+
 function updateDependentValues(handles)
     % Push all values into the copy of the plug-in.
     params = handles.pluginCopy.parameters();
@@ -171,19 +195,18 @@ function updateDependentValues(handles)
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
-        paramTag = [paramName 'Edit'];
         paramProps = findprop(handles.pluginCopy, paramName);
         if ~paramProps.Dependent
-            if isnumeric(params.(paramName))
-                paramValue = str2double(get(handles.(paramTag), 'String'));
-                convFunc = str2func(class(params.(paramName)));
-                paramValue = convFunc(paramValue);
-            elseif islogical(params.(paramName))
-                paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
-            elseif ischar(params.(paramName))
-                paramValue = get(handles.(paramTag), 'String');
+            paramValue = getParamValueFromUI(handles, params, paramName);
+            try
+                handles.pluginCopy.(paramName) = paramValue;
+            catch ME
+                % Let the user know why we couldn't set the parameter.
+                waitfor(errordlg(ME.message));
+                
+                % Reset the GUI to the previous value.
+                setParamValueInUI(handles, paramName, handles.pluginCopy.(paramName));
             end
-            handles.pluginCopy.(paramName) = paramValue;
         end
     end
     
@@ -195,17 +218,13 @@ function updateDependentValues(handles)
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
         paramProps = findprop(handles.pluginCopy, paramName);
-        paramTag = [paramName 'Edit'];
         
         if paramProps.Dependent
-            if islogical(paramValue)
-                set(handles.(paramTag), 'Value', paramValue);
-            elseif isnumeric(paramValue) || ischar(paramValue)
-                set(handles.(paramTag), 'String', paramValue);
-            end
+            setParamValueInUI(handles, paramName, paramValue);
         end
         
         if paramProps.Dependent
+            paramTag = [paramName 'Edit'];
             set(handles.(paramTag), 'Enable', 'off');
         end
     end
