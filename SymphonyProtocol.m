@@ -281,7 +281,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         function figureClosed(obj, handler, ~)
             % Remove the handler from our list.
-            obj.figureHandlers(find(cellfun(@(x) x == handler, obj.figureHandlers))) = []; %#ok<FNDSB>
+            index = cellfun(@(x) x == handler, obj.figureHandlers);
+            obj.figureHandlers(index) = [];
+            obj.figureHandlerParams(index) = [];
         end
         
     end
