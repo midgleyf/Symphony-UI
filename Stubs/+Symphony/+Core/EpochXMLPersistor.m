@@ -30,7 +30,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
                 parentNode.appendChild(obj.docNode.createTextNode(parents(i)));
             end
             
-            sourcesNode = obj.groupNode.appendChild(obj.docNode.createElement('sources'));
+            sourcesNode = obj.groupNode.appendChild(obj.docNode.createElement('sourceHierarchy'));
             for i = 1:numel(sources)
                 sourceNode = sourcesNode.appendChild(obj.docNode.createElement('source'));
                 sourceNode.appendChild(obj.docNode.createTextNode(sources(i)));
