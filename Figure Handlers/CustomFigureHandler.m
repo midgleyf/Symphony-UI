@@ -31,6 +31,8 @@ classdef CustomFigureHandler < FigureHandler
         
 
         function handleCurrentEpoch(obj)
+            set(0, 'CurrentFigure', obj.figureHandle);
+            set(obj.figureHandle, 'CurrentAxes', obj.axesHandle)
             obj.updateCallback(obj.protocolPlugin, obj.axesHandle);
         end
         
