@@ -33,7 +33,7 @@ classdef TestProtocol < SymphonyProtocol
         end
         
         
-        function prepareEpochGroup(obj)
+        function prepareRun(obj)
             obj.openFigure('Response');
             obj.openFigure('Custom', 'Name', 'Foo', ...
                                      'UpdateCallback', @updateFigure);
@@ -58,7 +58,7 @@ classdef TestProtocol < SymphonyProtocol
         end
         
         
-        function keepGoing = continueEpochGroup(obj)
+        function keepGoing = continueRun(obj)
             keepGoing = obj.epochNum < obj.epochMax;
         end
 

@@ -8,7 +8,7 @@ Each run of a protocol consists of a single epoch group containing a protocol-de
 Your sub-class should:
 1. Define the identifier, version and display name of the protocol as constant properties.
 2. Define any user-modifiable parameters and their default values.
-3. Define at least the prepareEpoch() and continueEpochGroup() methods.
+3. Define at least the prepareEpoch() and continueRun() methods.
 
 The SymphonyProtocol class provides some convenience methods that you can call from your methods:
 
@@ -34,15 +34,15 @@ If the convenience methods provided by the base class are not sufficient to impl
 
 The complete list of methods that you can override is:
 
-    prepareEpochGroup():
+    prepareRun():
         define this method to do any setup before any epochs have been run
     prepareEpoch():
         define this method to add stimuli, set device backgrounds, record responses, etc.
     completeEpoch():
         define this method to perform any post-epoch clean up, analysis, etc.
-    continueEpochGroup():
+    continueRun():
         define this method to indicate when all epochs have been run
-    completeEpochGroup():
+    completeRun():
         define this method to perform any clean up, post-analysis, etc. after all epochs have been run
 
 A minimal protocol:
@@ -55,7 +55,7 @@ A minimal protocol:
         end
         
         properties
-            numberOfEpochs = uint8(4);
+            numberOfEpochs = uint8(4);  % integer type enables stepper controls in the parameter editor
         end
         
         methods
@@ -65,7 +65,7 @@ A minimal protocol:
                 obj.recordResponse('test-device');
             end
             
-            function continueEpochGroup(obj)
+            function continueRun(obj)
                 return obj.epochNum < obj.numberOfEpochs;
             end
         end

@@ -2,11 +2,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     % Create a sub-class of this class to define a protocol.
     %
     % Interesting methods to override:
-    % * prepareEpochGroup
+    % * prepareRun
     % * prepareEpoch
     % * completeEpoch
-    % * continueEpochGroup
-    % * completeEpochGroup
+    % * continueRun
+    % * completeRun
     %
     % Useful methods:
     % * addStimulus
@@ -41,7 +41,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end 
         
         
-        function prepareEpochGroup(obj) %#ok<MANU>
+        function prepareRun(obj) %#ok<MANU>
             % Override this method to perform any actions before the start of the first epoch, e.g. open a figure window, etc.
         end
         
@@ -214,7 +214,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function keepGoing = continueEpochGroup(obj) %#ok<MANU>
+        function keepGoing = continueRun(obj) %#ok<MANU>
             % Override this method to return true/false based on the current state.
             % The object's epochNum is typically useful.
             
@@ -222,13 +222,15 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function completeEpochGroup(obj) %#ok<MANU>
+        function completeRun(obj) %#ok<MANU>
             % Override this method to perform any actions after the last epoch has completed.
         end
     end
     
     
     methods
+        
+        % Figure handling methods.
         
         function handler = openFigure(obj, figureType, varargin)
             if ~isKey(obj.figureHandlerClasses, figureType)

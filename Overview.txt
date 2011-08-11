@@ -22,19 +22,25 @@ Symphony.m:
         builds and displays the UI
     
     startAcquisition():
-        extracts values from the UI and passes them to runProtocol()
+        makes sure user has set protocol parameters
+        calls runProtocol()
+    
+    pauseAcquisition():
+        sets a flag so that the protocol will pause after the current epoch completes
     
     stopAcquisition():
         sets a flag so that the protocol will stop after the current epoch completes
     
     runProtocol():
-        opens or resets the plot figures
-        sets up XML/HDF5 persistence
+        clears any plot figures
         runs each epoch until the protocol plugin says it's done or the "stop" flag has been set:
-            create and set up a new epoch
-            tell the controller to run it
-            plot the results
-        close the XML/HDF5 file
+            creates and sets up a new epoch
+            tells the controller to run the epoch
+            updates any figures
+
+
+newEpochGroup.m:
+    GUI for entering parameters of an epoch group
 
 
 editParameters.m:

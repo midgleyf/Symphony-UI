@@ -47,7 +47,7 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function prepareEpochGroup(obj)
+        function prepareRun(obj)
             obj.openFigure('Response');
             obj.openFigure('Mean Response', 'GroupByParams', {'lightAmplitude'});
             obj.openFigure('Response Statistics', 'StatsCallback', @responseStatistics);
@@ -81,7 +81,7 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function keepGoing = continueEpochGroup(obj)
+        function keepGoing = continueRun(obj)
             keepGoing = obj.epochNum < obj.stepsInFamily * obj.numberOfAverages;
         end
         
