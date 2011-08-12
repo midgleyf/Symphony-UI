@@ -16,6 +16,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             obj.groupNode = obj.docNode.getDocumentElement;
         end
         
+        
         function BeginEpochGroup(obj, label, parents, sources, keywords, properties, identifier)
             tz = java.util.TimeZone.getDefault();
             
@@ -44,6 +45,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             
             obj.serializeParameters(obj.groupNode, properties, 'properties');
         end
+        
         
         function Serialize(obj, epoch)
             epochNode = obj.docNode.createElement('epoch');
@@ -109,15 +111,26 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
                 obj.serializeParameters(responseNode, response.Data.ExternalDeviceConfiguration, 'externalDeviceConfiguration');
                 obj.serializeParameters(responseNode, response.Data.StreamConfiguration, 'streamConfiguration');
             end
+            
+            % Serialize the keywords
+            keywordsNode = obj.docNode.createElement('keywords');
+            epochNode.appendChild(keywordsNode);
+            for i = 1:epoch.Keywords.Count()
+                keywordNode = keywordsNode.appendChild(obj.docNode.createElement('keyword'));
+                keywordNode.appendChild(obj.docNode.createTextNode(epoch.Keywords.Item(i - 1)));
+            end
         end
+        
         
         function EndEpochGroup(obj) %#ok<MANU>
             
         end
         
+        
         function Close(obj)
             xmlwrite(obj.path, obj.docNode);
         end
+        
         
         function f = formatDate(obj, date) %#ok<MANU>
             tz = java.util.TimeZone.getDefault();
@@ -128,6 +141,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             tzOffset = tzOffset / 1000 / 60;
             f = [datestr(date, 'mm/dd/yyyy HH:MM:SS PM') sprintf(' %+03d:%02d', tzOffset / 60, mod(tzOffset, 60))];
         end
+        
         
         function serializeParameters(obj, rootNode, parameters, nodeName)
             paramsNode = obj.docNode.createElement(nodeName);
@@ -152,6 +166,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
                 paramsNode.appendChild(paramNode);
             end
         end
+        
         
         function addMeasurementNode(obj, rootNode, measurement, nodeName)
             measurementNode = obj.docNode.createElement(nodeName);

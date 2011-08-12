@@ -7,7 +7,6 @@ classdef Symphony < handle
         protocolPlugin              % The current protocol plug-in instance.
         figureHandlerClasses        % The list of available figure handlers.
         controls                    % A structure containing the handles for most of the controls in the UI.
-        runDisabledControls         % A vector of control handles that should be disabled while a protocol is running.
         protocolState               % A string indicating whether the state of the protocol, one of 'stop', 'run' or 'pause'.
         rigNames
         commander
@@ -136,7 +135,7 @@ classdef Symphony < handle
             
             input = NET.createGeneric('System.Collections.Generic.Dictionary', {'Symphony.Core.IDAQInputStream','Symphony.Core.IInputData'});
             outData = output.Item(outStream);
-            inData = InputData(outData.Data, outData.SampleRate, System.DateTimeOffset.Now, inStream.Configuration);
+            inData = InputData(outData.Data.Data, outData.SampleRate, System.DateTimeOffset.Now);
             input.Add(inStream, inData);
         end
         
@@ -423,27 +422,27 @@ classdef Symphony < handle
                     'Style', 'text', ...
                     'Tag', 'epochGroupSourceText');
                 
-                obj.controls.epochLabelsLabel = uicontrol(...
+                obj.controls.epochKeywordsLabel = uicontrol(...
                     'Parent', obj.controls.epochPanel, ...
                     'Units', 'points', ...
                     'FontSize', 12, ...
                     'HorizontalAlignment', 'right', ...
-                    'Position', [10 43 150 17.6], ...
+                    'Position', [10 43 170 17.6], ...
                     'BackgroundColor', bgColor, ...
-                    'String', 'Labels for future epochs:', ...
+                    'String', 'Keywords for future epochs:', ...
                     'Style', 'text', ...
                     'Tag', 'text2');
                 
-                obj.controls.epochLabelsEdit = uicontrol(...
+                obj.controls.epochKeywordsEdit = uicontrol(...
                     'Parent', obj.controls.epochPanel, ...
                     'Units', 'points', ...
                     'FontSize', 12, ...
                     'HorizontalAlignment', 'left', ...
-                    'Position', [170 43 180 26], ...
+                    'Position', [190 43 160 26], ...
                     'BackgroundColor', bgColor, ...
                     'String', blanks(0), ...
                     'Style', 'edit', ...
-                    'Tag', 'keywordsEdit');
+                    'Tag', 'epochKeywordsEdit');
                 
                 obj.controls.newEpochGroupButton = uicontrol(...
                     'Parent', obj.controls.epochPanel, ...
@@ -464,27 +463,29 @@ classdef Symphony < handle
                     'String', 'Close', ...
                     'Tag', 'closeEpochGroupButton');
                 
-                % These controls should be disabled while a protocol is running.
-                obj.runDisabledControls = [obj.controls.protocolPopup, obj.controls.editParametersButton, obj.controls.epochLabelsEdit, ...
-                                           obj.controls.newEpochGroupButton, obj.controls.closeEpochGroupButton];
-                
-                % Add images to the start, pause and stop buttons.
-                imagesPath = fullfile(fileparts(mfilename('fullpath')), 'Images');
-                
-                jButton = java(findjobj(obj.controls.startButton));
-                startIconPath = fullfile(imagesPath, 'start.png');
-                jButton.setIcon(javax.swing.ImageIcon(startIconPath));
-                jButton.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-                
-                jButton = java(findjobj(obj.controls.pauseButton));
-                pauseIconPath = fullfile(imagesPath, 'pause.png');
-                jButton.setIcon(javax.swing.ImageIcon(pauseIconPath));
-                jButton.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-                
-                jButton = java(findjobj(obj.controls.stopButton));
-                stopIconPath = fullfile(imagesPath, 'stop.png');
-                jButton.setIcon(javax.swing.ImageIcon(stopIconPath));
-                jButton.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+                % Attempt to set button images using Java.
+                try
+                    drawnow
+                    
+                    % Add images to the start, pause and stop buttons.
+                    imagesPath = fullfile(fileparts(mfilename('fullpath')), 'Images');
+
+                    jButton = java(findjobj(obj.controls.startButton));
+                    startIconPath = fullfile(imagesPath, 'start.png');
+                    jButton.setIcon(javax.swing.ImageIcon(startIconPath));
+                    jButton.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+
+                    jButton = java(findjobj(obj.controls.pauseButton));
+                    pauseIconPath = fullfile(imagesPath, 'pause.png');
+                    jButton.setIcon(javax.swing.ImageIcon(pauseIconPath));
+                    jButton.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+
+                    jButton = java(findjobj(obj.controls.stopButton));
+                    stopIconPath = fullfile(imagesPath, 'stop.png');
+                    jButton.setIcon(javax.swing.ImageIcon(stopIconPath));
+                    jButton.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+                catch ME %#ok<NASGU>
+                end
     
                 % Attempt to set the minimum window size using Java.
                 try
@@ -561,13 +562,13 @@ classdef Symphony < handle
             sourcePos = get(obj.controls.epochGroupSourceText, 'Position');
             sourcePos(3) = epochPanelPos(3) - 10 - sourcePos(1);
             set(obj.controls.epochGroupSourceText, 'Position', sourcePos);
-            epochLabelsLabelPos = get(obj.controls.epochLabelsLabel, 'Position');
-            epochLabelsLabelPos(2) = sourcePos(2) - 14 - epochLabelsLabelPos(4);
-            set(obj.controls.epochLabelsLabel, 'Position', epochLabelsLabelPos);
-            epochLabelsPos = get(obj.controls.epochLabelsEdit, 'Position');
-            epochLabelsPos(2) = sourcePos(2) - 12 - epochLabelsPos(4) + 4;
-            epochLabelsPos(3) = epochPanelPos(3) - 10 - epochLabelsLabelPos(3) - 10 - 10;
-            set(obj.controls.epochLabelsEdit, 'Position', epochLabelsPos);
+            epochKeywordsLabelPos = get(obj.controls.epochKeywordsLabel, 'Position');
+            epochKeywordsLabelPos(2) = sourcePos(2) - 14 - epochKeywordsLabelPos(4);
+            set(obj.controls.epochKeywordsLabel, 'Position', epochKeywordsLabelPos);
+            epochKeywordsPos = get(obj.controls.epochKeywordsEdit, 'Position');
+            epochKeywordsPos(2) = sourcePos(2) - 12 - epochKeywordsPos(4) + 4;
+            epochKeywordsPos(3) = epochPanelPos(3) - 10 - epochKeywordsLabelPos(3) - 10 - 10;
+            set(obj.controls.epochKeywordsEdit, 'Position', epochKeywordsPos);
             closeGroupPos = get(obj.controls.closeEpochGroupButton, 'Position');
             closeGroupPos(1) = epochPanelPos(3) - 14 - closeGroupPos(3);
             set(obj.controls.closeEpochGroupButton, 'Position', closeGroupPos);
@@ -586,10 +587,10 @@ classdef Symphony < handle
                 set(obj.controls.editParametersButton, 'Enable', 'on');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'on');
                 if isempty(obj.epochGroup)
-                    set(obj.controls.epochLabelsEdit, 'Enable', 'off');
+                    set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
                 else
-                    set(obj.controls.epochLabelsEdit, 'Enable', 'on');
+                    set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'on');
                 end
             else
@@ -602,12 +603,12 @@ classdef Symphony < handle
                 if strcmp(obj.protocolState, 'running')
                     set(obj.controls.startButton, 'Enable', 'off');
                     set(obj.controls.pauseButton, 'Enable', 'on');
-                    set(obj.controls.epochLabelsEdit, 'Enable', 'off');
+                    set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
                 elseif strcmp(obj.protocolState, 'paused')
                     set(obj.controls.startButton, 'String', 'Resume');
                     set(obj.controls.startButton, 'Enable', 'on');
                     set(obj.controls.pauseButton, 'Enable', 'off');
-                    set(obj.controls.epochLabelsEdit, 'Enable', 'on');
+                    set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
                     
                     % TODO: allow changing protocol parameters while paused?
                 end
@@ -794,7 +795,7 @@ classdef Symphony < handle
                     obj.protocolPlugin.prepareRun()
                 end
                 
-                saveEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Min');
+                saveEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
                 
                 % Loop through all of the epochs.
                 while obj.protocolPlugin.continueRun() && strcmp(obj.protocolState, 'running')
@@ -812,10 +813,13 @@ classdef Symphony < handle
                         obj.protocolPlugin.epoch.ProtocolParameters.Add(fieldName{1}, pluginParams.(fieldName{1}));
                     end
                     
-                    % Add any labels specified by the user.
-                    epochLabels = get(obj.controls.epochLabelsEdit, 'String');
-                    if ~isempty(epochLabels)
-                        obj.protocolPlugin.epoch.ProtocolParameters.Add('labels', epochLabels);
+                    % Add any keywords specified by the user.
+                    keywordsText = get(obj.controls.epochKeywordsEdit, 'String');
+                    if ~isempty(keywordsText)
+                        keywords = strtrim(regexp(keywordsText, ',', 'split'));
+                        for i = 1:length(keywords)
+                            obj.protocolPlugin.epoch.Keywords.Add(keywords{i});
+                        end
                     end
                     
                     % Run the epoch.

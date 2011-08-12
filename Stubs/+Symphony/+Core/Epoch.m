@@ -8,6 +8,7 @@ classdef Epoch < handle
         Identifier
         StartTime
         Background
+        Keywords
     end
     
     methods
@@ -24,6 +25,7 @@ classdef Epoch < handle
             obj.Responses = GenericDictionary();
             obj.Identifier = char(java.util.UUID.randomUUID());
             obj.Background = GenericDictionary();
+            obj.Keywords = GenericList();
         end
         
         function SetBackground(obj, device, background, sampleRate)
