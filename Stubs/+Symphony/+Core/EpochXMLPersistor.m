@@ -98,18 +98,18 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
                 responsesNode.appendChild(responseNode);
                 
                 inputTimeNode = obj.docNode.createElement('inputTime');
-                inputTimeNode.appendChild(obj.docNode.createTextNode(obj.formatDate(response.Data.InputTime)));
+                inputTimeNode.appendChild(obj.docNode.createTextNode(obj.formatDate(response.InputTime)));
                 responseNode.appendChild(inputTimeNode);
                 sampleRateNode = obj.docNode.createElement('sampleRate');
                 responseNode.appendChild(sampleRateNode);
-                obj.addMeasurementNode(sampleRateNode, response.Data.SampleRate, 'measurement');
+                obj.addMeasurementNode(sampleRateNode, response.SampleRate, 'measurement');
                 dataNode = obj.docNode.createElement('data');
                 responseNode.appendChild(dataNode);
-                for i = 1:response.Data.Data.Count
-                    obj.addMeasurementNode(dataNode, response.Data.Data.Item(i - 1), 'measurement');
+                for i = 1:response.Data.Count
+                    obj.addMeasurementNode(dataNode, response.Data.Item(i - 1), 'measurement');
                 end
-                obj.serializeParameters(responseNode, response.Data.ExternalDeviceConfiguration, 'externalDeviceConfiguration');
-                obj.serializeParameters(responseNode, response.Data.StreamConfiguration, 'streamConfiguration');
+                obj.serializeParameters(responseNode, response.ExternalDeviceConfiguration, 'externalDeviceConfiguration');
+                obj.serializeParameters(responseNode, response.StreamConfiguration, 'streamConfiguration');
             end
             
             % Serialize the keywords

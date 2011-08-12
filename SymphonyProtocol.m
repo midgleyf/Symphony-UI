@@ -196,11 +196,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             else
                 % Extract the raw data.
                 response = obj.epoch.Responses.Item(device);
-                data = response.Data.Data;
+                data = response.Data;
                 r = double(Measurement.ToQuantityArray(data));
                 u = char(Measurement.HomogenousUnits(data));
                 
-                s = response.Data.SampleRate.QuantityInBaseUnit;
+                s = response.SampleRate.QuantityInBaseUnit;
                 % TODO: do we care about the units of the SampleRate measurement?
                 
                 % Cache the results.

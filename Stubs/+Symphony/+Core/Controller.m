@@ -28,7 +28,7 @@ classdef Controller < handle
                 if epoch.Stimuli.ContainsKey(device)
                     % Copy the stimulii to the responses.
                     stimulus = epoch.Stimuli.Item(device);
-                    epoch.Responses.Values{i}.Data = InputData(stimulus.Data.Data, stimulus.Data.SampleRate, now);
+                    epoch.Responses.Values{i} = InputData(stimulus.Data.Data, stimulus.Data.SampleRate, now);
                 else
                     % Generate one second of random noise for a response.
                     samples = 10000;
@@ -36,7 +36,7 @@ classdef Controller < handle
                     for j = 1:samples
                         data.Add(Measurement((rand(1, 1) * 1000 - 500) / 1000000, 'A'));
                     end
-                    epoch.Responses.Values{i}.Data = InputData(data, Measurement(10000, 'Hz'), now);
+                    epoch.Responses.Values{i} = InputData(data, Measurement(10000, 'Hz'), now);
                 end
             end
             

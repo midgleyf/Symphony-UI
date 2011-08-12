@@ -5,7 +5,7 @@ classdef InputData < Symphony.Core.IOData
     end
     
     methods
-        function obj = InputData(data, sampleRate, inputTime, streamConfig, deviceConfig)
+        function obj = InputData(data, sampleRate, inputTime, streamConfig)
             if nargin < 4
                 streamConfig = GenericDictionary();
             end
