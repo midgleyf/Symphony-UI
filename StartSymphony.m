@@ -9,6 +9,7 @@ symphonyPath = mfilename('fullpath');
 parentDir = fileparts(symphonyPath);
 addpath(fullfile(parentDir, filesep, 'Utility'));
 addpath(fullfile(parentDir, filesep, 'Figure Handlers'));
+addpath(fullfile(parentDir, filesep, 'StimGL'));
 clear symphonyPath parentDir
 
 % Load the Symphony .NET framework
