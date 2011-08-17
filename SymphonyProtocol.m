@@ -20,7 +20,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     end
     
     
-    properties
+    properties (Hidden)
         controller                  % A Symphony.Core.Controller instance.
         epoch = []                  % A Symphony.Core.Epoch instance.
         epochNum = 0                % The number of epochs that have been run.
@@ -48,16 +48,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         function pn = parameterNames(obj)
             % Return a cell array of strings containing the names of the user-defined parameters.
-            % By default any parameters defined by a protocol are included.
+            % By default any parameters defined by a protocol that are not constant or hidden are included.
             
-            % TODO: exclude parameters that start with an underscore?
-            
-            excludeNames = {'identifier', 'version', 'displayName', 'controller', 'epoch', 'epochNum', 'parametersEdited', 'responses', 'figureHandlerClasses', 'figureHandlers', 'figureHandlerParams'};
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)
                 name = names{nameIndex};
-                if ~any(strcmp(name, excludeNames))
+                metaProp = findprop(obj, name);
+                if ~metaProp.Constant && ~metaProp.Hidden
                     pn{end + 1} = name; %#ok<AGROW>
                 end
             end
