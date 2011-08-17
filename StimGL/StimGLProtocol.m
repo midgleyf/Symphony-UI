@@ -26,7 +26,14 @@ classdef StimGLProtocol < SymphonyProtocol
         function prepareRun(obj)
             obj.openFigure('Response');
             
-            obj.stimGL = [];    %StimOpenGL;
+            % Connect to StimGL, starting the app if necessary.
+            symphonyPath = mfilename('fullpath');
+            parentDir = fileparts(symphonyPath);
+            prevDir = cd(fullfile(parentDir, 'StimGL'));
+            obj.stimGL = StimOpenGL;
+            cd(prevDir);
+            
+            % Start the module in the paused state.
             SetParams(obj.stimGL, obj.plugInName, obj.pluginParameters());
             Start(obj.stimGL, obj.plugInName, 0);
         end
