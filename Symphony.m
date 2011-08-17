@@ -43,9 +43,6 @@ classdef Symphony < handle
             obj.discoverProtocols();
             obj.discoverFigureHandlers();
             
-            % The possible values for the name of the rig.
-            obj.rigNames = {'A', 'B', 'C'};
-            
             % Create and open the main window.
             obj.showMainWindow();
             
@@ -587,9 +584,11 @@ classdef Symphony < handle
                 set(obj.controls.editParametersButton, 'Enable', 'on');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'on');
                 if isempty(obj.epochGroup)
+                    set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
                 else
+                    set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'on');
                 end
@@ -597,6 +596,7 @@ classdef Symphony < handle
                 set(obj.controls.stopButton, 'Enable', 'on');
                 set(obj.controls.protocolPopup, 'Enable', 'off');
                 set(obj.controls.editParametersButton, 'Enable', 'off');
+                set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'off');
                 set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
 
@@ -640,43 +640,33 @@ classdef Symphony < handle
         function createNewEpochGroup(obj, ~, ~)
             import Symphony.Core.*;
             
-            [outputPath, parentLabel, label, keywords, source, properties] = newEpochGroup();
-            if ~isempty(outputPath)
+            group = newEpochGroup();
+            if ~isempty(group)
                 % End the current group if there is one.
                 if ~isempty(obj.persistor)
                     obj.persistor.EndEpochGroup();
-                    if ~strcmp(outputPath, get(obj.controls.epochGroupOutputPathText, 'String'))
+                    if ~strcmp(group.outputPath, get(obj.controls.epochGroupOutputPathText, 'String'))
                         obj.persistor.Close();
-                        obj.persistor = EpochXMLPersistor(outputPath);
+                        obj.persistor = EpochXMLPersistor(group.outputPath);
                     end
                 end
                 
-                obj.epochGroup = [];
-                obj.epochGroup.outputPath = outputPath;
-                obj.epochGroup.parentLabel = parentLabel;
-                obj.epochGroup.label = label;
-                obj.epochGroup.keywords = keywords;
-                obj.epochGroup.source = source;
-                obj.epochGroup.properties = properties;
+                obj.epochGroup = group;
                 
                 % Show the settings of the new group.
-                set(obj.controls.epochGroupOutputPathText, 'String', outputPath);
-                if isempty(parentLabel)
-                    set(obj.controls.epochGroupLabelText, 'String', label);
+                set(obj.controls.epochGroupOutputPathText, 'String', obj.epochGroup.outputPath);
+                if isempty(obj.epochGroup.parentLabel)
+                    set(obj.controls.epochGroupLabelText, 'String', obj.epochGroup.label);
                 else
-                    set(obj.controls.epochGroupLabelText, 'String', [label ' (' parentLabel ')']);
+                    set(obj.controls.epochGroupLabelText, 'String', [obj.epochGroup.label ' (' obj.epochGroup.parentLabel ')']);
                 end
-                sourceText = source.name;
-                curSource = source.parent;
+                sourceText = obj.epochGroup.source.name;
+                curSource = obj.epochGroup.source.parent;
                 while ~isempty(curSource)
                     sourceText = [curSource.name ' : ' sourceText]; %#ok<AGROW>
                     curSource = curSource.parent;
                 end
                 set(obj.controls.epochGroupSourceText, 'String', sourceText);
-                
-                %mouseID = properties.mouseID;
-                rigName = properties.rigName;
-                cellID = properties.cellID;
                 
                 % Convert epoch group properties to .NET equivalents
                 parentArray = NET.createArray('System.String', 1);
@@ -698,12 +688,15 @@ classdef Symphony < handle
                     keywordsArray(i) = keywords{i};
                 end
                 
-                propertiesDict = structToDictionary(properties);
+                propertiesDict = structToDictionary(obj.epochGroup.userProperties);
+                
+                rigName = obj.epochGroup.userProperty('rigName');
+                cellID = obj.epochGroup.userProperty('cellID');
                 
                 % Create the persistor.
-                savePath = fullfile(outputPath, [datestr(now, 'mmddyy') rigName 'c' cellID '.xml']);
+                savePath = fullfile(obj.epochGroup.outputPath, [datestr(now, 'mmddyy') rigName 'c' cellID '.xml']);
                 obj.persistor = EpochXMLPersistor(savePath);
-                obj.persistor.BeginEpochGroup(label, parentArray, sourceArray, keywordsArray, propertiesDict, System.Guid.NewGuid());
+                obj.persistor.BeginEpochGroup(obj.epochGroup.label, parentArray, sourceArray, keywordsArray, propertiesDict, System.Guid.NewGuid());
                 
                 obj.updateUIState();
             end
