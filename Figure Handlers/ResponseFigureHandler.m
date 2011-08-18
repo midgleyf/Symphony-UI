@@ -23,18 +23,20 @@ classdef ResponseFigureHandler < FigureHandler
             % Update the figure title with the epoch number and any parameters that are different from the protocol default.
             epochParams = obj.protocolPlugin.epochSpecificParameters();
             paramsText = '';
-            for field = sort(fieldnames(epochParams))'
-                paramValue = epochParams.(field{1});
-                if islogical(paramValue)
-                    if paramValue
-                        paramValue = 'True';
-                    else
-                        paramValue = 'False';
+            if ~isempty(epochParams)
+                for field = sort(fieldnames(epochParams))'
+                    paramValue = epochParams.(field{1});
+                    if islogical(paramValue)
+                        if paramValue
+                            paramValue = 'True';
+                        else
+                            paramValue = 'False';
+                        end
+                    elseif isnumeric(paramValue)
+                        paramValue = num2str(paramValue);
                     end
-                elseif isnumeric(paramValue)
-                    paramValue = num2str(paramValue);
+                    paramsText = [paramsText ', ' humanReadableParameterName(field{1}) ' = ' paramValue]; %#ok<AGROW>
                 end
-                paramsText = [paramsText ', ' humanReadableParameterName(field{1}) ' = ' paramValue]; %#ok<AGROW>
             end
             set(get(obj.axesHandle, 'Title'), 'String', ['Epoch #' num2str(obj.protocolPlugin.epochNum) paramsText]);
 
