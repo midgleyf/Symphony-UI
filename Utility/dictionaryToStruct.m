@@ -12,6 +12,10 @@ function s = dictionaryToStruct(d)
     end
     
     for key = keys
-        s.(key{1}) = d.Item(key{1});
+        value = d.Item(key{1});
+        if isa(value, 'System.String')
+            value = char(value);
+        end
+        s.(key{1}) = value;
     end
 end
