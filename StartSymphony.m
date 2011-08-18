@@ -7,9 +7,9 @@ end
 % Add our utility and figure handler folders to the search path.
 symphonyPath = mfilename('fullpath');
 parentDir = fileparts(symphonyPath);
-addpath(fullfile(parentDir, filesep, 'Utility'));
-addpath(fullfile(parentDir, filesep, 'Figure Handlers'));
-addpath(fullfile(parentDir, filesep, 'StimGL'));
+addpath(fullfile(parentDir, 'Utility'));
+addpath(fullfile(parentDir, 'Figure Handlers'));
+addpath(fullfile(parentDir, 'StimGL'));
 clear symphonyPath parentDir
 
 % Load the Symphony .NET framework
