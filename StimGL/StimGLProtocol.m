@@ -29,7 +29,7 @@ classdef StimGLProtocol < SymphonyProtocol
             % Connect to StimGL, starting the app if necessary.
             symphonyPath = mfilename('fullpath');
             parentDir = fileparts(symphonyPath);
-            prevDir = cd(fullfile(parentDir, 'StimGL'));
+            prevDir = cd(parentDir);
             obj.stimGL = StimOpenGL;
             cd(prevDir);
             
@@ -43,7 +43,7 @@ classdef StimGLProtocol < SymphonyProtocol
             % Create a dummy output signal so the epoch runs for the desired length.
             frameRate = double(GetRefreshRate(obj.stimGL));
             sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, double(obj.numberOfFrames) * double(obj.numberOfLoops) / frameRate * sampleRate.Quantity);
+            stimulus = zeros(1, floor(double(obj.numberOfFrames) * double(obj.numberOfLoops) / frameRate * sampleRate.Quantity));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             obj.setDeviceBackground('test-device', 0.0);
@@ -65,7 +65,7 @@ classdef StimGLProtocol < SymphonyProtocol
                 % The user must stop the protocol from running.
                 keepGoing = true;
             else
-                keepGoing = ~isempty(obj.stimGL.Running());
+                keepGoing = ~isempty(Running(obj.stimGL));
             end
         end
         

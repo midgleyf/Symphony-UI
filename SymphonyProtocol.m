@@ -101,10 +101,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function r = deviceSampleRate(obj, device, inOrOut) %#ok<MANU>
+        function r = deviceSampleRate(obj, device, inOrOut)
             % Return the output sample rate for the given device based on any bound stream.
             
             import Symphony.Core.*;
+            
+            if ischar(device)
+                device = obj.controller.GetDevice(device);
+            end
             
             r = Measurement(10000, 'Hz');   % default if no output stream is found
             [~, streams] = dictionaryKeysAndValues(device.Streams);

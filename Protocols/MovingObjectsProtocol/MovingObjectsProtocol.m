@@ -26,7 +26,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
                 error 'The object shape must be "box", "ellipse" or "sphere".'
             end
             
-            obj.objectShape = shape;
+            obj.objectShape = char(shape);
         end
         
         
@@ -42,7 +42,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
             params.objYInit = obj.initialYPosition;
             params.objVelX = obj.objectXVelocity;
             params.objVelY = obj.objectYVelocity;
-            params.wrapEdge = obj.wrapAtEdges;
+            params.wrapEdge = uint8(obj.wrapAtEdges);
         end
         
     end
