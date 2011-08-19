@@ -38,6 +38,11 @@ function edited = editParameters(protocolPlugin)
         paramValue = params.(paramName);
         paramLabel = humanReadableParameterName(paramName);
         paramProps = findprop(protocolPlugin, paramName);
+        if paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
+        else
+            defaultValue = [];
+        end
         
         uicontrol(...
             'Parent', handles.figure,...
@@ -49,7 +54,7 @@ function edited = editParameters(protocolPlugin)
             'Style', 'text');
         
         paramTag = [paramName 'Edit'];
-        if isinteger(paramValue) && ~paramProps.Dependent
+        if isinteger(defaultValue) && ~paramProps.Dependent
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
@@ -71,7 +76,7 @@ function edited = editParameters(protocolPlugin)
                 'Position', [labelWidth+201 dialogHeight-paramIndex*30-1 12 12], ...
                 'CData', flipdim(push_cdata, 1), ...
                 'Callback', @(hObject,eventdata)stepValueDown(hObject, eventdata, guidata(hObject), paramTag));
-        elseif islogical(paramValue)
+        elseif islogical(defaultValue)
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
@@ -81,7 +86,7 @@ function edited = editParameters(protocolPlugin)
                 'Value', paramValue, ...
                 'Style', 'checkbox', ...
                 'Tag', paramTag);
-        elseif isnumeric(paramValue) || ischar(paramValue)
+        elseif isnumeric(defaultValue) || ischar(defaultValue)
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
@@ -91,8 +96,33 @@ function edited = editParameters(protocolPlugin)
                 'String',  paramValue,...
                 'Style', 'edit', ...
                 'Tag', paramTag);
+        elseif iscellstr(defaultValue)
+            % Default to the first item in the pop-up if nothing has been chosen yet.
+            if iscellstr(paramValue)
+                paramValue = humanReadableParameterName(paramValue{1});
+            end
+            
+            % Convert the items to human readable form.
+            for i = 1:length(defaultValue)
+                defaultValue{i} = humanReadableParameterName(defaultValue{i});
+            end
+            
+            % Figure out which item to select.
+            popupValue = find(strcmp(defaultValue, paramValue));
+            if isempty(popupValue)
+                popupValue = 1;
+            end
+            
+            handles.(paramTag) = uicontrol(...
+                'Parent', handles.figure, ...
+                'Units', 'points', ...
+                'Position', [labelWidth+15 dialogHeight-paramIndex*30-2 200 22], ...
+                'String', defaultValue, ...
+                'Style', 'popupmenu', ...
+                'Value', popupValue, ...
+                'Tag', paramTag);
         else
-            error('Unhandled param type');
+            error('Unhandled param type for param ''%s''', paramName);
         end
         
         if paramProps.Dependent
@@ -166,12 +196,16 @@ end
 
 function value = getParamValueFromUI(handles, params, paramName)
     paramTag = [paramName 'Edit'];
+    controlType = get(handles.(paramTag), 'Style');
     if isnumeric(params.(paramName))
         paramValue = str2double(get(handles.(paramTag), 'String'));
         convFunc = str2func(class(params.(paramName)));
         value = convFunc(paramValue);
     elseif islogical(params.(paramName))
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
+    elseif strcmp(controlType, 'popupmenu')
+        values = get(handles.(paramTag), 'String');
+        value = values{get(handles.(paramTag), 'Value')};
     elseif ischar(params.(paramName))
         value = get(handles.(paramTag), 'String');
     end
@@ -180,7 +214,11 @@ end
 
 function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
-    if islogical(value)
+    controlType = get(handles.(paramTag), 'Style');
+    if strcmp(controlType, 'popupmenu')
+        values = get(handles.(paramTag), 'String');
+        set(handles.(paramTage), 'Value', find(strcmp(values, value)));
+    elseif islogical(value)
         set(handles.(paramTag), 'Value', value);
     elseif isnumeric(value) || ischar(value)
         set(handles.(paramTag), 'String', value);
@@ -284,6 +322,7 @@ function saveEditParameters(~, ~, handles)
         paramName = paramNames{paramIndex};
         paramTag = [paramName 'Edit'];
         paramProps = findprop(handles.protocolPlugin, paramName);
+        controlType = get(handles.(paramTag), 'Style');
         if ~paramProps.Dependent
             if isnumeric(params.(paramName))
                 paramValue = str2double(get(handles.(paramTag), 'String'));
@@ -291,6 +330,9 @@ function saveEditParameters(~, ~, handles)
                 paramValue = convFunc(paramValue);
             elseif islogical(params.(paramName))
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
+            elseif strcmp(controlType, 'popupmenu')
+                values = get(handles.(paramTag), 'String');
+                paramValue = values{get(handles.(paramTag), 'Value')};
             elseif ischar(params.(paramName))
                 paramValue = get(handles.(paramTag), 'String');
             end
