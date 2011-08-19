@@ -13,6 +13,7 @@ classdef Symphony < handle
         amp_chan1
         persistor                   % The Symphony.EpochPersistor instance.
         epochGroup                  % A structure containing the current epoch group's properties.
+        wasSavingEpochs
     end
     
     
@@ -231,6 +232,8 @@ classdef Symphony < handle
                 protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
                 obj.protocolPlugin = obj.createProtocolPlugin(lastChosenProtocol);
                 
+                obj.wasSavingEpochs = true;
+                
                 % Restore the window position if possible.
                 if ispref('Symphony', 'MainWindow_Position')
                     addlProps = {'Position', getpref('Symphony', 'MainWindow_Position')};
@@ -337,7 +340,7 @@ classdef Symphony < handle
                     'Position', [10 170 250 18], ...
                     'BackgroundColor', bgColor, ...
                     'String', 'Save Epochs with Group', ...
-                    'Value', 1, ...
+                    'Value', uint8(obj.protocolPlugin.allowSavingEpochs), ...
                     'Style', 'checkbox', ...
                     'Tag', 'saveEpochsCheckbox');
                 
@@ -520,6 +523,13 @@ classdef Symphony < handle
                     
                     obj.protocolPlugin = newPlugin;
                     setpref('Symphony', 'LastChosenProtocol', pluginClassName);
+                    
+                    if ~obj.protocolPlugin.allowSavingEpochs
+                        obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
+                        set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
+                    elseif obj.wasSavingEpochs
+                        set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
+                    end
                 else
                     % The user cancelled editing the parameters so switch back to the previous protocol.
                     protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocolPlugin)));
@@ -584,13 +594,16 @@ classdef Symphony < handle
                 set(obj.controls.editParametersButton, 'Enable', 'on');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'on');
                 if isempty(obj.epochGroup)
-                    set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
                 else
-                    set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'on');
+                end
+                if isempty(obj.epochGroup) || ~obj.protocolPlugin.allowSavingEpochs
+                    set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
+                else
+                    set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
                 end
             else
                 set(obj.controls.stopButton, 'Enable', 'on');

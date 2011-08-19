@@ -29,6 +29,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         figureHandlerClasses
         figureHandlers = {}
         figureHandlerParams = {}
+        allowSavingEpochs = true
     end
     
     
