@@ -80,13 +80,17 @@ classdef MeanResponseFigureHandler < FigureHandler
             % Update the y axis with the units of the response.
             ylabel(obj.axesHandle, units);
             
-            paramNames = fieldnames(epochParams);
-            titleString = ['Grouped by ' humanReadableParameterName(paramNames{1})];
-            for i = 2:length(paramNames) - 1
-                titleString = [titleString ', ' humanReadableParameterName(paramNames{i})];
-            end
-            if length(paramNames) > 1
-                titleString = [titleString ' and ' humanReadableParameterName(paramNames{end})];
+            if isempty(epochParams)
+                titleString = 'All epochs grouped together.';
+            else
+                paramNames = fieldnames(epochParams);
+                titleString = ['Grouped by ' humanReadableParameterName(paramNames{1})];
+                for i = 2:length(paramNames) - 1
+                    titleString = [titleString ', ' humanReadableParameterName(paramNames{i})];
+                end
+                if length(paramNames) > 1
+                    titleString = [titleString ' and ' humanReadableParameterName(paramNames{end})];
+                end
             end
             title(obj.axesHandle, titleString);
         end
