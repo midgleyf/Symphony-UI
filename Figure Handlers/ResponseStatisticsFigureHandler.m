@@ -19,6 +19,11 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
             ip.addParamValue('StatsCallback', [], @(x)isa(x, 'function_handle'));
             ip.parse(varargin{:});
             
+            if isempty(ip.Results.StatsCallback)
+                obj.close();
+                error 'The StatsCallback parameter must be supplied for Response Statistics figures.'
+            end
+            
             obj.statsCallback = ip.Results.StatsCallback;
             
             xlabel(obj.axesHandle, 'epoch');
