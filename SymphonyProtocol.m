@@ -123,7 +123,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function addStimulus(obj, deviceName, stimulusID, stimulusData)
+        function addStimulus(obj, deviceName, stimulusID, stimulusData, units)
             % Queue data to send to the named device when the epoch is run.
             % TODO: need to specify data units?
             
@@ -132,7 +132,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            stimDataList = Measurement.FromArray(stimulusData.*1e-3, 'V');
+            if nargin == 5
+                stimDataList = Measurement.FromArray(stimulusData, units);
+            else
+                stimDataList = Measurement.FromArray(stimulusData.*1e-3, 'V');
+            end
 
             outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
 
@@ -146,7 +150,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function setDeviceBackground(obj, deviceName, volts)
+        function setDeviceBackground(obj, deviceName, background, units)
             % Set a constant stimulus value to be sent to the device.
             % TODO: totally untested
             
@@ -155,7 +159,12 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             device = obj.controller.GetDevice(deviceName);
             % TODO: what happens when there is no device with that name?
             
-            obj.epoch.SetBackground(device, Measurement(volts, 'V'), obj.deviceSampleRate(device, 'OUT'));
+            if nargin == 4
+                background = Measurement(background, units);
+            else
+                background = Measurement(background, 'V');
+            end
+            obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
         end
         
         
