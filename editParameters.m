@@ -99,18 +99,18 @@ function edited = editParameters(protocolPlugin)
         elseif iscellstr(defaultValue)
             % Default to the first item in the pop-up if nothing has been chosen yet.
             if iscellstr(paramValue)
-                paramValue = humanReadableParameterName(paramValue{1});
-            end
-            
-            % Convert the items to human readable form.
-            for i = 1:length(defaultValue)
-                defaultValue{i} = humanReadableParameterName(defaultValue{i});
+                paramValue = paramValue{1};
             end
             
             % Figure out which item to select.
             popupValue = find(strcmp(defaultValue, paramValue));
             if isempty(popupValue)
                 popupValue = 1;
+            end
+            
+            % Convert the items to human readable form.
+            for i = 1:length(defaultValue)
+                defaultValue{i} = humanReadableParameterName(defaultValue{i});
             end
             
             handles.(paramTag) = uicontrol(...
@@ -204,7 +204,8 @@ function value = getParamValueFromUI(handles, params, paramName)
     elseif islogical(params.(paramName))
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
     elseif strcmp(controlType, 'popupmenu')
-        values = get(handles.(paramTag), 'String');
+        paramProps = findprop(handles.protocolPlugin, paramName);
+        values = paramProps.DefaultValue;
         value = values{get(handles.(paramTag), 'Value')};
     elseif ischar(params.(paramName))
         value = get(handles.(paramTag), 'String');
@@ -216,8 +217,9 @@ function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
     controlType = get(handles.(paramTag), 'Style');
     if strcmp(controlType, 'popupmenu')
-        values = get(handles.(paramTag), 'String');
-        set(handles.(paramTage), 'Value', find(strcmp(values, value)));
+        paramProps = findprop(handles.protocolPlugin, paramName);
+        values = paramProps.DefaultValue;
+        set(handles.(paramTag), 'Value', find(strcmp(values, value)));
     elseif islogical(value)
         set(handles.(paramTag), 'Value', value);
     elseif isnumeric(value) || ischar(value)
@@ -331,7 +333,8 @@ function saveEditParameters(~, ~, handles)
             elseif islogical(params.(paramName))
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
             elseif strcmp(controlType, 'popupmenu')
-                values = get(handles.(paramTag), 'String');
+                paramProps = findprop(handles.protocolPlugin, paramName);
+                values = paramProps.DefaultValue;
                 paramValue = values{get(handles.(paramTag), 'Value')};
             elseif ischar(params.(paramName))
                 paramValue = get(handles.(paramTag), 'String');
