@@ -583,6 +583,7 @@ classdef Symphony < handle
         
         
         function updateUIState(obj)
+            % Update the state of the UI based on the state of the protocol.
             set(obj.controls.statusLabel, 'String', ['Status: ' obj.protocolState]);
             
             if strcmp(obj.protocolState, 'stopped')
@@ -608,7 +609,6 @@ classdef Symphony < handle
             else
                 set(obj.controls.stopButton, 'Enable', 'on');
                 set(obj.controls.protocolPopup, 'Enable', 'off');
-                set(obj.controls.editParametersButton, 'Enable', 'off');
                 set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'off');
                 set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
@@ -616,11 +616,13 @@ classdef Symphony < handle
                 if strcmp(obj.protocolState, 'running')
                     set(obj.controls.startButton, 'Enable', 'off');
                     set(obj.controls.pauseButton, 'Enable', 'on');
+                    set(obj.controls.editParametersButton, 'Enable', 'off');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
                 elseif strcmp(obj.protocolState, 'paused')
                     set(obj.controls.startButton, 'String', 'Resume');
                     set(obj.controls.startButton, 'Enable', 'on');
                     set(obj.controls.pauseButton, 'Enable', 'off');
+                    set(obj.controls.editParametersButton, 'Enable', 'on');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
                     
                     % TODO: allow changing protocol parameters while paused?
