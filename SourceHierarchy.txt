@@ -1,10 +1,4 @@
 Mouse
-	Superior colliculus
-		Marginal cell
-		Horizontal cell
-	Retina
-		Ganglion cell
 	Brainstem
-		Giant cell
-		Parvocellular cell
-		Magnocellular cell
+	Retina
+	Superior colliculus

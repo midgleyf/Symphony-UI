@@ -636,6 +636,10 @@ classdef Symphony < handle
         function closeRequestFcn(obj, ~, ~)
             obj.protocolPlugin.closeFigures();
             
+            if ~isempty(obj.epochGroup)
+                obj.closeEpochGroup();
+            end
+            
             % Release any hold we have on hardware.
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController')
                 obj.controller.DAQController.CloseHardware();
@@ -683,16 +687,21 @@ classdef Symphony < handle
                 end
                 set(obj.controls.epochGroupSourceText, 'String', sourceText);
                 
+                rigName = obj.epochGroup.userProperty('rigName');
+                cellID = obj.epochGroup.userProperty('cellID');
+                cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
+                
                 % Convert epoch group properties to .NET equivalents
                 parentArray = NET.createArray('System.String', 1);
                 parentArray(1) = obj.epochGroup.parentLabel;
                 
                 ancestors = obj.epochGroup.source.ancestors();
-                sourceArray = NET.createArray('System.String', length(ancestors) + 1);
+                sourceArray = NET.createArray('System.String', length(ancestors) + 2);
                 for i = 1:length(ancestors)
                     sourceArray(i) = ancestors(i).name;
                 end
                 sourceArray(length(ancestors) + 1) = obj.epochGroup.source.name;
+                sourceArray(length(ancestors) + 2) = cellName;
                 
                 keywords = strtrim(regexp(obj.epochGroup.keywords, ',', 'split'));
                 if isequal(keywords, {''})
@@ -705,11 +714,8 @@ classdef Symphony < handle
                 
                 propertiesDict = structToDictionary(obj.epochGroup.userProperties);
                 
-                rigName = obj.epochGroup.userProperty('rigName');
-                cellID = obj.epochGroup.userProperty('cellID');
-                
                 % Create the persistor.
-                savePath = fullfile(obj.epochGroup.outputPath, [datestr(now, 'mmddyy') rigName 'c' cellID '.xml']);
+                savePath = fullfile(obj.epochGroup.outputPath, [cellName '.xml']);
                 obj.persistor = EpochXMLPersistor(savePath);
                 obj.persistor.BeginEpochGroup(obj.epochGroup.label, parentArray, sourceArray, keywordsArray, propertiesDict, System.Guid.NewGuid());
                 
