@@ -51,11 +51,11 @@ classdef SealAndLeakProtocol < SymphonyProtocol
             stimulus = obj.stimulusForDevice('test-device');
             
             if strcmp(obj.mode, 'currentClamp')
-                obj.addStimulus('test-device', 'test-stimulus', stimulus * 10e-9, 'A');
-                obj.setDeviceBackground('test-device', obj.background * 10e-9, 'A');
+                obj.addStimulus('test-device', 'test-stimulus', stimulus * 1e-9, 'A');
+                obj.setDeviceBackground('test-device', obj.background * 1e-9, 'A');
             else
-                obj.addStimulus('test-device', 'test-stimulus', stimulus * 10e-3, 'V');
-                obj.setDeviceBackground('test-device', obj.background * 10e-3, 'V');
+                obj.addStimulus('test-device', 'test-stimulus', stimulus * 1e-3, 'V');
+                obj.setDeviceBackground('test-device', obj.background * 1e-3, 'V');
             end
             
             obj.recordResponse('test-device');
