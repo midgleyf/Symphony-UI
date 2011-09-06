@@ -7,12 +7,17 @@ classdef SealAndLeakProtocol < SymphonyProtocol
     end
     
     properties
-        mode = {'currentClamp', 'voltageClamp'}
         epochDuration = uint32(100)     % milliseconds
         pulseDuration = uint32(50)      % milliseconds
         pulseAmplitude = 5              % picoamperes or millivolts
         background = 0                  % picoamperes or millivolts
     end
+    
+    
+    properties (Dependent = true, SetAccess = private)
+        mode
+    end
+    
     
     methods
         
@@ -36,6 +41,20 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         function [stimuli, sampleRate] = sampleStimuli(obj)
             stimuli = {obj.stimulusForDevice('test-device')};
             sampleRate = obj.deviceSampleRate('test-device', 'OUT').Quantity;
+        end
+        
+        
+        function m = get.mode(obj)
+            device = obj.controller.GetDevice('test-device');
+            try
+                m = char(device.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
+            catch ME
+                if strncmp('No device parameters', char(ME.ExceptionObject.Message), 20)
+                    m = 'Toggle MultiClamp mode';
+                else
+                    m = ['unknown (' char(ME.ExceptionObject.Message) ')'];
+                end
+            end
         end
         
         
