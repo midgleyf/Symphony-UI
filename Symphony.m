@@ -78,38 +78,13 @@ classdef Symphony < handle
                 inStream = daq.GetStream('ANALOG_IN.0');
                 triggerStream = daq.GetStream('DIGITAL_OUT.0');
                 
-                % Setup the MultiClamp device
-                obj.commander = MultiClampCommander(831400, 1, daq);
-                dev = MultiClampDevice(obj.commander, obj.controller, Measurement(10, 'V'));
-                dev.Name = 'test-device';
-                dev.Clock = daq;
-                dev.BindStream(inStream);
-                dev.BindStream(outStream);
-
-                % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
-                mode = '';
-                while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
-                    gotMode = false;
-                    try
-                        mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
-                        if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
-                            gotMode = true;
-                        end
-                    catch ME
-                    end
-                    
-                    if ~gotMode
-                        waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
-                    end
-
-                    drawnow
-                end
+                mcSerialNumber = 831400;
             elseif strcmpi(daqName, 'simulation')
                 
                 import Symphony.SimulationDAQController.*;
                 Converters.Register('V','V', @(m) m);
                 daq = SimulationDAQController();
-                daq.Setup();
+                daq.BeginSetup();
                 
                 outStream = DAQOutputStream('OUT');
                 outStream.SampleRate = sampleRate;
@@ -123,15 +98,15 @@ classdef Symphony < handle
                 inStream.Clock = daq;
                 daq.AddStream(inStream);
                 
+                triggerStream = DAQOutputStream('TRIGGER');
+                triggerStream.SampleRate = sampleRate;
+                triggerStream.MeasurementConversionTarget = 'V';
+                triggerStream.Clock = daq;
+                daq.AddStream(triggerStream);
+                
                 daq.SimulationRunner = Simulation(@(output,step) loopbackSimulation(obj, output, step, outStream, inStream));
                 
-                % Setup the MultiClamp device
-                obj.commander = MultiClampCommander(0, 1, daq);
-                dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
-                dev.Name = 'test-device';
-                dev.Clock = daq;
-                dev.BindStream(inStream);
-                dev.BindStream(outStream);
+                mcSerialNumber = 0;
             else
                 error(['Unknown daqName: ' daqName]);
             end
@@ -139,6 +114,31 @@ classdef Symphony < handle
             daq.Clock = daq;
             obj.controller.DAQController = daq;
             obj.controller.Clock = daq;
+
+            % Create the MultiClamp device
+            obj.commander = MultiClampCommander(mcSerialNumber, 1, daq);
+            dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
+            dev.Name = 'test-device';
+            dev.Clock = daq;
+            dev.BindStream(inStream);
+            dev.BindStream(outStream);
+            
+            % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
+            mode = '';
+            while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
+                gotMode = false;
+                try
+                    mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
+                    if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
+                        gotMode = true;
+                    end
+                catch ME
+                end
+                
+                if ~gotMode
+                    waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
+                end
+            end
             
             % Create the 'trigger' device.
             triggerDev = UnitConvertingExternalDevice('trigger', obj.controller, Measurement(0, 'V'));
@@ -714,6 +714,7 @@ classdef Symphony < handle
                 % Convert epoch group properties to .NET equivalents
                 parentArray = NET.createArray('System.String', 1);
                 parentArray(1) = obj.epochGroup.parentLabel;
+                % TODO: persist parent label to a separate file
                 
                 ancestors = obj.epochGroup.source.ancestors();
                 sourceArray = NET.createArray('System.String', length(ancestors) + 2);
@@ -722,6 +723,7 @@ classdef Symphony < handle
                 end
                 sourceArray(length(ancestors) + 1) = obj.epochGroup.source.name;
                 sourceArray(length(ancestors) + 2) = cellName;
+                % TODO: persist sourceArray to a separate file
                 
                 keywords = strtrim(regexp(obj.epochGroup.keywords, ',', 'split'));
                 if isequal(keywords, {''})
@@ -737,7 +739,7 @@ classdef Symphony < handle
                 % Create the persistor.
                 savePath = fullfile(obj.epochGroup.outputPath, [cellName '.xml']);
                 obj.persistor = EpochXMLPersistor(savePath);
-                obj.persistor.BeginEpochGroup(obj.epochGroup.label, parentArray, sourceArray, keywordsArray, propertiesDict, System.Guid.NewGuid());
+                obj.persistor.BeginEpochGroup(obj.epochGroup.label, cellName, keywordsArray, propertiesDict, System.Guid.NewGuid(), System.DateTimeOffset.Now);
                 
                 obj.updateUIState();
             end
@@ -748,7 +750,7 @@ classdef Symphony < handle
             % Clean up the epoch group and persistor.
             obj.persistor.EndEpochGroup();
             % TODO: is this necessary?
-            obj.persistor.Close();
+            obj.persistor.CloseDocument();
             obj.persistor = [];
             
             obj.epochGroup = [];
