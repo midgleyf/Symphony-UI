@@ -17,25 +17,17 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
         end
         
         
-        function BeginEpochGroup(obj, label, parents, sources, keywords, properties, identifier)
+        function BeginEpochGroup(obj, label, source, keywords, properties, identifier, startTime)
             tz = java.util.TimeZone.getDefault();
             
             obj.groupNode.setAttribute('label', label);
             obj.groupNode.setAttribute('identifier', identifier);
-            obj.groupNode.setAttribute('startTime', obj.formatDate(now));
+            obj.groupNode.setAttribute('startTime', obj.formatDate(startTime));
             obj.groupNode.setAttribute('timeZone', tz.getDisplayName(tz.useDaylightTime, java.util.TimeZone.LONG));
             
-            parentsNode = obj.groupNode.appendChild(obj.docNode.createElement('parents'));
-            for i = 1:numel(parents)
-                parentNode = parentsNode.appendChild(obj.docNode.createElement('parent'));
-                parentNode.appendChild(obj.docNode.createTextNode(parents(i)));
-            end
-            
             sourcesNode = obj.groupNode.appendChild(obj.docNode.createElement('sourceHierarchy'));
-            for i = 1:numel(sources)
-                sourceNode = sourcesNode.appendChild(obj.docNode.createElement('source'));
-                sourceNode.appendChild(obj.docNode.createTextNode(sources(i)));
-            end
+            sourceNode = sourcesNode.appendChild(obj.docNode.createElement('source'));
+            sourceNode.appendChild(obj.docNode.createTextNode(source));
             
             keywordsNode = obj.groupNode.appendChild(obj.docNode.createElement('keywords'));
             for i = 1:numel(keywords)
@@ -108,8 +100,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
                 for i = 1:response.Data.Count
                     obj.addMeasurementNode(dataNode, response.Data.Item(i - 1), 'measurement');
                 end
-                obj.serializeParameters(responseNode, response.ExternalDeviceConfiguration, 'externalDeviceConfiguration');
-                obj.serializeParameters(responseNode, response.StreamConfiguration, 'streamConfiguration');
+                % TODO: serialize data configurations
             end
             
             % Serialize the keywords
@@ -127,7 +118,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
         end
         
         
-        function Close(obj)
+        function CloseDocument(obj)
             xmlwrite(obj.path, obj.docNode);
         end
         

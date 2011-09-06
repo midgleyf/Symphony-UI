@@ -11,7 +11,7 @@ classdef IDAQController < Symphony.Core.ITimelineProducer
             obj.Streams = GenericDictionary();
         end
         
-        function Setup(obj) %#ok<MANU>
+        function BeginSetup(obj) %#ok<MANU>
         end
         
         function AddStream(obj, stream)

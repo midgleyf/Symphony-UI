@@ -1,12 +1,25 @@
-classdef Controller < handle
+classdef Controller < Symphony.Core.ITimelineProducer
    
     properties
         DAQController
-        Clock
         Devices = {}
+        Configuration
+        HardwareControllers
+        CurrentEpoch
     end
     
     methods
+        
+        function obj = Controller()
+            obj = obj@Symphony.Core.ITimelineProducer();
+        end
+        
+        
+        function AddDevice(obj, device)
+            obj.Devices{end + 1} = device;
+        end
+        
+        
         function d = GetDevice(obj, deviceName)
             d = [];
             for device = obj.Devices
@@ -16,9 +29,22 @@ classdef Controller < handle
             end
         end
         
-        function RunEpoch(obj, epoch, persistor) %#ok<MANU>
+        
+        function persistor = BeginEpochGroup(~, path, label, source)
+            persistor = EpochXMLPersistor(path);
+            
+            keywords = NET.createArray('System.String', 0);
+            properties = NET.createGeneric('System.Collections.Generic.Dictionary', {'System.String', 'System.Object'});
+            identifier = System.Guid.NewGuid();
+            startTime = System.DateTimeOffset.Now;
+            persistor.BeginEpochGroup(label, source, keywords, properties, identifier, startTime);
+        end
+        
+        
+        function RunEpoch(obj, epoch, persistor)
             import Symphony.Core.*;
             
+            obj.CurrentEpoch = epoch;
             epoch.StartTime = now;
             
             % Create dummy responses.
@@ -36,13 +62,23 @@ classdef Controller < handle
                     for j = 1:samples
                         data.Add(Measurement((rand(1, 1) * 1000 - 500) / 1000000, 'A'));
                     end
-                    epoch.Responses.Values{i} = InputData(data, Measurement(10000, 'Hz'), now);
+                    response = epoch.Responses.Values{i};
+                    response.Data = data;
+                    respones.InputTime = now;
                 end
             end
             
             if ~isempty(persistor)
                 persistor.Serialize(epoch);
             end
+            
+            obj.CurrentEpoch = [];
         end
+        
+        function EndEpochGroup(~, persistor)
+            persistor.EndEpochGroup();
+            persistor.CloseDocument();
+        end
+        
     end
 end

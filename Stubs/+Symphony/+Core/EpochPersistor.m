@@ -4,10 +4,10 @@ classdef EpochPersistor < handle
     end
     
     methods (Abstract)
-        BeginEpochGroup(obj, label, parents, sources, keywords, identifier);
+        BeginEpochGroup(obj, label, source, keywords, props, identifier, startTime);
         Serialize(obj, epoch);
         EndEpochGroup(obj);
-        Close(obj);
+        CloseDocument(obj);
     end
     
 end

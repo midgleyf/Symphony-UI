@@ -1,15 +1,14 @@
-classdef ExternalDevice < Symphony.Core.ITimelineProducer
+classdef IExternalDevice < Symphony.Core.ITimelineProducer
    
     properties
         Name
         Controller
         Background
-        MeasurementConversionTarget
         Streams
     end
     
     methods
-        function obj = ExternalDevice(name, controller, background)
+        function obj = IExternalDevice(name, controller, background)
             obj = obj@Symphony.Core.ITimelineProducer();
             
             obj.Name = name;
@@ -18,7 +17,7 @@ classdef ExternalDevice < Symphony.Core.ITimelineProducer
             
             obj.Streams = GenericDictionary();
             
-            obj.Controller.Devices{end + 1} = obj;
+            obj.Controller.AddDevice(obj);
         end
         
         function BindStream(obj, arg1, arg2)

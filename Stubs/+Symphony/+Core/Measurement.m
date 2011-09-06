@@ -2,19 +2,26 @@ classdef Measurement < handle
    
     properties
         Quantity
+        Exponent
         Unit
     end
     
     methods
-        function obj = Measurement(quantity, unit)
+        function obj = Measurement(quantity, exponent, unit)
             obj = obj@handle();
             
+            if nargin == 2
+                unit = exponent;
+                exponent = 0;
+            end
+            
             obj.Quantity = quantity;
+            obj.Exponent = exponent;
             obj.Unit = unit;
         end
         
         function q = QuantityInBaseUnit(obj)
-            q = obj.Quantity;
+            q = obj.Quantity * 10 ^ obj.Exponent;
         end
     end
     
