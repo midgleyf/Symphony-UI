@@ -34,6 +34,11 @@ classdef MovingObjectsProtocol < StimGLProtocol
             % Get the default StimGL parameters.
             params = pluginParameters@StimGLProtocol(obj);
             
+            % The moving objects plug-in calculates the total number of frames differently than other plug-ins.
+            % It can loop through a list of speeds and sizes, running each for a number of frames.  In our case 
+            % we handle looping outside of StimGL so we just need loop.
+            params.tFrames = obj.numberOfFrames;
+            
             % Add the moving object parameters.
             params.objType = obj.objectShape;
             params.objLenX = obj.objectWidth;
