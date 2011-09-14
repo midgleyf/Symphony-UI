@@ -76,9 +76,32 @@ classdef Symphony < handle
                 % Finding input and output streams by name
                 outStream = daq.GetStream('ANALOG_OUT.0');
                 inStream = daq.GetStream('ANALOG_IN.0');
-                triggerStream = daq.GetStream('DIGITAL_OUT.0');
+%                triggerStream = daq.GetStream('DIGITAL_OUT.0');
                 
-                mcSerialNumber = 831400;
+                % Create the MultiClamp device
+                obj.commander = MultiClampCommander(831400, 1, daq);
+                dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
+                dev.Name = 'test-device';
+                dev.Clock = daq;
+                dev.BindStream(inStream);
+                dev.BindStream(outStream);
+                
+                % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
+                mode = '';
+                while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
+                    gotMode = false;
+                    try
+                        mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
+                        if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
+                            gotMode = true;
+                        end
+                    catch ME
+                    end
+
+                    if ~gotMode
+                        waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
+                    end
+                end
             elseif strcmpi(daqName, 'simulation')
                 
                 import Symphony.SimulationDAQController.*;
@@ -98,15 +121,19 @@ classdef Symphony < handle
                 inStream.Clock = daq;
                 daq.AddStream(inStream);
                 
-                triggerStream = DAQOutputStream('TRIGGER');
-                triggerStream.SampleRate = sampleRate;
-                triggerStream.MeasurementConversionTarget = 'V';
-                triggerStream.Clock = daq;
-                daq.AddStream(triggerStream);
+%                 triggerStream = DAQOutputStream('TRIGGER');
+%                 triggerStream.SampleRate = sampleRate;
+%                 triggerStream.MeasurementConversionTarget = 'V';
+%                 triggerStream.Clock = daq;
+%                 daq.AddStream(triggerStream);
                 
                 daq.SimulationRunner = Simulation(@(output,step) loopbackSimulation(obj, output, step, outStream, inStream));
                 
-                mcSerialNumber = 0;
+                dev = UnitConvertingExternalDevice('test-device', obj.controller, Measurement(0, 'V'));
+                dev.MeasurementConversionTarget = 'V';
+                dev.Clock = daq;
+                dev.BindStream(inStream);
+                dev.BindStream(outStream);
             else
                 error(['Unknown daqName: ' daqName]);
             end
@@ -114,37 +141,12 @@ classdef Symphony < handle
             daq.Clock = daq;
             obj.controller.DAQController = daq;
             obj.controller.Clock = daq;
-
-            % Create the MultiClamp device
-            obj.commander = MultiClampCommander(mcSerialNumber, 1, daq);
-            dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
-            dev.Name = 'test-device';
-            dev.Clock = daq;
-            dev.BindStream(inStream);
-            dev.BindStream(outStream);
-            
-            % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
-            mode = '';
-            while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
-                gotMode = false;
-                try
-                    mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
-                    if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
-                        gotMode = true;
-                    end
-                catch ME
-                end
-                
-                if ~gotMode
-                    waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
-                end
-            end
             
             % Create the 'trigger' device.
-            triggerDev = UnitConvertingExternalDevice('trigger', obj.controller, Measurement(0, 'V'));
-            triggerDev.MeasurementConversionTarget = 'V';
-            triggerDev.Clock = daq;
-            triggerDev.BindStream(triggerStream);
+%             triggerDev = UnitConvertingExternalDevice('trigger', obj.controller, Measurement(0, 'V'));
+%             triggerDev.MeasurementConversionTarget = 'V';
+%             triggerDev.Clock = daq;
+%             triggerDev.BindStream(triggerStream);
         end
         
         
@@ -193,7 +195,7 @@ classdef Symphony < handle
             paramNames = fieldnames(params);
             for i = 1:numel(paramNames)
                 paramProps = findprop(plugin, paramNames{i});
-                if ~paramProps.Dependent
+                if ~isempty(paramProps) && ~paramProps.Dependent
                     plugin.(paramNames{i}) = params.(paramNames{i});
                 end
             end
