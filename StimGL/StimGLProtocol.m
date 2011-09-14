@@ -6,6 +6,7 @@ classdef StimGLProtocol < SymphonyProtocol
     
     properties (Hidden)
         stimGL
+        loopCount
     end
     
     properties
@@ -17,27 +18,34 @@ classdef StimGLProtocol < SymphonyProtocol
     
     methods
         
+        function obj = StimGLProtocol()
+            obj = obj@SymphonyProtocol();
+            
+            % Connect to StimGL, starting the app if necessary.
+            % Do this here so that the StimGL window can be positioned before any epochs are run.
+            symphonyPath = mfilename('fullpath');
+            parentDir = fileparts(symphonyPath);
+            prevDir = cd(parentDir);
+            obj.stimGL = StimOpenGL;
+            cd(prevDir);
+        end
+        
+        
         function params = pluginParameters(obj)
             frameRate = double(GetRefreshRate(obj.stimGL));
             params.nFrames = obj.animationDuration * frameRate;
             
             % We _don't_ set nLoops because we handle that in Symphony via multiple epochs.
+            params.nLoops = 1;
         end
         
         
         function prepareRun(obj)
             obj.openFigure('Response');
             
-            % Connect to StimGL, starting the app if necessary.
-            symphonyPath = mfilename('fullpath');
-            parentDir = fileparts(symphonyPath);
-            prevDir = cd(parentDir);
-            obj.stimGL = StimOpenGL;
-            cd(prevDir);
+            obj.loopCount = 1;
             
-            % Start the module in the paused state.
             SetParams(obj.stimGL, obj.plugInName, obj.pluginParameters());
-            Start(obj.stimGL, obj.plugInName, 0);
         end
         
         
@@ -51,28 +59,33 @@ classdef StimGLProtocol < SymphonyProtocol
             
             obj.recordResponse('test-device');
             
-            Unpause(obj.stimGL);
+            Start(obj.stimGL, obj.plugInName, 1);
         end
         
         
         function completeEpoch(obj)
             % TODO: let StimGL pause/stop itself by checking for IsPaused() or Running()?
-            Pause(obj.stimGL);
+            Stop(obj.stimGL);
+            obj.loopCount = obj.loopCount + 1;
         end
         
         
         function keepGoing = continueRun(obj)
-            if obj.numberOfFrames == 0 || obj.numberOfLoops == 0
+            if obj.numberOfLoops == 0
                 % The user must stop the protocol from running.
                 keepGoing = true;
             else
-                keepGoing = ~isempty(Running(obj.stimGL));
+                keepGoing = obj.loopCount <= obj.numberOfLoops;
             end
         end
         
         
         function completeRun(obj)
             Stop(obj.stimGL);
+        end
+        
+        
+        function delete(obj)
             Close(obj.stimGL);
             obj.stimGL = [];
         end

@@ -8,7 +8,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
     end
 
     properties
-        objectShape = 'box'
+        objectShape = {'box', 'ellipse', 'sphere'}
         objectWidth = 10
         objectHeight = 10
         initialXPosition = 400
@@ -37,7 +37,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
             % The moving objects plug-in calculates the total number of frames differently than other plug-ins.
             % It can loop through a list of speeds and sizes, running each for a number of frames.  In our case 
             % we handle looping outside of StimGL so we just need loop.
-            params.tFrames = obj.numberOfFrames;
+            params.tFrames = params.nFrames;
             
             % Add the moving object parameters.
             params.objType = obj.objectShape;
