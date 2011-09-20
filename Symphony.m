@@ -6,14 +6,19 @@ classdef Symphony < handle
         protocolClassNames          % The list of protocol plug-in names.
         protocolPlugin              % The current protocol plug-in instance.
         figureHandlerClasses        % The list of available figure handlers.
+        sources                     % The hierarchy of sources.
         controls                    % A structure containing the handles for most of the controls in the UI.
         protocolState               % A string indicating whether the state of the protocol, one of 'stop', 'run' or 'pause'.
         rigNames
         commander
         amp_chan1
+        persistPath
         persistor                   % The Symphony.EpochPersistor instance.
         epochGroup                  % A structure containing the current epoch group's properties.
         wasSavingEpochs
+        metadataDoc
+        metadataNode
+        notesNode
     end
     
     
@@ -40,9 +45,10 @@ classdef Symphony < handle
                 end
             end
             
-            % See what protocols and figure handlers are available.
+            % See what protocols, figure handlers and sources are available.
             obj.discoverProtocols();
             obj.discoverFigureHandlers();
+            obj.discoverSources();
             
             % Create and open the main window.
             obj.showMainWindow();
@@ -147,6 +153,9 @@ classdef Symphony < handle
 %             triggerDev.MeasurementConversionTarget = 'V';
 %             triggerDev.Clock = daq;
 %             triggerDev.BindStream(triggerStream);
+            
+            % Have all devices start emitting their background values.
+            daq.SetStreamsBackground();
         end
         
         
@@ -219,8 +228,8 @@ classdef Symphony < handle
                     if ~isempty(mcls)
                         % Get the type name
                         props = mcls.PropertyList;
-                        for i = 1:length(props)
-                            prop = props(i);
+                        for j = 1:length(props)
+                            prop = props(j);
                             if strcmp(prop.Name, 'figureType')
                                 typeName = prop.DefaultValue;
                                 break;
@@ -229,6 +238,36 @@ classdef Symphony < handle
                         
                         obj.figureHandlerClasses(typeName) = className;
                     end
+                end
+            end
+        end
+        
+        
+        %% Sources
+
+
+        function discoverSources(obj)
+            parentDir = fileparts(mfilename('fullpath'));
+            fid = fopen(fullfile(parentDir, 'SourceHierarchy.txt'));
+            sourceText = fread(fid, '*char');
+            fclose(fid);
+            
+            sourceLines = regexp(sourceText', '\n', 'split')';
+            
+            obj.sources = Source(sourceLines{1});
+            curPath = obj.sources;
+            
+            for i = 2:length(sourceLines)
+                line = sourceLines{i};
+                if ~isempty(line)
+                    indent = 0;
+                    while strcmp(line(1), char(9))
+                        line = line(2:end);
+                        indent = indent + 1;
+                    end
+                    curPath = curPath(1:indent);
+                    source = Source(line, curPath(end));
+                    curPath(end + 1) = source; %#ok<AGROW>
                 end
             end
         end
@@ -475,6 +514,15 @@ classdef Symphony < handle
                     'String', 'New...', ...
                     'Tag', 'newEpochGroupButton');
                 
+                obj.controls.addNoteButton = uicontrol(...
+                    'Parent', obj.controls.epochPanel, ...
+                    'Units', 'points', ...
+                    'Callback', @(hObject,eventdata)addNote(obj,hObject,eventdata), ...
+                    'Position', [117.5 10 100 22], ...
+                    'BackgroundColor', bgColor, ...
+                    'String', 'Add Note...', ...
+                    'Tag', 'addNoteButton');
+                
                 obj.controls.closeEpochGroupButton = uicontrol(...
                     'Parent', obj.controls.epochPanel, ...
                     'Units', 'points', ...
@@ -598,6 +646,9 @@ classdef Symphony < handle
             epochKeywordsPos(2) = sourcePos(2) - 12 - epochKeywordsPos(4) + 4;
             epochKeywordsPos(3) = epochPanelPos(3) - 10 - epochKeywordsLabelPos(3) - 10 - 10;
             set(obj.controls.epochKeywordsEdit, 'Position', epochKeywordsPos);
+            addNotePos = get(obj.controls.addNoteButton, 'Position');
+            addNotePos(1) = (epochPanelPos(3) - addNotePos(3)) / 2.0;
+            set(obj.controls.addNoteButton, 'Position', addNotePos);
             closeGroupPos = get(obj.controls.closeEpochGroupButton, 'Position');
             closeGroupPos(1) = epochPanelPos(3) - 14 - closeGroupPos(3);
             set(obj.controls.closeEpochGroupButton, 'Position', closeGroupPos);
@@ -618,9 +669,14 @@ classdef Symphony < handle
                 set(obj.controls.newEpochGroupButton, 'Enable', 'on');
                 if isempty(obj.epochGroup)
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
-                    set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
+                    set(obj.controls.addNoteButton, 'Enable', 'off');
                 else
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
+                    set(obj.controls.addNoteButton, 'Enable', 'on');
+                end
+                if isempty(obj.persistor)
+                    set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
+                else
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'on');
                 end
                 if isempty(obj.epochGroup) || ~obj.protocolPlugin.allowSavingEpochs
@@ -628,7 +684,7 @@ classdef Symphony < handle
                 else
                     set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
                 end
-            else
+            else    % running or paused
                 set(obj.controls.stopButton, 'Enable', 'on');
                 set(obj.controls.protocolPopup, 'Enable', 'off');
                 set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
@@ -640,14 +696,48 @@ classdef Symphony < handle
                     set(obj.controls.pauseButton, 'Enable', 'on');
                     set(obj.controls.editParametersButton, 'Enable', 'off');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
+                    set(obj.controls.addNoteButton, 'Enable', 'off');
                 elseif strcmp(obj.protocolState, 'paused')
                     set(obj.controls.startButton, 'String', 'Resume');
                     set(obj.controls.startButton, 'Enable', 'on');
                     set(obj.controls.pauseButton, 'Enable', 'off');
                     set(obj.controls.editParametersButton, 'Enable', 'on');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
-                    
-                    % TODO: allow changing protocol parameters while paused?
+                    set(obj.controls.addNoteButton, 'Enable', 'on');
+                end
+            end
+            
+            % Update the epoch group settings.
+            if isempty(obj.persistor)
+                set(obj.controls.epochGroupOutputPathText, 'String', '');
+                set(obj.controls.epochGroupLabelText, 'String', '');
+                set(obj.controls.epochGroupSourceText, 'String', '');
+                set(obj.controls.closeEpochGroupButton, 'String', 'Close File');
+            else
+                set(obj.controls.epochGroupOutputPathText, 'String', obj.persistPath);
+                if isempty(obj.epochGroup)
+                    set(obj.controls.epochGroupLabelText, 'String', '');
+                    set(obj.controls.epochGroupSourceText, 'String', '');
+                else
+                    if isempty(obj.epochGroup.parentGroup)
+                        set(obj.controls.epochGroupLabelText, 'String', obj.epochGroup.label);
+                        source = obj.epochGroup.source;
+                    else
+                        set(obj.controls.epochGroupLabelText, 'String', [obj.epochGroup.label ' (' obj.epochGroup.parentGroup.label ')']);
+                        source = obj.epochGroup.parentGroup.source;
+                    end
+                    sourceText = source.name;
+                    curSource = source.parentSource;
+                    while ~isempty(curSource)
+                        sourceText = [curSource.name ' : ' sourceText]; %#ok<AGROW>
+                        curSource = curSource.parentSource;
+                    end
+                    set(obj.controls.epochGroupSourceText, 'String', sourceText);
+                end
+                if isempty(obj.epochGroup)
+                    set(obj.controls.closeEpochGroupButton, 'String', 'Close File');
+                else
+                    set(obj.controls.closeEpochGroupButton, 'String', 'End Group');
                 end
             end
             
@@ -661,6 +751,9 @@ classdef Symphony < handle
             if ~isempty(obj.epochGroup)
                 obj.closeEpochGroup();
             end
+            
+            % Break the reference loop on the source hierarchy so it gets deleted.
+            delete(obj.sources);
             
             % Release any hold we have on hardware.
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController')
@@ -681,67 +774,29 @@ classdef Symphony < handle
         function createNewEpochGroup(obj, ~, ~)
             import Symphony.Core.*;
             
-            group = newEpochGroup();
+            group = newEpochGroup(obj.epochGroup, obj.sources);
             if ~isempty(group)
-                % End the current group if there is one.
-                if ~isempty(obj.persistor)
-                    obj.persistor.EndEpochGroup();
-                    if ~strcmp(group.outputPath, get(obj.controls.epochGroupOutputPathText, 'String'))
-                        obj.persistor.Close();
-                        obj.persistor = EpochXMLPersistor(group.outputPath);
-                    end
-                end
-                
                 obj.epochGroup = group;
                 
-                % Show the settings of the new group.
-                set(obj.controls.epochGroupOutputPathText, 'String', obj.epochGroup.outputPath);
-                if isempty(obj.epochGroup.parentLabel)
-                    set(obj.controls.epochGroupLabelText, 'String', obj.epochGroup.label);
-                else
-                    set(obj.controls.epochGroupLabelText, 'String', [obj.epochGroup.label ' (' obj.epochGroup.parentLabel ')']);
-                end
-                sourceText = obj.epochGroup.source.name;
-                curSource = obj.epochGroup.source.parent;
-                while ~isempty(curSource)
-                    sourceText = [curSource.name ' : ' sourceText]; %#ok<AGROW>
-                    curSource = curSource.parent;
-                end
-                set(obj.controls.epochGroupSourceText, 'String', sourceText);
-                
-                rigName = obj.epochGroup.userProperty('rigName');
-                cellID = obj.epochGroup.userProperty('cellID');
-                cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
-                
-                % Convert epoch group properties to .NET equivalents
-                parentArray = NET.createArray('System.String', 1);
-                parentArray(1) = obj.epochGroup.parentLabel;
-                % TODO: persist parent label to a separate file
-                
-                ancestors = obj.epochGroup.source.ancestors();
-                sourceArray = NET.createArray('System.String', length(ancestors) + 2);
-                for i = 1:length(ancestors)
-                    sourceArray(i) = ancestors(i).name;
-                end
-                sourceArray(length(ancestors) + 1) = obj.epochGroup.source.name;
-                sourceArray(length(ancestors) + 2) = cellName;
-                % TODO: persist sourceArray to a separate file
-                
-                keywords = strtrim(regexp(obj.epochGroup.keywords, ',', 'split'));
-                if isequal(keywords, {''})
-                    keywords = {};
-                end
-                keywordsArray = NET.createArray('System.String', numel(keywords));
-                for i = 1:numel(keywords)
-                    keywordsArray(i) = keywords{i};
+                if isempty(obj.persistor)
+                    % Create the persistor and metadata XML.
+                    if ismac
+                        obj.persistPath = fullfile(obj.epochGroup.outputPath, [obj.epochGroup.source.name '.xml']);
+                        obj.persistor = EpochXMLPersistor(obj.persistPath);
+                    else
+                        obj.persistPath = fullfile(obj.epochGroup.outputPath, [obj.epochGroup.source.name '.h5']);
+                        obj.persistor = EpochHDF5Persistor(obj.persistPath, '');
+                    end
+                    
+                    obj.metadataDoc = com.mathworks.xml.XMLUtils.createDocument('symphony-metadata');
+                    obj.metadataNode = obj.metadataDoc.getDocumentElement;
+                    
+                    % Add the source hierarchy to the metadata.
+                    ancestors = obj.epochGroup.source.ancestors();
+                    ancestors(1).persistToMetadata(obj.metadataNode);
                 end
                 
-                propertiesDict = structToDictionary(obj.epochGroup.userProperties);
-                
-                % Create the persistor.
-                savePath = fullfile(obj.epochGroup.outputPath, [cellName '.xml']);
-                obj.persistor = EpochXMLPersistor(savePath);
-                obj.persistor.BeginEpochGroup(obj.epochGroup.label, cellName, keywordsArray, propertiesDict, System.Guid.NewGuid(), System.DateTimeOffset.Now);
+                obj.epochGroup.beginPersistence(obj.persistor);
                 
                 obj.updateUIState();
             end
@@ -749,24 +804,60 @@ classdef Symphony < handle
         
         
         function closeEpochGroup(obj, ~, ~)
-            % Clean up the epoch group and persistor.
-            obj.persistor.EndEpochGroup();
-            % TODO: is this necessary?
-            obj.persistor.CloseDocument();
-            obj.persistor = [];
-            
-            obj.epochGroup = [];
-            
-            % Clear out the UI.
-            set(obj.controls.epochGroupOutputPathText, 'String', '');
-            set(obj.controls.epochGroupLabelText, 'String', '');
-            set(obj.controls.epochGroupSourceText, 'String', '');
+            if ~isempty(obj.epochGroup)
+                % Clean up the epoch group and persistor.
+                obj.epochGroup.endPersistence(obj.persistor);
+                
+                if isempty(obj.epochGroup.parentGroup)
+                    % Break the reference loop on the group hierarchy so they all get deleted.
+                    delete(obj.epochGroup);
+                    obj.epochGroup = [];
+                else
+                    obj.epochGroup = obj.epochGroup.parentGroup;
+                end
+            else
+                obj.persistor.CloseDocument();
+                obj.persistor = [];
+                
+                [pathstr, name, ext] = fileparts(obj.persistPath);
+                metadataPath = fullfile(pathstr,[name '_metadata' ext]);
+                xmlwrite(metadataPath, obj.metadataDoc);
+                obj.metadataDoc = [];
+                obj.metadataNode = [];
+                obj.notesNode = [];
+            end
             
             obj.updateUIState();
         end
         
         
-        %% Protocol starting/stopping
+        %% Notes
+        
+        
+        function addNote(obj, ~, ~)
+            noteText = inputdlg('Enter a note:', 'Symphony Note', 4, {''}, 'on');
+            
+            if ~isempty(noteText)
+                noteText2 = '';
+                for i = 1:size(noteText{1}, 1)
+                    noteText2 = [noteText2 strtrim(noteText{1}(i, :)) char(10)]; %#ok<AGROW>
+                end
+                noteText2 = noteText2(1:end - 1);   % strip off the last newline
+                        
+                if isempty(obj.notesNode)
+                    obj.notesNode = obj.metadataNode.appendChild(obj.metadataDoc.createElement('notes'));
+                end
+
+                noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
+                [formattedTime, formattedZone] = formatXMLDate(obj.controller.Clock.Now());
+                noteNode.setAttribute('time', formattedTime);
+                noteNode.setAttribute('timeZone', formattedZone);
+                noteNode.appendChild(obj.metadataDoc.createTextNode(noteText2));
+            end
+        end
+        
+        
+        %% Protocol starting/pausing/stopping
         
         
         function startAcquisition(obj, ~, ~)

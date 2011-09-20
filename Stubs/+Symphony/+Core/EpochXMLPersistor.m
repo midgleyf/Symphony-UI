@@ -3,7 +3,8 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
     properties
         path
         docNode
-        groupNode
+        experimentNode
+        groupNodes
     end
     
     methods
@@ -12,30 +13,34 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             obj = obj@Symphony.Core.EpochPersistor();
             
             obj.path = xmlPath;
-            obj.docNode = com.mathworks.xml.XMLUtils.createDocument('epochGroup');
-            obj.groupNode = obj.docNode.getDocumentElement;
+            obj.docNode = com.mathworks.xml.XMLUtils.createDocument('experiment');
+            obj.experimentNode = obj.docNode.getDocumentElement;
+            obj.groupNodes = {obj.experimentNode};
         end
         
         
         function BeginEpochGroup(obj, label, source, keywords, properties, identifier, startTime)
-            tz = java.util.TimeZone.getDefault();
+            [formattedTime, formattedZone] = formatXMLDate(startTime);
             
-            obj.groupNode.setAttribute('label', label);
-            obj.groupNode.setAttribute('identifier', identifier);
-            obj.groupNode.setAttribute('startTime', obj.formatDate(startTime));
-            obj.groupNode.setAttribute('timeZone', tz.getDisplayName(tz.useDaylightTime, java.util.TimeZone.LONG));
+            groupNode = obj.groupNodes{end}.appendChild(obj.docNode.createElement('epochGroup'));
+            groupNode.setAttribute('label', label);
+            groupNode.setAttribute('identifier', identifier);
+            groupNode.setAttribute('startTime', formattedTime);
+            groupNode.setAttribute('timeZone', formattedZone);
             
-            sourcesNode = obj.groupNode.appendChild(obj.docNode.createElement('sourceHierarchy'));
+            sourcesNode = groupNode.appendChild(obj.docNode.createElement('sourceHierarchy'));
             sourceNode = sourcesNode.appendChild(obj.docNode.createElement('source'));
             sourceNode.appendChild(obj.docNode.createTextNode(source));
             
-            keywordsNode = obj.groupNode.appendChild(obj.docNode.createElement('keywords'));
+            keywordsNode = groupNode.appendChild(obj.docNode.createElement('keywords'));
             for i = 1:numel(keywords)
                 keywordNode = keywordsNode.appendChild(obj.docNode.createElement('keyword'));
                 keywordNode.appendChild(obj.docNode.createTextNode(keywords(i)));
             end
             
-            obj.serializeParameters(obj.groupNode, properties, 'properties');
+            obj.serializeParameters(groupNode, properties, 'properties');
+            
+            obj.groupNodes{end + 1} = groupNode;
         end
         
         
@@ -113,24 +118,13 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
         end
         
         
-        function EndEpochGroup(obj) %#ok<MANU>
-            
+        function EndEpochGroup(obj)
+            obj.groupNodes{end} = obj.groupNodes{1:end - 1};
         end
         
         
         function CloseDocument(obj)
             xmlwrite(obj.path, obj.docNode);
-        end
-        
-        
-        function f = formatDate(obj, date) %#ok<MANU>
-            tz = java.util.TimeZone.getDefault();
-            tzOffset = tz.getOffset(now);
-            if tz.useDaylightTime
-                tzOffset = tzOffset + tz.getDSTSavings();
-            end
-            tzOffset = tzOffset / 1000 / 60;
-            f = [datestr(date, 'mm/dd/yyyy HH:MM:SS PM') sprintf(' %+03d:%02d', tzOffset / 60, mod(tzOffset, 60))];
         end
         
         

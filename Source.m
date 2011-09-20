@@ -2,39 +2,71 @@ classdef Source < handle
     
     properties
         name
-        parent
-        children
+        identifier
+        
+        parentSource
+        childSources
     end
+    
     
     methods
         
         function obj = Source(name, varargin)
-            obj.name = name;
             if nargin == 2
-                obj.parent = varargin{1};
-                obj.parent.children(end + 1) = obj;
+                parent = varargin{1};
+                
+                % Check if the parent has a source with this name already.
+                if isempty(parent)
+                    existingSource = [];
+                else
+                    existingSource = parent.childWithName(name);
+                end
+                if isempty(existingSource)
+                    obj.parentSource = parent;
+                    obj.parentSource.childSources(end + 1) = obj;
+                else
+                    obj = existingSource;
+                    return;
+                end
             else
-                obj.parent = [];
+                obj.parentSource = [];
             end
-            obj.children = Source.empty(1, 0);
+            
+            obj.name = name;
+            obj.identifier = System.Guid.NewGuid();
+            
+            obj.childSources = Source.empty(1, 0);
         end
+        
         
         function path = path(obj)
-            if isempty(obj.parent)
+            if isempty(obj.parentSource)
                 path = obj.name;
             else
-                path = [obj.parent.path() ':' obj.name];
+                path = [obj.parentSource.path() ':' obj.name];
             end
         end
         
+        
         function a = ancestors(obj)
-            if isempty(obj.parent)
+            if isempty(obj.parentSource)
                 a = [];
             else
-                parentAncestors = obj.parent.ancestors();
-                a = [parentAncestors(:) obj.parent];
+                parentAncestors = obj.parentSource.ancestors();
+                a = [parentAncestors(:) obj.parentSource];
             end
         end
+        
+        
+        function c = childWithName(obj, name)
+            c = [];
+            for i = 1:length(obj.childSources)
+                if strcmp(obj.childSources(i).name, name)
+                    c = obj.childSources(i);
+                end
+            end
+        end
+        
         
         function d = descendantAtPath(obj, path)
             if isempty(path)
@@ -49,13 +81,32 @@ classdef Source < handle
                     childName = path(1:index - 1);
                     childPath = path(index + 1:end);
                 end
-                d = [];
-                for i = 1:length(obj.children)
-                    if strcmp(obj.children(i).name, childName)
-                        d = obj.children(i).descendantAtPath(childPath);
-                        break;
-                    end
+                d = obj.childWithName(childName);
+                if ~isempty(d)
+                    d = d.descendantAtPath(childPath);
                 end
+            end
+        end
+        
+        
+        function persistToMetadata(obj, parentNode)
+            docNode = parentNode.getOwnerDocument();
+            
+            % Persist this source.
+            sourceNode = parentNode.appendChild(docNode.createElement('source'));
+            sourceNode.setAttribute('label', obj.name);
+            sourceNode.setAttribute('identifier', obj.identifier);
+            
+            % Persist all child sources.
+            for i = 1:length(obj.childSources)
+                obj.childSources(i).persistToMetadata(sourceNode);
+            end
+        end
+        
+        
+        function delete(obj)
+            for i = 1:length(obj.childSources)
+                delete(obj.childSources(i));
             end
         end
         
