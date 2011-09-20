@@ -1,4 +1,4 @@
-classdef IDAQController < Symphony.Core.ITimelineProducer
+classdef IDAQController < Symphony.Core.ITimelineProducer & Symphony.Core.IHardwareController
    
     properties
         Streams
@@ -11,9 +11,6 @@ classdef IDAQController < Symphony.Core.ITimelineProducer
             obj.Streams = GenericDictionary();
         end
         
-        function BeginSetup(obj) %#ok<MANU>
-        end
-        
         function AddStream(obj, stream)
             obj.Streams.Add(stream.Name, stream);
         end
@@ -21,5 +18,9 @@ classdef IDAQController < Symphony.Core.ITimelineProducer
         function s = GetStream(obj, name)
             s = obj.Streams.Item(name);
         end
+        
+        function RequestStop(~)
+        end
+        
     end
 end
