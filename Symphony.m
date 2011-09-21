@@ -819,8 +819,8 @@ classdef Symphony < handle
                 obj.persistor.CloseDocument();
                 obj.persistor = [];
                 
-                [pathstr, name, ext] = fileparts(obj.persistPath);
-                metadataPath = fullfile(pathstr,[name '_metadata' ext]);
+                [pathstr, name, ~] = fileparts(obj.persistPath);
+                metadataPath = fullfile(pathstr,[name '_metadata.xml']);
                 xmlwrite(metadataPath, obj.metadataDoc);
                 obj.metadataDoc = [];
                 obj.metadataNode = [];
