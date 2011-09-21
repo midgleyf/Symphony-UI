@@ -82,7 +82,7 @@ classdef Symphony < handle
                 % Finding input and output streams by name
                 outStream = daq.GetStream('ANALOG_OUT.0');
                 inStream = daq.GetStream('ANALOG_IN.0');
-%                triggerStream = daq.GetStream('DIGITAL_OUT.0');
+%                 triggerStream = daq.GetStream('DIGITAL_OUT.0');
                 
                 % Create the MultiClamp device
                 obj.commander = MultiClampCommander(831400, 1, daq);
@@ -849,9 +849,9 @@ classdef Symphony < handle
                 end
 
                 noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
-                [formattedTime, formattedZone] = formatXMLDate(obj.controller.Clock.Now());
-                noteNode.setAttribute('time', formattedTime);
-                noteNode.setAttribute('timeZone', formattedZone);
+%                 [formattedTime, formattedZone] = formatXMLDate(obj.controller.Clock.Now());
+                noteNode.setAttribute('time', char(obj.controller.Clock.Now().ToString()));
+%                 noteNode.setAttribute('timeZone', formattedZone);
                 noteNode.appendChild(obj.metadataDoc.createTextNode(noteText2));
             end
         end

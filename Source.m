@@ -95,7 +95,7 @@ classdef Source < handle
             % Persist this source.
             sourceNode = parentNode.appendChild(docNode.createElement('source'));
             sourceNode.setAttribute('label', obj.name);
-            sourceNode.setAttribute('identifier', obj.identifier);
+            sourceNode.setAttribute('identifier', char(obj.identifier.ToString()));
             
             % Persist all child sources.
             for i = 1:length(obj.childSources)
