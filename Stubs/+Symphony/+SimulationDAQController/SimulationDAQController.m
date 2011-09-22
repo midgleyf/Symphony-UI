@@ -12,8 +12,8 @@ classdef SimulationDAQController < Symphony.Core.DAQControllerBase
             obj.SampleRate = Symphony.Core.Measurement(100, 'Hz');
         end
         
-        function now = Now(obj)
-            now = System.DateTimeOffset.Now();
+        function now = Now(obj) %#ok<MANU>
+            now = System.DateTimeOffset.Now;
         end
     end
 end

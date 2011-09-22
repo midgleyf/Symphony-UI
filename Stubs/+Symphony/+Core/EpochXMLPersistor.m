@@ -24,7 +24,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             
             groupNode = obj.groupNodes{end}.appendChild(obj.docNode.createElement('epochGroup'));
             groupNode.setAttribute('label', label);
-            groupNode.setAttribute('identifier', identifier);
+            groupNode.setAttribute('identifier', char(identifier.ToString()));
             groupNode.setAttribute('startTime', formattedTime);
             groupNode.setAttribute('timeZone', formattedZone);
             
