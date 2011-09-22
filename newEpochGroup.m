@@ -1,8 +1,9 @@
-function epochGroup = newEpochGroup(parentGroup, sources)
+function epochGroup = newEpochGroup(parentGroup, sources, clock)
     handles.epochGroup = [];
     
     handles.parentGroup = parentGroup;
     handles.sourceRoot = sources;
+    handles.clock = clock;
     
     handles.rigNames = {'A', 'B', 'C'};
     lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
@@ -301,7 +302,7 @@ end
 function saveNewGroup(~, ~, handles)
     % TODO: validate inputs
     
-    epochGroup = EpochGroup(handles.parentGroup);
+    epochGroup = EpochGroup(handles.parentGroup, handles.clock.Now);
     epochGroup.outputPath = get(handles.outputPathEdit, 'String');
     epochGroup.label = get(handles.labelEdit, 'String');
     epochGroup.keywords = get(handles.keywordsEdit, 'String');

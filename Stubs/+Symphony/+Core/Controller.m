@@ -30,13 +30,13 @@ classdef Controller < Symphony.Core.ITimelineProducer
         end
         
         
-        function persistor = BeginEpochGroup(~, path, label, source)
+        function persistor = BeginEpochGroup(obj, path, label, source)
             persistor = EpochXMLPersistor(path);
             
             keywords = NET.createArray('System.String', 0);
             properties = NET.createGeneric('System.Collections.Generic.Dictionary', {'System.String', 'System.Object'});
             identifier = System.Guid.NewGuid();
-            startTime = System.DateTimeOffset.Now;
+            startTime = obj.Clock.Now;
             persistor.BeginEpochGroup(label, source, keywords, properties, identifier, startTime);
         end
         

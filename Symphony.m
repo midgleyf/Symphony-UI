@@ -159,12 +159,12 @@ classdef Symphony < handle
         end
         
         
-        function input = loopbackSimulation(obj, output, ~, outStream, inStream) %#ok<MANU>
+        function input = loopbackSimulation(obj, output, ~, outStream, inStream)
             import Symphony.Core.*;
             
             input = NET.createGeneric('System.Collections.Generic.Dictionary', {'Symphony.Core.IDAQInputStream','Symphony.Core.IInputData'});
             outData = output.Item(outStream);
-            inData = InputData(outData.Data, outData.SampleRate, System.DateTimeOffset.Now);
+            inData = InputData(outData.Data, outData.SampleRate, obj.Clock.Now);
             input.Add(inStream, inData);
         end
         
@@ -749,7 +749,9 @@ classdef Symphony < handle
             obj.protocolPlugin.closeFigures();
             
             if ~isempty(obj.epochGroup)
-                obj.closeEpochGroup();
+                while ~isempty(obj.persistor)
+                    obj.closeEpochGroup();
+                end
             end
             
             % Break the reference loop on the source hierarchy so it gets deleted.
@@ -765,6 +767,7 @@ classdef Symphony < handle
             delete(obj.mainWindow);
             
             clear global symphonyInstance
+            delete(obj);
         end
         
         
@@ -774,17 +777,23 @@ classdef Symphony < handle
         function createNewEpochGroup(obj, ~, ~)
             import Symphony.Core.*;
             
-            group = newEpochGroup(obj.epochGroup, obj.sources);
+            group = newEpochGroup(obj.epochGroup, obj.sources, obj.controller.Clock);
             if ~isempty(group)
-                obj.epochGroup = group;
-                
                 if isempty(obj.persistor)
                     % Create the persistor and metadata XML.
                     if ismac
-                        obj.persistPath = fullfile(obj.epochGroup.outputPath, [obj.epochGroup.source.name '.xml']);
+                        obj.persistPath = fullfile(group.outputPath, [group.source.name '.xml']);
+                        if exist(obj.persistPath, 'file')
+                            errordlg({'A file already exists for that cell and rig.'; 'Please choose different values.'});
+                            return
+                        end
                         obj.persistor = EpochXMLPersistor(obj.persistPath);
                     else
-                        obj.persistPath = fullfile(obj.epochGroup.outputPath, [obj.epochGroup.source.name '.h5']);
+                        obj.persistPath = fullfile(group.outputPath, [group.source.name '.h5']);
+                        if exist(obj.persistPath, 'file')
+                            errordlg({'A file already exists for that cell and rig.'; 'Please choose different values.'});
+                            return
+                        end
                         obj.persistor = EpochHDF5Persistor(obj.persistPath, '');
                     end
                     
@@ -792,9 +801,11 @@ classdef Symphony < handle
                     obj.metadataNode = obj.metadataDoc.getDocumentElement;
                     
                     % Add the source hierarchy to the metadata.
-                    ancestors = obj.epochGroup.source.ancestors();
+                    ancestors = group.source.ancestors();
                     ancestors(1).persistToMetadata(obj.metadataNode);
                 end
+                
+                obj.epochGroup = group;
                 
                 obj.epochGroup.beginPersistence(obj.persistor);
                 
@@ -849,9 +860,7 @@ classdef Symphony < handle
                 end
 
                 noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
-%                 [formattedTime, formattedZone] = formatXMLDate(obj.controller.Clock.Now());
                 noteNode.setAttribute('time', char(obj.controller.Clock.Now().ToString()));
-%                 noteNode.setAttribute('timeZone', formattedZone);
                 noteNode.appendChild(obj.metadataDoc.createTextNode(noteText2));
             end
         end

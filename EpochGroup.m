@@ -15,7 +15,7 @@ classdef EpochGroup < handle
     
     methods
         
-        function obj = EpochGroup(parentGroup)
+        function obj = EpochGroup(parentGroup, startTime)
             % Add to the group hierarchy.
             obj.parentGroup = parentGroup;
             if ~isempty(parentGroup)
@@ -24,7 +24,7 @@ classdef EpochGroup < handle
             obj.childGroups = EpochGroup.empty(1, 0);
             
             obj.identifier = System.Guid.NewGuid();
-            obj.startTime = System.DateTimeOffset.Now; % BW Function call syntax triggers a "Array formation and indexing are not allowed on .NET objects." exception
+            obj.startTime = startTime;
         end
         
         
@@ -53,7 +53,7 @@ classdef EpochGroup < handle
             if isempty(obj.source)
                 persistor.BeginEpochGroup(obj.label, '', keywordsArray, propertiesDict, obj.identifier, obj.startTime);
             else
-                persistor.BeginEpochGroup(obj.label, obj.source.identifier.ToString(), keywordsArray, propertiesDict, obj.identifier, obj.startTime);
+                persistor.BeginEpochGroup(obj.label, obj.source.identifier, keywordsArray, propertiesDict, obj.identifier, obj.startTime);
             end
         end
         
