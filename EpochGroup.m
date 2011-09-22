@@ -51,10 +51,11 @@ classdef EpochGroup < handle
             propertiesDict = structToDictionary(obj.userProperties);
             
             if isempty(obj.source)
-                persistor.BeginEpochGroup(obj.label, '', keywordsArray, propertiesDict, obj.identifier, obj.startTime);
+                sourceString = '';
             else
-                persistor.BeginEpochGroup(obj.label, obj.source.identifier, keywordsArray, propertiesDict, obj.identifier, obj.startTime);
+                sourceString = char(obj.source.identifier.ToString());
             end
+            persistor.BeginEpochGroup(obj.label, sourceString, keywordsArray, propertiesDict, obj.identifier, obj.startTime);
         end
         
         
