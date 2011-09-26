@@ -974,7 +974,7 @@ classdef Symphony < handle
                         drawnow;
                     catch e
                         % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
-                        message = ['An error occurred while running the epoch.' char(10) char(10)];
+                        message = ['An error occurred while running the protocol.' char(10) char(10)];
                         if (isa(e, 'NET.NetException'))
                             eObj = e.ExceptionObject;
                             message = [message char(eObj.Message)]; %#ok<AGROW>
@@ -985,18 +985,16 @@ classdef Symphony < handle
                                 indent = [indent '    ']; %#ok<AGROW>
                             end
                         else
-                            message = [message e.message]; %#ok<AGROW>
+                            message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
                         end
-                        ed = errordlg(message);
-                        waitfor(ed);
+                        waitfor(errordlg(message));
                     end
                     
                     % Let the sub-class perform any post-epoch analysis, clean up, etc.
                     obj.protocolPlugin.completeEpoch();
                 end
             catch e
-                ed = errordlg(e.message);
-                waitfor(ed);
+                waitfor(errordlg(['An error occurred while running the protocol.' char(10) char(10) getReport(e, 'extended', 'hyperlinks', 'off')]));
             end
             
             if strcmp(obj.protocolState, 'pausing')
