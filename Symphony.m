@@ -164,7 +164,7 @@ classdef Symphony < handle
             
             input = NET.createGeneric('System.Collections.Generic.Dictionary', {'Symphony.Core.IDAQInputStream','Symphony.Core.IInputData'});
             outData = output.Item(outStream);
-            inData = InputData(outData.Data, outData.SampleRate, obj.Clock.Now);
+            inData = InputData(outData.Data, outData.SampleRate, obj.controller.Clock.Now);
             input.Add(inStream, inData);
         end
         
