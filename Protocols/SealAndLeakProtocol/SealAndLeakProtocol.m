@@ -49,10 +49,15 @@ classdef SealAndLeakProtocol < SymphonyProtocol
             try
                 m = char(device.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
             catch ME
-                if strncmp('No device parameters', char(ME.ExceptionObject.Message), 20)
+                if (isa(ME, 'NET.NetException'))
+                    message = char(ME.ExceptionObject.Message);
+                else
+                    message = ME.message;
+                end
+                if strncmp('No device parameters', message, 20)
                     m = 'Toggle MultiClamp mode';
                 else
-                    m = ['unknown (' char(ME.ExceptionObject.Message) ')'];
+                    m = ['unknown (' message ')'];
                 end
             end
         end
