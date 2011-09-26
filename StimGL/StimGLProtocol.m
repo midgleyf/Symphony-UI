@@ -37,6 +37,10 @@ classdef StimGLProtocol < SymphonyProtocol
             
             % We _don't_ set nLoops because we handle that in Symphony via multiple epochs.
             params.nLoops = 1;
+            
+            % Set the background color used between epochs to be the same as what is used during epochs so that there is no flash.
+            % TODO: allow the user to specify this?
+            params.interTrialBg = [1.0, 1.0, 1.0];
         end
         
         
