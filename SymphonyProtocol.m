@@ -108,7 +108,12 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             import Symphony.Core.*;
             
             if ischar(device)
-                device = obj.controller.GetDevice(device);
+                deviceName = device;
+                device = obj.controller.GetDevice(deviceName);
+                
+                if isempty(device)
+                    error('There is no device named ''%s''.', deviceName);
+                end
             end
             
             r = Measurement(10000, 'Hz');   % default if no output stream is found
@@ -130,7 +135,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             import Symphony.Core.*;
             
             device = obj.controller.GetDevice(deviceName);
-            % TODO: what happens when there is no device with that name?
+            if isempty(device)
+                error('There is no device named ''%s''.', deviceName);
+            end
             
             if nargin == 5
                 stimDataList = Measurement.FromArray(stimulusData, units);
@@ -157,7 +164,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             import Symphony.Core.*;
             
             device = obj.controller.GetDevice(deviceName);
-            % TODO: what happens when there is no device with that name?
+            if isempty(device)
+                error('There is no device named ''%s''.', deviceName);
+            end
             
             if nargin == 4
                 background = Measurement(background, units);
