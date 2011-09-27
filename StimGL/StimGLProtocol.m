@@ -27,8 +27,13 @@ classdef StimGLProtocol < SymphonyProtocol
             symphonyPath = mfilename('fullpath');
             parentDir = fileparts(symphonyPath);
             prevDir = cd(parentDir);
-            obj.stimGL = StimOpenGL;
-            cd(prevDir);
+            try
+                obj.stimGL = StimOpenGL;
+                cd(prevDir);
+            catch ME
+                cd(prevDir);
+                throw(ME);
+            end
         end
         
         

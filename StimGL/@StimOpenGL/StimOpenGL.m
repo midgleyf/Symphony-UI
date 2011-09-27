@@ -16,8 +16,12 @@ function [s] = StimOpenGL(varargin)
     if (~ischar(host) | ~isnumeric(port)),
         error('Host must be a string and port must be a number');
     end;
-    if (strcmp(host, 'localhost')), 
-        OSFuncs('ensureProgramIsRunning', 'StimulateOpenGL_II');
+    if (strcmp(host, 'localhost'))
+        if ismac
+            OSFuncs('ensureProgramIsRunning', 'StimulateOpenGL_II.app/Contents/MacOS/StimulateOpenGL_II');
+        else
+            OSFuncs('ensureProgramIsRunning', 'StimulateOpenGL_II');
+        end
     end;
     s=struct;
     s.host = host;
