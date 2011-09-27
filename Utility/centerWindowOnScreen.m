@@ -5,8 +5,8 @@ function dims = centerWindowOnScreen(width, height)
     
     prevUnits = get(0, 'Units');
     set(0, 'Units', 'pixels');
-    sz = get(0, 'MonitorPositions');
-    %sz = sz(1, :) / dpi * 72;
+    sz = get(0, 'ScreenSize');
+    sz = sz(1, :) / dpi * 72;
     x = sz(1) + sz(3) / 2 - width / 2;
     y = sz(2) + sz(4) / 2 - height / 2;
     dims = uint16([x y width height]);
