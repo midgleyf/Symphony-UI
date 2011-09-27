@@ -190,7 +190,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             if nargin == 4
                 background = Measurement(background, units);
-            else
+            elseif isnumeric(background)
                 background = Measurement(background, 'V');
             end
             obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
