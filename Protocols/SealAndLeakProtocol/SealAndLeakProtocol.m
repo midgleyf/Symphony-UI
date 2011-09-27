@@ -81,8 +81,6 @@ classdef SealAndLeakProtocol < SymphonyProtocol
                 obj.addStimulus('test-device', 'test-stimulus', stimulus * 1e-3, 'V');
                 obj.setDeviceBackground('test-device', obj.background * 1e-3, 'V');
             end
-            
-            obj.recordResponse('test-device');
         end
         
         

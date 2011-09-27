@@ -82,6 +82,26 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
+        function prePrepareEpoch(obj)
+            devices = listValues(obj.controller.Devices);
+            for i = 1:length(devices)
+                device = devices{i};
+                
+                % Set each device's background for this epoch to be the same as the inter-epoch background.
+                obj.setDeviceBackground(device.Name, device.Background);
+                
+                % Record the response from any device that has an input stream.
+                [~, streams] = dictionaryKeysAndValues(device.Streams);
+                for j = 1:length(streams)
+                    if isa(streams{j}, 'Symphony.Core.DAQInputStream')
+                        obj.recordResponse(device.Name);
+                        break
+                    end
+                end
+            end
+        end
+        
+        
         function prepareEpoch(obj) %#ok<MANU>
             % Override this method to add stimulii, record responses, change parameters, etc.
             

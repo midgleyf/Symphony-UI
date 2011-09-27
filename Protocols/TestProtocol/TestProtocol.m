@@ -51,10 +51,6 @@ classdef TestProtocol < SymphonyProtocol
             [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('freqScale', freqScale);
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
-            
-            obj.setDeviceBackground('test-device', 0);
-            
-            obj.recordResponse('test-device');
         end
         
         

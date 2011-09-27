@@ -942,6 +942,7 @@ classdef Symphony < handle
                     obj.protocolPlugin.epoch = Epoch(obj.protocolPlugin.identifier);
                     
                     % Let sub-classes add stimulii, record responses, tweak params, etc.
+                    obj.protocolPlugin.prePrepareEpoch();
                     obj.protocolPlugin.prepareEpoch();
                     
                     % Set the params now that the sub-class has had a chance to tweak them.

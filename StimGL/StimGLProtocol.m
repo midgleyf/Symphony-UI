@@ -81,10 +81,7 @@ classdef StimGLProtocol < SymphonyProtocol
             stimulus = zeros(1, floor(double(obj.animationDuration) * sampleRate.Quantity));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
-            obj.setDeviceBackground('test-device', 0.0);
-            
-            obj.recordResponse('test-device');
-            
+            % Start the StimGL plug-in.
             SetParams(obj.stimGL, obj.plugInName, obj.pluginParameters());
             Start(obj.stimGL, obj.plugInName, 1);
         end

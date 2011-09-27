@@ -62,8 +62,6 @@ classdef LEDFamily < SymphonyProtocol
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             obj.setDeviceBackground('test-device', obj.lightMean);
-            
-            obj.recordResponse('test-device');
         end
         
         
