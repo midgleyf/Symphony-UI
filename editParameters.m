@@ -197,14 +197,14 @@ end
 function value = getParamValueFromUI(handles, params, paramName)
     paramTag = [paramName 'Edit'];
     controlType = get(handles.(paramTag), 'Style');
+    paramProps = findprop(handles.protocolPlugin, paramName);
     if isnumeric(params.(paramName))
         paramValue = str2double(get(handles.(paramTag), 'String'));
-        convFunc = str2func(class(params.(paramName)));
+        convFunc = str2func(class(paramProps.DefaultValue));
         value = convFunc(paramValue);
     elseif islogical(params.(paramName))
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
     elseif strcmp(controlType, 'popupmenu')
-        paramProps = findprop(handles.protocolPlugin, paramName);
         values = paramProps.DefaultValue;
         value = values{get(handles.(paramTag), 'Value')};
     elseif ischar(params.(paramName))
@@ -328,7 +328,7 @@ function saveEditParameters(~, ~, handles)
         if ~paramProps.Dependent
             if isnumeric(params.(paramName))
                 paramValue = str2double(get(handles.(paramTag), 'String'));
-                convFunc = str2func(class(params.(paramName)));
+                convFunc = str2func(class(paramProps.DefaultValue));
                 paramValue = convFunc(paramValue);
             elseif islogical(params.(paramName))
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
