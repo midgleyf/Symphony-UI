@@ -5,7 +5,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
     handles.sourceRoot = sources;
     handles.clock = clock;
     
-    handles.rigNames = {'A', 'B', 'C'};
+    handles.rigNames = {'A', 'B', 'C', 'D'};
     lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
     rigValue = find(strcmp(handles.rigNames, lastChosenRig));
     if isempty(rigValue)
