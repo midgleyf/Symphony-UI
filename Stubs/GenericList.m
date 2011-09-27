@@ -2,17 +2,24 @@ classdef GenericList < handle
    
     properties
         Items
+        itemCount
     end
     
     methods
-        function obj = GenericList()
+        function obj = GenericList(~, objCount)
             obj = obj@handle();
             
-            obj.Items = {};
+            if nargin < 2
+                objCount = 0;
+            end
+            
+            obj.Items = cell(1, objCount);
+            obj.itemCount = 0;
         end
         
         function Add(obj, item)
-            obj.Items{end + 1} = item;
+            obj.itemCount = obj.itemCount + 1;
+            obj.Items{obj.itemCount} = item;
         end
         
         function i = Item(obj, index)
@@ -20,7 +27,7 @@ classdef GenericList < handle
         end
         
         function c = Count(obj)
-            c = numel(obj.Items);
+            c = obj.itemCount;
         end
     end
     
