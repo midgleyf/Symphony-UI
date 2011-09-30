@@ -20,7 +20,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
         
         
         function BeginEpochGroup(obj, label, source, keywords, properties, identifier, startTime)
-            [formattedTime, formattedZone] = formatXMLDate(startTime);
+            [formattedTime, formattedZone] = formatXMLDate(startTime.dateTime);
             
             groupNode = obj.groupNodes{end}.appendChild(obj.docNode.createElement('epochGroup'));
             groupNode.setAttribute('label', label);
