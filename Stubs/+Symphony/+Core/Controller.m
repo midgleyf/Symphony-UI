@@ -44,8 +44,17 @@ classdef Controller < Symphony.Core.ITimelineProducer
         function RunEpoch(obj, epoch, persistor)
             import Symphony.Core.*;
             
+            tic;
+            
             obj.CurrentEpoch = epoch;
             epoch.StartTime = now;
+            
+            % Figure out how long the epoch should run.
+            epochDuration = 0;
+            for i = 1:epoch.Stimuli.Count()
+                stimulus = epoch.Stimuli.Values{i};
+                epochDuration = max([epochDuration stimulus.Duration()]);
+            end
             
             % Create dummy responses.
             for i = 1:epoch.Responses.Count
@@ -67,6 +76,10 @@ classdef Controller < Symphony.Core.ITimelineProducer
                     respones.InputTime = now;
                 end
             end
+            
+            elapsedTime = toc;
+            
+            pause(epochDuration - elapsedTime);
             
             if ~isempty(persistor)
                 persistor.Serialize(epoch);
