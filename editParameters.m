@@ -87,13 +87,14 @@ function edited = editParameters(protocolPlugin)
                 'Style', 'checkbox', ...
                 'Tag', paramTag);
         elseif isnumeric(defaultValue) || ischar(defaultValue)
+            valueStr=sprintf('%d,',paramValue);
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
                 'FontSize', 12,...
                 'HorizontalAlignment', 'left', ...
                 'Position', [labelWidth+15 dialogHeight-paramIndex*30-2 200 26], ...
-                'String',  paramValue,...
+                'String',  valueStr(1:end-1),...
                 'Style', 'edit', ...
                 'Tag', paramTag);
         elseif iscellstr(defaultValue)
@@ -199,7 +200,7 @@ function value = getParamValueFromUI(handles, params, paramName)
     controlType = get(handles.(paramTag), 'Style');
     paramProps = findprop(handles.protocolPlugin, paramName);
     if isnumeric(params.(paramName))
-        paramValue = str2double(get(handles.(paramTag), 'String'));
+        paramValue = str2num(get(handles.(paramTag), 'String'));
         convFunc = str2func(class(paramProps.DefaultValue));
         value = convFunc(paramValue);
     elseif islogical(params.(paramName))
@@ -222,8 +223,11 @@ function setParamValueInUI(handles, paramName, value)
         set(handles.(paramTag), 'Value', find(strcmp(values, value)));
     elseif islogical(value)
         set(handles.(paramTag), 'Value', value);
-    elseif isnumeric(value) || ischar(value)
+    elseif ischar(value)
         set(handles.(paramTag), 'String', value);
+    elseif isnumeric(value)
+        valueStr=sprintf('%d,',value);
+        set(handles.(paramTag), 'String', valueStr(1:end-1));
     end
 end
 
@@ -327,9 +331,11 @@ function saveEditParameters(~, ~, handles)
         controlType = get(handles.(paramTag), 'Style');
         if ~paramProps.Dependent
             if isnumeric(params.(paramName))
-                paramValue = str2double(get(handles.(paramTag), 'String'));
+                paramValue = str2num(get(handles.(paramTag), 'String'));
                 convFunc = str2func(class(paramProps.DefaultValue));
                 paramValue = convFunc(paramValue);
+                valueStr=sprintf('%d,',paramValue);
+                set(handles.(paramTag), 'String', valueStr(1:end-1));
             elseif islogical(params.(paramName))
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
             elseif strcmp(controlType, 'popupmenu')
