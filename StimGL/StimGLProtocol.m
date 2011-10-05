@@ -11,7 +11,6 @@ classdef StimGLProtocol < SymphonyProtocol
     
     properties
         % These properties are available to all StimGL plug-ins.
-        animationDuration = 1;       % the number of seconds to run the plug-in
         numberOfLoops = uint32(1);       % the number of times to run the plug-in
     end
     
@@ -38,16 +37,16 @@ classdef StimGLProtocol < SymphonyProtocol
         
         function params = pluginParameters(obj)
             frameRate = double(GetRefreshRate(obj.stimGL));
-            params.nFrames = obj.animationDuration * frameRate;
+            animationDuration = 1;
+            params.nFrames = animationDuration * frameRate;
             
             % We _don't_ set nLoops because we handle that in Symphony via multiple epochs.
-            params.nLoops = 1;
+            params.nLoops = 0;
         end
         
         
         function prepareRun(obj)
             obj.openFigure('Response');
-            
             obj.loopCount = 1;
         end
         
@@ -55,7 +54,8 @@ classdef StimGLProtocol < SymphonyProtocol
         function prepareEpoch(obj)
             % Create a dummy output signal so the epoch runs for the desired length.
             sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, floor(double(obj.animationDuration) * sampleRate.Quantity));
+            animationDuration = 1;
+            stimulus = zeros(1, floor(double(animationDuration) * sampleRate.Quantity));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in.
