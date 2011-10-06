@@ -17,7 +17,7 @@ classdef MovingObjects < StimGLProtocol
     properties
         preTime = 1;
         postTime = 2;
-        interTrialRange = [1 4];
+        interTrialInterval = [1 4];
         backgroundColor = 0;
         objectShape = {'ellipse', 'box', 'sphere'}; % same for all objects
         numObjects = {'1','2'};
@@ -226,7 +226,7 @@ classdef MovingObjects < StimGLProtocol
             % during postTime plus plenty of extra time to complete stop stimGL
             params.tFrames = params.nFrames;
             stimTime = params.nFrames/frameRate;
-            params.objLenX = [objSize zeros(1,ceil(obj.postTime+stimTime+10/stimTime))];
+            params.objLenX = [objSize zeros(1,ceil((obj.postTime+stimTime+10)/stimTime))];
             params.objLenY = params.objLenX;
             
             % Add epoch-specific parameters for ovation
@@ -266,7 +266,11 @@ classdef MovingObjects < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on
-                pause(rand(1)*diff(obj.interTrialRange)+obj.interTrialRange(1));
+                if numel(obj.interTrialInterval)==1
+                    pause(obj.interTrialInterval);
+                else
+                    pause(rand(1)*diff(obj.interTrialInterval)+obj.interTrialInterval(1));
+                end
             end
         end
        
