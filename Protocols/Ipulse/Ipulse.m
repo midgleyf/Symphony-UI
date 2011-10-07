@@ -24,7 +24,24 @@ classdef Ipulse < SymphonyProtocol
         function prepareRun(obj)
             obj.openFigure('Custom', 'Name', 'Responses', 'UpdateCallback', @updateResponsesFig);
         end
-            
+        
+        
+        function [stimulus, epochIamp] = stimulusForEpoch(obj, epochNum)
+            epochIamp = obj.Iamp(mod(epochNum - 1, length(obj.Iamp)) + 1);
+            stimulus = zeros(1, obj.prePts+obj.stimPts+obj.postPts);
+            stimulus(obj.prePts+1:obj.prePts+obj.stimPts) = epochIamp;
+        end
+        
+        
+        function [stimuli, sampleRate] = sampleStimuli(obj)
+            % Return a set of stimuli, one for each value in Iamp.
+            sampleRate = 10000;
+            stimuli = cell(length(obj.Iamp), 1);
+            for i = 1:length(obj.Iamp)
+                stimuli{i} = obj.stimulusForEpoch(i);
+            end
+        end
+        
             
         function updateResponsesFig(obj, axesHandle)
             sampInt=1/10000*1000;
@@ -39,10 +56,7 @@ classdef Ipulse < SymphonyProtocol
         
         
         function prepareEpoch(obj)
-            IampSequence=repmat(obj.Iamp,1,obj.repeats);
-            epochIamp = IampSequence(obj.epochNum);
-            stimulus = zeros(1,obj.prePts+obj.stimPts+obj.postPts);
-            stimulus(obj.prePts+1:obj.prePts+obj.stimPts)=epochIamp;
+            [stimulus, epochIamp] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('IAmp', epochIamp);
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             obj.setDeviceBackground('test-device', 0);
