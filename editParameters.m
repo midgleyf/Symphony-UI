@@ -164,9 +164,13 @@ function edited = editParameters(protocol)
     % Wait for the user to cancel or save.
     uiwait;
     
-    handles = guidata(handles.figure);
-    edited = handles.edited;
-    close(handles.figure);
+    if ishandle(handles.figure)
+        handles = guidata(handles.figure);
+        edited = handles.edited;
+        close(handles.figure);
+    else
+        edited = false;
+    end
 end
 
 
