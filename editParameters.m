@@ -1,8 +1,8 @@
-function edited = editParameters(protocolPlugin)
-    handles.protocolPlugin = protocolPlugin;
-    handles.pluginCopy = copy(protocolPlugin);
+function edited = editParameters(protocol)
+    handles.protocol = protocol;
+    handles.protocolCopy = copy(protocol);
     
-    params = protocolPlugin.parameters();
+    params = protocol.parameters();
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     
@@ -15,7 +15,7 @@ function edited = editParameters(protocolPlugin)
     
     handles.figure = dialog(...
         'Units', 'points', ...
-        'Name', [class(protocolPlugin) ' Parameters'], ...
+        'Name', [class(protocol) ' Parameters'], ...
         'Position', centerWindowOnScreen(labelWidth + 225 + 30 + axesHeight + 10, dialogHeight), ...
         'WindowKeyPressFcn', @(hObject, eventdata)editParametersKeyPress(hObject, eventdata, guidata(hObject)), ...
         'Tag', 'figure');
@@ -37,7 +37,7 @@ function edited = editParameters(protocolPlugin)
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
         paramLabel = humanReadableParameterName(paramName);
-        paramProps = findprop(protocolPlugin, paramName);
+        paramProps = findprop(protocol, paramName);
         if paramProps.HasDefault
             defaultValue = paramProps.DefaultValue;
         else
@@ -87,14 +87,18 @@ function edited = editParameters(protocolPlugin)
                 'Style', 'checkbox', ...
                 'Tag', paramTag);
         elseif isnumeric(defaultValue) || ischar(defaultValue)
-            valueStr=sprintf('%d,',paramValue);
+            if isnumeric(defaultValue) && length(defaultValue) > 1
+                % Convert a vector of numbers to a comma separated list.
+                paramValue = sprintf('%g,', paramValue);
+                paramValue = paramValue(1:end-1);
+            end
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
                 'FontSize', 12,...
                 'HorizontalAlignment', 'left', ...
                 'Position', [labelWidth+15 dialogHeight-paramIndex*30-2 200 26], ...
-                'String',  valueStr(1:end-1),...
+                'String',  paramValue,...
                 'Style', 'edit', ...
                 'Tag', paramTag);
         elseif iscellstr(defaultValue)
@@ -169,7 +173,7 @@ end
 function updateStimuli(handles)
     set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
     cla;
-    [stimuli, sampleRate] = handles.pluginCopy.sampleStimuli();
+    [stimuli, sampleRate] = handles.protocolCopy.sampleStimuli();
     if isempty(stimuli)
         plot3(0, 0, 0);
         set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
@@ -195,20 +199,29 @@ function updateStimuli(handles)
 end
 
 
-function value = getParamValueFromUI(handles, params, paramName)
+function value = getParamValueFromUI(handles, paramName)
     paramTag = [paramName 'Edit'];
-    controlType = get(handles.(paramTag), 'Style');
-    paramProps = findprop(handles.protocolPlugin, paramName);
-    if isnumeric(params.(paramName))
-        paramValue = str2num(get(handles.(paramTag), 'String'));
-        convFunc = str2func(class(paramProps.DefaultValue));
+    paramProps = findprop(handles.protocol, paramName);
+    if paramProps.HasDefault
+        defaultValue = paramProps.DefaultValue;
+    else
+        defaultValue = [];
+    end
+    if isnumeric(defaultValue)
+        if length(defaultValue) > 1
+            % Convert from a comma separated list, ranges, etc. to a vector of numbers.
+            paramValue = str2num(get(handles.(paramTag), 'String')); %#ok<ST2NM>
+        else
+            paramValue = str2double(get(handles.(paramTag), 'String'));
+        end
+        convFunc = str2func(class(defaultValue));
         value = convFunc(paramValue);
-    elseif islogical(params.(paramName))
+    elseif islogical(defaultValue)
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
-    elseif strcmp(controlType, 'popupmenu')
+    elseif iscellstr(defaultValue)
         values = paramProps.DefaultValue;
         value = values{get(handles.(paramTag), 'Value')};
-    elseif ischar(params.(paramName))
+    elseif ischar(defaultValue)
         value = get(handles.(paramTag), 'String');
     end
 end
@@ -216,52 +229,61 @@ end
 
 function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
-    controlType = get(handles.(paramTag), 'Style');
-    if strcmp(controlType, 'popupmenu')
-        paramProps = findprop(handles.protocolPlugin, paramName);
+    paramProps = findprop(handles.protocol, paramName);
+    if paramProps.HasDefault
+        defaultValue = paramProps.DefaultValue;
+    else
+        defaultValue = [];
+    end
+    if iscellstr(defaultValue)
+        paramProps = findprop(handles.protocol, paramName);
         values = paramProps.DefaultValue;
         set(handles.(paramTag), 'Value', find(strcmp(values, value)));
-    elseif islogical(value)
+    elseif islogical(defaultValue)
         set(handles.(paramTag), 'Value', value);
-    elseif ischar(value)
+    elseif ischar(defaultValue)
         set(handles.(paramTag), 'String', value);
-    elseif isnumeric(value)
-        valueStr=sprintf('%d,',value);
-        set(handles.(paramTag), 'String', valueStr(1:end-1));
+    elseif isnumeric(defaultValue)
+        if length(defaultValue) > 1
+            % Convert a vector of numbers to a comma separated list.
+            value = sprintf('%g,', value);
+            value = value(1:end-1);
+        end
+        set(handles.(paramTag), 'String', value);
     end
 end
 
 
 function updateDependentValues(handles)
     % Push all values into the copy of the plug-in.
-    params = handles.pluginCopy.parameters();
+    params = handles.protocolCopy.parameters();
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
-        paramProps = findprop(handles.pluginCopy, paramName);
+        paramProps = findprop(handles.protocolCopy, paramName);
         if ~paramProps.Dependent
-            paramValue = getParamValueFromUI(handles, params, paramName);
+            paramValue = getParamValueFromUI(handles, paramName);
             try
-                handles.pluginCopy.(paramName) = paramValue;
+                handles.protocolCopy.(paramName) = paramValue;
             catch ME
                 % Let the user know why we couldn't set the parameter.
                 waitfor(errordlg(ME.message));
                 
                 % Reset the GUI to the previous value.
-                setParamValueInUI(handles, paramName, handles.pluginCopy.(paramName));
+                setParamValueInUI(handles, paramName, handles.protocolCopy.(paramName));
             end
         end
     end
     
     % Now update the value of any dependent properties.
-    params = handles.pluginCopy.parameters();
+    params = handles.protocolCopy.parameters();
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
-        paramProps = findprop(handles.pluginCopy, paramName);
+        paramProps = findprop(handles.protocolCopy, paramName);
         
         if paramProps.Dependent
             setParamValueInUI(handles, paramName, paramValue);
@@ -320,39 +342,45 @@ end
 
 
 function saveEditParameters(~, ~, handles)
-    params = handles.protocolPlugin.parameters();
+    params = handles.protocol.parameters();
     paramNames = sort(fieldnames(params));
     paramCount = numel(paramNames);
     
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramTag = [paramName 'Edit'];
-        paramProps = findprop(handles.protocolPlugin, paramName);
-        controlType = get(handles.(paramTag), 'Style');
+        paramProps = findprop(handles.protocol, paramName);
+        if paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
+        else
+            defaultValue = [];
+        end
         if ~paramProps.Dependent
-            if isnumeric(params.(paramName))
-                paramValue = str2num(get(handles.(paramTag), 'String'));
+            if isnumeric(defaultValue)
+                if length(defaultValue) > 1
+                    paramValue = str2num(get(handles.(paramTag), 'String')); %#ok<ST2NM>
+                else
+                    paramValue = str2double(get(handles.(paramTag), 'String'));
+                end
                 convFunc = str2func(class(paramProps.DefaultValue));
                 paramValue = convFunc(paramValue);
-                valueStr=sprintf('%d,',paramValue);
-                set(handles.(paramTag), 'String', valueStr(1:end-1));
-            elseif islogical(params.(paramName))
+            elseif islogical(defaultValue)
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
-            elseif strcmp(controlType, 'popupmenu')
-                paramProps = findprop(handles.protocolPlugin, paramName);
+            elseif iscell(defaultValue)
+                paramProps = findprop(handles.protocol, paramName);
                 values = paramProps.DefaultValue;
                 paramValue = values{get(handles.(paramTag), 'Value')};
-            elseif ischar(params.(paramName))
+            elseif ischar(defaultValue)
                 paramValue = get(handles.(paramTag), 'String');
             end
-            handles.protocolPlugin.(paramName) = paramValue;
+            handles.protocol.(paramName) = paramValue;
         end
     end
     
-    handles.protocolPlugin.parametersEdited = true;
+    handles.protocol.parametersEdited = true;
     
     % Remember these parameters for the next time the protocol is used.
-    setpref('Symphony', [class(handles.protocolPlugin) '_Defaults'], handles.protocolPlugin.parameters());
+    setpref('Symphony', [class(handles.protocol) '_Defaults'], handles.protocol.parameters());
     
     handles.edited = true;
     guidata(handles.figure, handles);
