@@ -24,13 +24,13 @@ classdef LoomingObjects < StimGLProtocol
         obj1Color = 1;
         obj1PositionX = 200;
         obj1PositionY = 300;
-        obj1StartSize = 1;
-        obj1LoomSpeed = 100;
+        obj1StartSize = 3;
+        obj1LoomSpeed = 30;
         obj2Color = 1;
         obj2PositionX = 600;
         obj2PositionY = 300;
-        obj2StartSize = 1;
-        obj2LoomSpeed = 100;
+        obj2StartSize = 3;
+        obj2LoomSpeed = 30;
     end
     
     
