@@ -1,17 +1,16 @@
-classdef Grid < StimGLProtocol
+classdef Circle < StimGLProtocol
 
     properties (Constant)
         identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
         version = 1
-        displayName = 'Moving Objects'
+        displayName = 'Circle'
         plugInName = 'MovingObjects'
         xMonPix = 800;
         yMonPix = 600;
     end
     
     properties (Hidden)
-        allCoords
-        notCompletedCoords
+        notCompletedSizes
     end
 
     properties
@@ -21,11 +20,13 @@ classdef Grid < StimGLProtocol
         interTrialInterval = [1 2];
         backgroundColor = 0;
         stimColor = 1;
-        stimSize = 20;
-        gridOrigin = [0 0];
-        gridWidth = 800;
-        gridHeight = 600;
+        stimSize = [5,10,20,40];
+        RFcenterX = 400;
+        RFcenterY = 300;
+        Xoffset = 0;
+        Yoffset = 0;
     end
+    
     
     methods
         
@@ -35,25 +36,7 @@ classdef Grid < StimGLProtocol
             % Prepare figures
             %obj.openFigure('Response');
             
-            % Get grid x and y coordinates
-            % shrink grid if does not fit on screen
-            if obj.gridOrigin(1)+obj.gridWidth>obj.xMonPix
-                obj.gridWidth = obj.xMonPix-obj.gridOrigin(1);
-            end
-            if obj.gridOrigin(2)+obj.gridHeight>obj.yMonPix
-                obj.gridHeight = obj.yMonPix-obj.gridOrigin(2);
-            end
-            % force stimSize to even number because stim object centers defined by stimSize/2
-            obj.stimSize = 2*(round(obj.stimSize/2));
-            nXpts = floor(obj.gridWidth/obj.stimSize);
-            nYpts = floor(obj.gridHeight/obj.stimSize);
-            % shift grid towards center of screen if it does not fill screen
-            centerShiftX = round((obj.gridWidth-nXpts*obj.stimSize)/2);
-            centerShiftY = round((obj.gridHeight-nYpts*obj.stimSize)/2);
-            Xcoords = centerShiftX+obj.gridOrigin(1)+(obj.stimSize/2:obj.stimSize:nXpts*obj.stimSize-obj.stimSize/2);
-            Ycoords = centerShiftY+obj.gridOrigin(2)+(obj.stimSize/2:obj.stimSize:nYpts*obj.stimSize-obj.stimSize/2);
-            obj.allCoords = allcombs(Xcoords,Ycoords);
-            obj.notCompletedCoords = 1:size(obj.allCoords,1);
+            obj.notCompletedSizes = obj.stimSize;
         end
         
         function prepareEpoch(obj)
@@ -66,14 +49,15 @@ classdef Grid < StimGLProtocol
             % Set object properties
             params.numObj = 1;
             params.objColor = obj.stimColor;
-            params.objType = 'box';
-            % pick a random grid point; complete all grid points before repeating any
+            params.objType = 'ellipse';
+            params.objXinit = obj.RFcenterX+obj.Xoffset;
+            params.objYinit = obj.RFcenterY+obj.Yoffset;
+            
+            % Pick a stim size from the stimSize vector; complete all sizes before repeating any
             rng('shuffle');
-            randIndex = randi(numel(obj.notCompletedCoords),1);
-            stimCoord = obj.allCoords(obj.notCompletedCoords(randIndex),:);
-            obj.notCompletedCoords(randIndex) = [];
-            params.objXinit = stimCoord(1);
-            params.objYinit = stimCoord(2);
+            randIndex = randi(numel(obj.notCompletedSizes),1);
+            epochStimSize = obj.notCompletedSizes(randIndex);
+            obj.notCompletedSizes(randIndex) = [];
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -83,11 +67,11 @@ classdef Grid < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime plus plenty of extra time to complete stop stimGL
-            params.objLenX = [obj.stimSize zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
+            params.objLenX = [epochStimSize zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
             params.objLenY = params.objLenX;
             
             % Add epoch-specific parameters for ovation
-            obj.addParameter('stimCoord', stimCoord);
+            obj.addParameter('epochSize', epochStimSize);
             
             % Create a dummy stimulus so the epoch runs for the desired length
             sampleRate = obj.deviceSampleRate('test-device', 'OUT');
@@ -101,9 +85,9 @@ classdef Grid < StimGLProtocol
         
         function completeEpoch(obj)
             Stop(obj.stimGL);
-            % if all grid coordinates completed, reset completedCoords and start a new loop
-            if isempty(obj.notCompletedCoords)
-                obj.notCompletedCoords = obj.allCoords;
+            % if all stim sizes completed, reset notCompeletedSizes and start a new loop
+            if isempty(obj.notCompletedSizes)
+                obj.notCompletedSizes = obj.stimSize;
                 obj.loopCount = obj.loopCount+1;
             end
         end

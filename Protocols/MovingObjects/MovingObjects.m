@@ -11,7 +11,7 @@ classdef MovingObjects < StimGLProtocol
     
     properties (Hidden)
         trialTypes
-        completedTrialTypes
+        notCompletedTrialTypes
     end
 
     properties
@@ -19,26 +19,23 @@ classdef MovingObjects < StimGLProtocol
         postTime = 2;
         interTrialInterval = [1 4];
         backgroundColor = 0;
-        objectShape = {'ellipse', 'box', 'sphere'}; % same for all objects
-        numObjects = {'1','2'};
+        objectShape = {'ellipse','box'};
         objectColor = 1;
-        %object2Color = 1;
         objectSize = 25;
-        %object2Size = 10;
         RFcenterX = 400;
         RFcenterY = 300;
-        objectXoffset = 0;
-        objectYoffset = 0;
-        %object2Xoffset = 100;
-        %object2Yoffset = 100;
+        Xoffset = 0;
+        Yoffset = 0;
         objectSpeed = 10;
-        %object2Speed = 10;
         objectDir = 0:45:315;
-        %object2Dir = 0;
     end
     
     
     methods
+        
+        function set.objectShape(obj,objectShape)
+            obj.objectShape = char(objectShape);
+        end
         
         function prepareRun(obj)
             obj.loopCount = 1;
@@ -46,21 +43,9 @@ classdef MovingObjects < StimGLProtocol
             % Prepare figures
             %obj.openFigure('Response');
             
-            % Get all combinations of trial types based on object
-            % direction, speed, and size
-            obj.trialTypes=zeros(numel(obj.objectDir)*numel(obj.objectSpeed)*numel(obj.objectSize),3);
-            row=1;
-            for i=1:numel(obj.objectDir)
-                for j=1:numel(obj.objectSpeed)
-                    for k=1:numel(obj.objectSize)
-                        obj.trialTypes(row,1)=obj.objectDir(i);
-                        obj.trialTypes(row,2)=obj.objectSpeed(j);
-                        obj.trialTypes(row,3)=obj.objectSize(k);
-                        row=row+1;
-                    end
-                end
-            end
-            obj.completedTrialTypes=false(size(obj.trialTypes,1),1);
+            % Get all combinations of trial types based on object direction, speed, and size
+            obj.trialTypes = allcombs(obj.objectDir,obj.objectSpeed,obj.objectSize);
+            obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
         end
         
         function prepareEpoch(obj)
@@ -72,26 +57,21 @@ classdef MovingObjects < StimGLProtocol
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             
             % Set object properties
-            params.numObj = obj.numObjects;
+            params.numObj = 1;
             params.objColor = obj.objectColor;
             params.objType = obj.objectShape;
             % pick a combination of object direction/speed/size from the trialTypes list
             % complete all combinations before repeating any particular combination
             rng('shuffle');
-            completedTrialType = true;
-            while completedTrialType
-                trialType = randi(size(obj.trialTypes,1),1);
-                if ~obj.completedTrialTypes(trialType)
-                    obj.completedTrialTypes(trialType) = true;
-                    completedTrialType = false;
-                end
-            end
-            angle = obj.trialTypes(trialType,1);
-            speed = obj.trialTypes(trialType,2);
-            objSize = obj.trialTypes(trialType,3);
+            randIndex = randi(numel(obj.notCompletedTrialTypes),1);
+            epochTrialType = obj.notCompletedTrialTypes(randIndex);
+            obj.notCompletedTrialTypes(randIndex) = [];
+            angle = obj.trialTypes(epochTrialType,1);
+            speed = obj.trialTypes(epochTrialType,2);
+            objSize = obj.trialTypes(epochTrialType,3);
             % deterine object path, velocity components, and number of frames to complete path
-            Xpos=obj.RFcenterX+obj.objectXoffset;
-            Ypos=obj.RFcenterY+obj.objectYoffset;
+            Xpos=obj.RFcenterX+obj.Xoffset;
+            Ypos=obj.RFcenterY+obj.Yoffset;
             if angle==0
                 params.objXinit = Xpos;
                 params.objYinit = 0;
@@ -249,8 +229,8 @@ classdef MovingObjects < StimGLProtocol
         function completeEpoch(obj)
             Stop(obj.stimGL);
             % if all trial types completed, reset completedTrialTypes and start a new loop
-            if all(obj.completedTrialTypes)
-                obj.completedTrialTypes = false(size(obj.trialTypes,1),1);
+            if isempty(obj.notCompletedTrialTypes)
+                obj.notCompletedTrialTypes = obj.trialTypes;
                 obj.loopCount = obj.loopCount+1;
             end
         end
