@@ -15,7 +15,7 @@ classdef SealAndLeakProtocol < SymphonyProtocol
     
     
     properties (Dependent = true, SetAccess = private)
-        mode
+        mode = 'VClamp'
     end
     
     
@@ -64,6 +64,9 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         
         
         function prepareRun(obj)
+            % Call the base class method which clears all figures.
+            prepareRun@SymphonyProtocol(obj);
+            
             obj.openFigure('Response');
             obj.openFigure('Mean Response');
         end
@@ -71,6 +74,9 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         
         function prepareEpoch(obj)
             import Symphony.Core.*
+            
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
             
             stimulus = obj.stimulusForDevice('test-device');
             
@@ -81,11 +87,6 @@ classdef SealAndLeakProtocol < SymphonyProtocol
                 obj.addStimulus('test-device', 'test-stimulus', stimulus * 1e-3, 'V');
                 obj.setDeviceBackground('test-device', obj.background * 1e-3, 'V');
             end
-        end
-        
-        
-        function keepGoing = continueRun(~)
-            keepGoing = true;
         end
 
     end

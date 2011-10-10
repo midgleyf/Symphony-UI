@@ -34,6 +34,9 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function prepareRun(obj)
+            % Call the base class method which clears all figures.
+            prepareRun@SymphonyProtocol(obj);
+            
             obj.openFigure('Response');
             obj.openFigure('Custom', 'Name', 'Foo', ...
                                      'UpdateCallback', @updateFigure);
@@ -48,6 +51,9 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function prepareEpoch(obj)
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
+            
             [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('freqScale', freqScale);
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
@@ -55,7 +61,12 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function keepGoing = continueRun(obj)
-            keepGoing = obj.epochNum < obj.epochMax;
+            % First check the base class method to make sure the user hasn't paused or stopped the protocol.
+            keepGoing = continueRun@SymphonyProtocol(obj);
+            
+            if keepGoing
+                keepGoing = obj.epochNum < obj.epochMax;
+            end
         end
 
     end

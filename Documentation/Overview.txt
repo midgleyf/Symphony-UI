@@ -1,0 +1,67 @@
+Overview of the Symphony user interface code
+============================================
+
+Start up the Symphony UI by running the StartSymphony.m script:
+
+    >> StartSymphony
+
+
+StartSymphony.m:
+    adds Symphony folders to the MATLAB path
+    calls addSymphonyFramework() to load the Symphony .NET framework
+    creates the Symphony object to launch the GUI
+
+
+Symphony.m:
+    This class is responsible for:
+        - managing the main user interface
+        - creating the DAQ controller, streams and devices
+        - managing epoch groups
+        - managing the current protocol
+    
+    All persistant data (DAQ controller, protocol, etc.) is stored as properties of the Symphony object.
+    
+    createSymphonyController():
+        creates a Heka or simulation controller using the .NET framework
+        sets up input and output streams
+        creates devices
+        binds streams to devices
+    
+    showMainWindow():
+        creates a default protocol
+        builds and displays the UI
+    
+    startAcquisition():
+        makes sure user has set protocol parameters
+        grabs current values from the UI
+        runs the protocol
+    
+    pauseAcquisition():
+        tells the protocol to pause after the current epoch completes
+    
+    stopAcquisition():
+        tells the protocol to stop after the current epoch completes
+
+
+newEpochGroup.m:
+    GUI for entering parameters of an epoch group
+
+
+EpochGroup.m:
+Source.m:
+    Classes to manage persistence of metadata.
+
+
+editParameters.m:
+    Dynamic GUI for editing the parameters of a protocol.
+
+
+SymphonyProtocol.m:
+    Base class that provides default behaviors for experimental protocols.  All protocols must be sub-classes of this class.
+    See the Protocols.txt file for details on implementing a new protocol.
+
+
+FigureHandler.m:
+    Base class that provides default behaviors for displaying figures.
+    See the Figure Handlers.txt file for details on using existing handlers or implementing new ones.
+

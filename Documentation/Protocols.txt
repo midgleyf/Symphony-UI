@@ -1,0 +1,178 @@
+Symphony protocols
+==================
+
+An experimental protocol consists of a series of epochs, each of which can apply a different set of stimuli to and 
+record responses from the devices set up by Symphony.m.  The number and behavior of epochs are controlled by a set 
+of mostly user-editable parameters defined by the protocol.
+
+
+Writing a new protocol
+----------------------
+
+To define a new protocol you need to create a sub-class of the SymphonyProtocol class.  
+
+Your sub-class should:
+1. Uniquely identify the protocol.
+2. Define any user-modifiable parameters and their default values.
+3. Override at least the prepareEpoch() methods.
+
+
+Identifying the protocol
+------------------------
+
+Identify the protocol using constant properties of the SymphonyProtocol sub-class.
+
+    properties (Constant)
+        identifier = 'org.janelia.lab.MyProtocol'
+        version = 1
+        displayName = 'My Protocol'
+    end
+
+
+Defining properties
+-------------------
+
+The parameters of a protocol should be defined using standard MATLAB properties.  A user interface is 
+automatically generated for editing the parameters based on their default values:
+    
+    properties
+        scale = 2.3                         % double/single values are editable via a text box
+        numberOfEpochs = uint8(4)           % integer type enables stepper controls in addition to the text box
+        foo = 'bar'                         % string values are editable via a text box
+        shapes = {'Ball', 'Box', 'Cone'}    % a cell array of strings appears as a pop-up menu
+    end
+
+Numeric properties are converted to a string representation for editing.  When converting back to a number the class 
+(double, single, etc.) of the default value is used.
+
+Any parameters that should not be editable by the user and not persisted should be created as hidden properties
+
+    properties (Hidden)
+        myHiddenProperty = 10.0
+    end
+
+When defining a protocol's properties you can indicate that any number of them are derived from other properties and 
+therefore should not be editable.  This is done using MATLAB's concept of "dependent" properties:
+
+    properties
+        a = uint8(1)
+        b = uint8(2)
+    end
+    
+    properties (Dependent = true, SetAccess = private)
+        c;
+    end
+    
+    methods
+        function c = get.c(obj)
+            c = obj.a + obj.b;
+        end
+    end
+
+
+Overriding methods
+------------------
+
+The behavior of an experimental protocol is defined by overriding methods of the SymphonyProtocol base class.
+
+Each time a protocol is run its methods are called in the following order:
+
+    prepareRun();
+    while continueRun()
+        prepareEpoch();
+        % ... have the Symphony framework run the epoch ...
+        completeEpoch();
+    completeRun();
+
+The points where you can customize behavior are:
+
+    prepareRun():
+        override this method to do any setup before any epochs have been run, e.g. open a figure
+        default behavior: clear all figures
+    continueRun():
+        override this method to indicate if there are any more epochs to be run
+        default behavior: return true unless the user has paused or stopped the protocol
+    prepareEpoch():
+        override this method to add stimuli, set parameters, etc.
+        default behavior: set default device background and record the response from any device with an input stream
+    completeEpoch():
+        override this method to perform any post-epoch clean up, analysis, etc.
+        default behavior: update all figures
+    completeRun():
+        override this method to perform any clean up, post-analysis, etc. after all epochs have been run
+        default behavior: none
+
+Any overriden method must call the same method in the base class to allow the default behaviors to occur.
+
+The SymphonyProtocol class provides some convenience methods that you can call from your methods:
+
+    openFigure():
+        opens a figure window (see FigureHandlers.txt for details)
+    addStimulus():
+        queue a MATLAB vector of voltages to be sent to a device
+    addParameter():
+        add a parameter value that should be saved to the log file for the current epoch
+    setDeviceBackground():
+        set the voltage to be sent to a device when no stimulus is being applied
+    recordResponse():
+        indicate that the response from a device should be recorded
+    response():
+        after an epoch has run, returns the response of a device as a MATLAB vector
+
+If the convenience methods provided by the base class are not sufficient to implement the protocol then you can access 
+the Symphony framework objects directly:
+
+    obj.controller: the Symphony.Core.Controller
+    obj.controller.GetDevice(): access to any of the Symphony.Core.ExternalDevice instances
+    obj.controller.DAQController: the Symphony.Core.IDAQController
+    obj.epoch: the current Symphony.Core.Epoch instance, only available after prepareEpoch() has run
+
+
+A simple protocol
+-----------------
+
+The following class implements a simple protocol which will output a one second stimulus for each epoch until the 
+user-defined limit is reached or the user stops the protocol.  It also opens a figure window to display the 
+reponse of each epoch.
+
+class SimpleProtocol < SymphonyProtocol
+    properties (Constant)
+        identifier = 'org.janelia.lab.SimpleProtocol'
+        version = 1
+        displayName = 'Simple Protocol'
+    end
+    
+    properties
+        numberOfEpochs = uint8(4);
+    end
+    
+    methods
+        function prepareRun(obj)
+            % Call the base class method which clears the figures.
+            prepareEpoch@SymphonyProtocol(obj);
+            
+            % Open a figure that displays the response from the most recent epoch.
+            obj.openFigure('Response');
+        end
+        
+        function prepareEpoch(obj)
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
+            
+            % Add a 10,000 sample stimulus to the test device.
+            obj.addStimulus('test-device', 'test-stimulus', zeros(1, 10000));
+        end
+        
+        function continueRun(obj)
+            % First check the base class method to make sure the user hasn't paused or stopped the protocol.
+            keepGoing = continueRun@SymphonyProtocol(obj);
+
+            if keepGoing
+                % Check if we've reach the limit.
+                keepGoing = obj.epochNum < obj.epochMax;
+            end
+        end
+    end
+end
+
+Save this to SimpleProtocol.m in a folder named 'SimpleProtocol' and place the folder in the Symphony 'Protocols' folder.

@@ -21,6 +21,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     
     
     properties (Hidden)
+        state                       % The state the protocol is in: 'stopped', 'running', 'paused', etc.
         controller                  % A Symphony.Core.Controller instance.
         epoch = []                  % A Symphony.Core.Epoch instance.
         epochNum = 0                % The number of epochs that have been run.
@@ -29,7 +30,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         figureHandlerClasses
         figureHandlers = {}
         figureHandlerParams = {}
-        allowSavingEpochs = true
+        allowSavingEpochs = true    % An indication if this protocol allows it's data to be persisted.
+        persistor = []              % The persistor to use with each epoch.
+        epochKeywords = {}          % A cell array of string containing keywords to be applied to any upcoming epochs.
+    end
+    
+    
+    events
+        StateChanged
     end
     
     
@@ -38,12 +46,22 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         function obj = SymphonyProtocol()
             obj = obj@handle();
             
+            obj.setState('stopped');
             obj.responses = containers.Map();
         end 
         
         
-        function prepareRun(obj) %#ok<MANU>
+        function setState(obj, state)
+            obj.state = state;
+            notify(obj, 'StateChanged');
+        end
+        
+        
+        function prepareRun(obj)
             % Override this method to perform any actions before the start of the first epoch, e.g. open a figure window, etc.
+            obj.epoch = [];
+            obj.epochNum = 0;
+            obj.clearFigures()
         end
         
         
@@ -82,7 +100,21 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function prePrepareEpoch(obj)
+        function prepareEpoch(obj)
+            % Override this method to add stimulii, record responses, change parameters, etc.
+            
+            import Symphony.Core.*;
+            
+            % Create a new epoch.
+            obj.epochNum = obj.epochNum + 1;
+            obj.epoch = Epoch(obj.identifier);
+
+            % Add any keywords specified by the user.
+            for i = 1:length(obj.epochKeywords)
+                obj.epoch.Keywords.Add(obj.epochKeywords{i});
+            end
+            
+            % Set the default background value and record any input streams for each device.
             devices = listValues(obj.controller.Devices);
             for i = 1:length(devices)
                 device = devices{i};
@@ -99,13 +131,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     end
                 end
             end
-        end
-        
-        
-        function prepareEpoch(obj) %#ok<MANU>
-            % Override this method to add stimulii, record responses, change parameters, etc.
-            
-            % TODO: record responses for all inputs by default?
         end
         
         
@@ -250,21 +275,98 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function completeEpoch(obj) %#ok<MANU>
+        function completeEpoch(obj)
             % Override this method to perform any post-analysis, etc. on the current epoch.
+            obj.updateFigures();
         end
         
         
-        function keepGoing = continueRun(obj) %#ok<MANU>
+        function keepGoing = continueRun(obj)
             % Override this method to return true/false based on the current state.
             % The object's epochNum is typically useful.
             
-            keepGoing = false;
+            keepGoing = strcmp(obj.state, 'running');
         end
         
         
-        function completeRun(obj) %#ok<MANU>
+        function completeRun(obj)
             % Override this method to perform any actions after the last epoch has completed.
+            
+            obj.setState('stopped');
+        end
+        
+        
+        function run(obj)
+            % This is the core method that runs a protocol, everything else is preparation for this.
+            
+            try
+                if ~strcmp(obj.state, 'paused')
+                    % Prepare the run.
+                    obj.prepareRun()
+                end
+                
+                obj.setState('running');
+                
+                % Loop until the protocol or the user tells us to stop.
+                while obj.continueRun()
+                    % Run a single epoch.
+                    
+                    % Prepare the epoch: set backgrounds, add stimuli, record responses, add parameters, etc.
+                    obj.prepareEpoch();
+                    
+                    % Persist the params now that the sub-class has had a chance to tweak them.
+                    pluginParams = obj.parameters();
+                    fields = fieldnames(pluginParams);
+                    for fieldName = fields'
+                        obj.epoch.ProtocolParameters.Add(fieldName{1}, pluginParams.(fieldName{1}));
+                    end
+                    
+                    try
+                        % Tell the Symphony framework to run the epoch.
+                        obj.controller.RunEpoch(obj.epoch, obj.persistor);
+                    catch e
+                        % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
+                        message = ['An error occurred while running the protocol.' char(10) char(10)];
+                        if (isa(e, 'NET.NetException'))
+                            message = [message netReport(e)]; %#ok<AGROW>
+                        else
+                            message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
+                        end
+                        waitfor(errordlg(message));
+                    end
+                    
+                    % Perform any post-epoch analysis, clean up, etc.
+                    obj.completeEpoch();
+                    
+                    % Force any figures to redraw and any events (clicking the Pause or Stop buttons in particular) to get processed.
+                    drawnow;
+                end
+            catch e
+                waitfor(errordlg(['An error occurred while running the protocol.' char(10) char(10) getReport(e, 'extended', 'hyperlinks', 'off')]));
+            end
+            
+            if strcmp(obj.state, 'pausing')
+                obj.setState('paused');
+            else
+                % Perform any final analysis, clean up, etc.
+                obj.completeRun();
+            end
+        end
+        
+        
+        function pause(obj)
+            % Set a flag that will be checked after the current epoch completes.
+            obj.setState('pausing');
+        end
+        
+        
+        function stop(obj)
+            if strcmp(obj.state, 'paused')
+                obj.completeRun()
+            else
+                % Set a flag that will be checked after the current epoch completes.
+                obj.setState('stopping');
+            end
         end
     end
     

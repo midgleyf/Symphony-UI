@@ -46,12 +46,18 @@ classdef StimGLProtocol < SymphonyProtocol
         
         
         function prepareRun(obj)
+            % Call the base class method which clears all figures.
+            prepareRun@SymphonyProtocol(obj);
+            
             obj.openFigure('Response');
             obj.loopCount = 1;
         end
         
         
         function prepareEpoch(obj)
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
+            
             % Create a dummy output signal so the epoch runs for the desired length.
             sampleRate = obj.deviceSampleRate('test-device', 'OUT');
             animationDuration = 1;
@@ -65,17 +71,21 @@ classdef StimGLProtocol < SymphonyProtocol
         
         
         function completeEpoch(obj)
-            % TODO: let StimGL pause/stop itself by checking for IsPaused() or Running()?
+            % Tell StimGL to stop the animation.
             Stop(obj.stimGL);
+            
             obj.loopCount = obj.loopCount + 1;
+            
+            % Call the base class method which updates the figures.
+            completeEpoch@SymphonyProtocol(obj);
         end
         
         
         function keepGoing = continueRun(obj)
-            if obj.numberOfLoops == 0
-                % The user must stop the protocol from running.
-                keepGoing = true;
-            else
+            % First check the base class method to make sure the user hasn't paused or stopped the protocol.
+            keepGoing = continueRun@SymphonyProtocol(obj);
+            
+            if keepGoing && obj.numberOfLoops > 0
                 keepGoing = obj.loopCount <= obj.numberOfLoops;
             end
         end
@@ -83,6 +93,9 @@ classdef StimGLProtocol < SymphonyProtocol
         
         function completeRun(obj)
             Stop(obj.stimGL);
+            
+            % Call the base class method.
+            completeRun@SymphonyProtocol(obj);
         end
         
         

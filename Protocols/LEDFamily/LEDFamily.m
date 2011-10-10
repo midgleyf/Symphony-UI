@@ -48,6 +48,9 @@ classdef LEDFamily < SymphonyProtocol
         
         
         function prepareRun(obj)
+            % Call the base class method which clears all figures.
+            prepareRun@SymphonyProtocol(obj);
+            
             obj.openFigure('Response');
             obj.openFigure('Mean Response', 'GroupByParams', {'lightAmplitude'});
             obj.openFigure('Response Statistics', 'StatsCallback', @responseStatistics);
@@ -56,6 +59,9 @@ classdef LEDFamily < SymphonyProtocol
         
         function prepareEpoch(obj)
             % TODO: set the sample rate of the device based on obj.sampleInterval
+            
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
             
             [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('lightAmplitude', lightAmplitude);
@@ -74,13 +80,22 @@ classdef LEDFamily < SymphonyProtocol
         
         
         function completeEpoch(obj)
+            % Call the base class method which updates the figures.
+            completeEpoch@SymphonyProtocol(obj);
+            
+            % Pause for the inter-pulse interval.
             pause on
             pause(obj.interpulseInterval);
         end
         
         
         function keepGoing = continueRun(obj)
-            keepGoing = obj.epochNum < obj.stepsInFamily * obj.numberOfAverages;
+            % First check the base class method to make sure the user hasn't paused or stopped the protocol.
+            keepGoing = continueRun@SymphonyProtocol(obj);
+            
+            if keepGoing
+                keepGoing = obj.epochNum < obj.stepsInFamily * obj.numberOfAverages;
+            end
         end
         
         

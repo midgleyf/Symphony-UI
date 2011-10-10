@@ -3,12 +3,11 @@ classdef Symphony < handle
     properties
         mainWindow                  % Figure handle of the main window
         controller                  % The Symphony.Core.Controller instance.
-        protocolClassNames          % The list of protocol plug-in names.
-        protocolPlugin              % The current protocol plug-in instance.
+        protocolClassNames          % The list of protocol class names.
+        protocol                    % The current protocol instance.
         figureHandlerClasses        % The list of available figure handlers.
         sources                     % The hierarchy of sources.
         controls                    % A structure containing the handles for most of the controls in the UI.
-        protocolState               % A string indicating whether the state of the protocol, one of 'stop', 'run' or 'pause'.
         rigNames
         commander
         amp_chan1
@@ -53,7 +52,6 @@ classdef Symphony < handle
             % Create and open the main window.
             obj.showMainWindow();
             
-            obj.protocolState = 'stopped';
             obj.updateUIState();
         end
         
@@ -101,7 +99,7 @@ classdef Symphony < handle
                         if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
                             gotMode = true;
                         end
-                    catch ME
+                    catch ME %#ok<NASGU>
                     end
 
                     if ~gotMode
@@ -113,6 +111,7 @@ classdef Symphony < handle
                 import Symphony.SimulationDAQController.*;
                 Converters.Register('V','V', @(m) m);
                 daq = SimulationDAQController();
+                daq.SampleRate = sampleRate;
                 daq.BeginSetup();
                 
                 outStream = DAQOutputStream('OUT');
@@ -191,23 +190,30 @@ classdef Symphony < handle
         end
         
         
-        function plugin = createProtocolPlugin(obj, className)
+        function newProtocol = createProtocol(obj, className)
             % Create an instance of the protocol class.
             constructor = str2func(className);
-            plugin = constructor();
+            newProtocol = constructor();
             
-            plugin.controller = obj.controller;
-            plugin.figureHandlerClasses = obj.figureHandlerClasses;
+            newProtocol.controller = obj.controller;
+            newProtocol.figureHandlerClasses = obj.figureHandlerClasses;
             
             % Use any previously set parameters.
             params = getpref('Symphony', [className '_Defaults'], struct);
             paramNames = fieldnames(params);
             for i = 1:numel(paramNames)
-                paramProps = findprop(plugin, paramNames{i});
+                paramProps = findprop(newProtocol, paramNames{i});
                 if ~isempty(paramProps) && ~paramProps.Dependent
-                    plugin.(paramNames{i}) = params.(paramNames{i});
+                    newProtocol.(paramNames{i}) = params.(paramNames{i});
                 end
             end
+            
+            addlistener(newProtocol, 'StateChanged', @(source, event)protocolStateChanged(obj, source, event));
+        end
+        
+        
+        function protocolStateChanged(obj, ~, ~)
+            obj.updateUIState();
         end
         
         
@@ -291,7 +297,7 @@ classdef Symphony < handle
                 % Create a default protocol plug-in.
                 lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
                 protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
-                obj.protocolPlugin = obj.createProtocolPlugin(lastChosenProtocol);
+                obj.protocol = obj.createProtocol(lastChosenProtocol);
                 
                 obj.wasSavingEpochs = true;
                 
@@ -401,7 +407,7 @@ classdef Symphony < handle
                     'Position', [10 170 250 18], ...
                     'BackgroundColor', bgColor, ...
                     'String', 'Save Epochs with Group', ...
-                    'Value', uint8(obj.protocolPlugin.allowSavingEpochs), ...
+                    'Value', uint8(obj.protocol.allowSavingEpochs), ...
                     'Style', 'checkbox', ...
                     'Tag', 'saveEpochsCheckbox');
                 
@@ -574,7 +580,7 @@ classdef Symphony < handle
         
         function editProtocolParameters(obj, ~, ~)
             % The user clicked the "Parameters..." button.
-            editParameters(obj.protocolPlugin);
+            editParameters(obj.protocol);
         end
         
         
@@ -582,19 +588,24 @@ classdef Symphony < handle
             % The user chose a protocol from the pop-up.
             
             pluginIndex = get(obj.controls.protocolPopup, 'Value');
-            pluginClassName = obj.protocolClassNames{pluginIndex};
+            protocolClassName = obj.protocolClassNames{pluginIndex};
             
-            % Create a new plugin if the user chose a different protocol.
-            if ~isa(obj.protocolPlugin, pluginClassName)
-                newPlugin = obj.createProtocolPlugin(pluginClassName);
+            % Create a new protocol if the user chose a different protocol class.
+            if ~isa(obj.protocol, protocolClassName)
+                try
+                    newProtocol = obj.createProtocol(protocolClassName);
+                catch ME
+                    waitfor(errordlg(['Could not create a ''' protocolClassName ''' instance.' char(10) char(10) ME.message], 'Symphony'));
+                    newProtocol = [];
+                end
                 
-                if editParameters(newPlugin)
-                    obj.protocolPlugin.closeFigures();
+                if ~isempty(newProtocol) && editParameters(newProtocol)
+                    obj.protocol.closeFigures();
                     
-                    obj.protocolPlugin = newPlugin;
-                    setpref('Symphony', 'LastChosenProtocol', pluginClassName);
+                    obj.protocol = newProtocol;
+                    setpref('Symphony', 'LastChosenProtocol', protocolClassName);
                     
-                    if ~obj.protocolPlugin.allowSavingEpochs
+                    if ~obj.protocol.allowSavingEpochs
                         obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
                         set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
                     elseif obj.wasSavingEpochs
@@ -602,7 +613,7 @@ classdef Symphony < handle
                     end
                 else
                     % The user cancelled editing the parameters so switch back to the previous protocol.
-                    protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocolPlugin)));
+                    protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
                     set(obj.controls.protocolPopup, 'Value', protocolValue);
                 end
             end
@@ -657,9 +668,9 @@ classdef Symphony < handle
         
         function updateUIState(obj)
             % Update the state of the UI based on the state of the protocol.
-            set(obj.controls.statusLabel, 'String', ['Status: ' obj.protocolState]);
+            set(obj.controls.statusLabel, 'String', ['Status: ' obj.protocol.state]);
             
-            if strcmp(obj.protocolState, 'stopped')
+            if strcmp(obj.protocol.state, 'stopped')
                 set(obj.controls.startButton, 'String', 'Start');
                 set(obj.controls.startButton, 'Enable', 'on');
                 set(obj.controls.pauseButton, 'Enable', 'off');
@@ -679,7 +690,7 @@ classdef Symphony < handle
                 else
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'on');
                 end
-                if isempty(obj.epochGroup) || ~obj.protocolPlugin.allowSavingEpochs
+                if isempty(obj.epochGroup) || ~obj.protocol.allowSavingEpochs
                     set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                 else
                     set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
@@ -691,13 +702,13 @@ classdef Symphony < handle
                 set(obj.controls.newEpochGroupButton, 'Enable', 'off');
                 set(obj.controls.closeEpochGroupButton, 'Enable', 'off');
 
-                if strcmp(obj.protocolState, 'running')
+                if strcmp(obj.protocol.state, 'running')
                     set(obj.controls.startButton, 'Enable', 'off');
                     set(obj.controls.pauseButton, 'Enable', 'on');
                     set(obj.controls.editParametersButton, 'Enable', 'off');
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
                     set(obj.controls.addNoteButton, 'Enable', 'off');
-                elseif strcmp(obj.protocolState, 'paused')
+                elseif strcmp(obj.protocol.state, 'paused')
                     set(obj.controls.startButton, 'String', 'Resume');
                     set(obj.controls.startButton, 'Enable', 'on');
                     set(obj.controls.pauseButton, 'Enable', 'off');
@@ -719,13 +730,18 @@ classdef Symphony < handle
                     set(obj.controls.epochGroupLabelText, 'String', '');
                     set(obj.controls.epochGroupSourceText, 'String', '');
                 else
-                    if isempty(obj.epochGroup.parentGroup)
-                        set(obj.controls.epochGroupLabelText, 'String', obj.epochGroup.label);
-                        source = obj.epochGroup.source;
-                    else
-                        set(obj.controls.epochGroupLabelText, 'String', [obj.epochGroup.label ' (' obj.epochGroup.parentGroup.label ')']);
-                        source = obj.epochGroup.parentGroup.source;
+                    % Show the 'label' hierarchy.
+                    label = obj.epochGroup.label;
+                    source = obj.epochGroup.source;
+                    parentGroup = obj.epochGroup.parentGroup;
+                    while ~isempty(parentGroup)
+                        label = [parentGroup.label ' : ' label]; %#ok<AGROW>
+                        source = parentGroup.source;
+                        parentGroup = parentGroup.parentGroup;
                     end
+                    set(obj.controls.epochGroupLabelText, 'String', label);
+                    
+                    % Show the source hierarchy.
                     sourceText = source.name;
                     curSource = source.parentSource;
                     while ~isempty(curSource)
@@ -746,7 +762,7 @@ classdef Symphony < handle
         
         
         function closeRequestFcn(obj, ~, ~)
-            obj.protocolPlugin.closeFigures();
+            obj.protocol.closeFigures();
             
             if ~isempty(obj.epochGroup)
                 while ~isempty(obj.persistor)
@@ -814,6 +830,13 @@ classdef Symphony < handle
         end
         
         
+        function saveMetadata(obj)
+            [pathstr, name, ~] = fileparts(obj.persistPath);
+            metadataPath = fullfile(pathstr,[name '_metadata.xml']);
+            xmlwrite(metadataPath, obj.metadataDoc);
+        end
+        
+        
         function closeEpochGroup(obj, ~, ~)
             if ~isempty(obj.epochGroup)
                 % Clean up the epoch group and persistor.
@@ -830,9 +853,7 @@ classdef Symphony < handle
                 obj.persistor.CloseDocument();
                 obj.persistor = [];
                 
-                [pathstr, name, ~] = fileparts(obj.persistPath);
-                metadataPath = fullfile(pathstr,[name '_metadata.xml']);
-                xmlwrite(metadataPath, obj.metadataDoc);
+                obj.saveMetadata();
                 obj.metadataDoc = [];
                 obj.metadataNode = [];
                 obj.notesNode = [];
@@ -862,6 +883,8 @@ classdef Symphony < handle
                 noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
                 noteNode.setAttribute('time', char(obj.controller.Clock.Now().ToString()));
                 noteNode.appendChild(obj.metadataDoc.createTextNode(noteText2));
+                
+                obj.saveMetadata();
             end
         end
         
@@ -871,20 +894,30 @@ classdef Symphony < handle
         
         function startAcquisition(obj, ~, ~)
             % Edit the protocol parameters if the user hasn't done so already.
-            if ~obj.protocolPlugin.parametersEdited
-                if ~editParameters(obj.protocolPlugin)
+            if ~obj.protocol.parametersEdited
+                if ~editParameters(obj.protocol)
                     % The user cancelled.
                     return
                 end
             end
             
-            resume = strcmp(obj.protocolState, 'paused');
-            obj.protocolState = 'running';
-            obj.updateUIState();
+            saveEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
+            if saveEpochs
+                obj.protocol.persistor = obj.persistor;
+            else
+                obj.protocol.persistor = [];
+            end
             
-            % Wrap the rest in a try/catch block so we can be sure to re-enable the GUI.
+            keywordsText = get(obj.controls.epochKeywordsEdit, 'String');
+            if isempty(keywordsText)
+                obj.protocol.epochKeywords = {};
+            else
+                obj.protocol.epochKeywords = strtrim(regexp(keywordsText, ',', 'split'));
+            end
+            
+            % Run the protocol wrapped in a try/catch block so we can be sure to re-enable the GUI.
             try
-                obj.runProtocol(resume);
+                obj.protocol.run();
             catch ME
                 % Reenable the GUI.
                 obj.updateUIState();
@@ -898,118 +931,14 @@ classdef Symphony < handle
         
         function pauseAcquisition(obj, ~, ~)
             % The user clicked the Pause button.
-
-            % Set a flag that will be checked after the current epoch completes.
-            obj.protocolState = 'pausing';
-            obj.updateUIState();
+            obj.protocol.pause();
         end
         
         
         function stopAcquisition(obj, ~, ~)
             % The user clicked the Stop button.
-
-            % Set a flag that will be checked after the current epoch completes.
-            if strcmp(obj.protocolState, 'paused')
-                obj.protocolPlugin.completeRun()
-                obj.protocolState = 'stopped';
-            else
-                obj.protocolState = 'stopping';
-            end
-            obj.updateUIState();
-        end
-        
-        
-        function runProtocol(obj, resume)
-            % This is the core method that runs a protocol, everything else is preparation for this.
-            
-            import Symphony.Core.*;
-            
-            try
-                if ~resume
-                    % Initialize the run.
-                    obj.protocolPlugin.epoch = [];
-                    obj.protocolPlugin.epochNum = 0;
-                    obj.protocolPlugin.clearFigures();
-                    obj.protocolPlugin.prepareRun()
-                end
-                
-                saveEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
-                
-                % Loop through all of the epochs.
-                while obj.protocolPlugin.continueRun() && strcmp(obj.protocolState, 'running')
-                    % Create a new epoch.
-                    obj.protocolPlugin.epochNum = obj.protocolPlugin.epochNum + 1;
-                    obj.protocolPlugin.epoch = Epoch(obj.protocolPlugin.identifier);
-                    
-                    % Let sub-classes add stimulii, record responses, tweak params, etc.
-                    obj.protocolPlugin.prePrepareEpoch();
-                    obj.protocolPlugin.prepareEpoch();
-                    
-                    % Set the params now that the sub-class has had a chance to tweak them.
-                    pluginParams = obj.protocolPlugin.parameters();
-                    fields = fieldnames(pluginParams);
-                    for fieldName = fields'
-                        obj.protocolPlugin.epoch.ProtocolParameters.Add(fieldName{1}, pluginParams.(fieldName{1}));
-                    end
-                    
-                    % Add any keywords specified by the user.
-                    keywordsText = get(obj.controls.epochKeywordsEdit, 'String');
-                    if ~isempty(keywordsText)
-                        keywords = strtrim(regexp(keywordsText, ',', 'split'));
-                        for i = 1:length(keywords)
-                            obj.protocolPlugin.epoch.Keywords.Add(keywords{i});
-                        end
-                    end
-                    
-                    % Run the epoch.
-                    try
-                        if saveEpochs
-                            obj.protocolPlugin.controller.RunEpoch(obj.protocolPlugin.epoch, obj.persistor);
-                        else
-                            obj.protocolPlugin.controller.RunEpoch(obj.protocolPlugin.epoch, []);
-                        end
-                        
-                        obj.protocolPlugin.updateFigures();
-                        
-                        % Force any figures to redraw and any events (clicking the Pause or Stop buttons in particular) to get processed.
-                        drawnow;
-                    catch e
-                        % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
-                        message = ['An error occurred while running the protocol.' char(10) char(10)];
-                        if (isa(e, 'NET.NetException'))
-                            eObj = e.ExceptionObject;
-                            message = [message char(eObj.Message)]; %#ok<AGROW>
-                            indent = '    ';
-                            while ~isempty(eObj.InnerException)
-                                eObj = eObj.InnerException;
-                                message = [message char(10) indent char(eObj.Message)]; %#ok<AGROW>
-                                indent = [indent '    ']; %#ok<AGROW>
-                            end
-                        else
-                            message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
-                        end
-                        waitfor(errordlg(message));
-                    end
-                    
-                    % Let the sub-class perform any post-epoch analysis, clean up, etc.
-                    obj.protocolPlugin.completeEpoch();
-                end
-            catch e
-                waitfor(errordlg(['An error occurred while running the protocol.' char(10) char(10) getReport(e, 'extended', 'hyperlinks', 'off')]));
-            end
-            
-            if strcmp(obj.protocolState, 'pausing')
-                obj.protocolState = 'paused';
-            else
-                % Let the sub-class perform any final analysis, clean up, etc.
-                obj.protocolPlugin.completeRun();
-                
-                obj.protocolState = 'stopped';
-            end
-            
-            obj.updateUIState();
+            obj.protocol.stop();
         end
         
     end
-    
 end
