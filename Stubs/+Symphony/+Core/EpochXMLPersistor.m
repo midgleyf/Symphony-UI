@@ -49,7 +49,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             epochNode.setAttribute('protocolID', epoch.ProtocolID);
             epochNode.setAttribute('UUID', epoch.Identifier);
             epochNode.setAttribute('startTime', formatXMLDate(epoch.StartTime));
-            obj.groupNode.appendChild(epochNode);
+            obj.groupNodes{end}.appendChild(epochNode);
             
             % Serialize the device backgrounds.
             backgroundsNode = obj.docNode.createElement('background');
@@ -95,7 +95,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
                 responsesNode.appendChild(responseNode);
                 
                 inputTimeNode = obj.docNode.createElement('inputTime');
-                inputTimeNode.appendChild(obj.docNode.createTextNode(obj.formatDate(response.InputTime)));
+                inputTimeNode.appendChild(obj.docNode.createTextNode(formatXMLDate(response.InputTime)));
                 responseNode.appendChild(inputTimeNode);
                 sampleRateNode = obj.docNode.createElement('sampleRate');
                 responseNode.appendChild(sampleRateNode);
