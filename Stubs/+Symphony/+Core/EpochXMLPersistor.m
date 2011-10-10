@@ -48,7 +48,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
             epochNode = obj.docNode.createElement('epoch');
             epochNode.setAttribute('protocolID', epoch.ProtocolID);
             epochNode.setAttribute('UUID', epoch.Identifier);
-            epochNode.setAttribute('startTime', obj.formatDate(epoch.StartTime));
+            epochNode.setAttribute('startTime', formatXMLDate(epoch.StartTime));
             obj.groupNode.appendChild(epochNode);
             
             % Serialize the device backgrounds.
