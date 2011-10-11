@@ -75,7 +75,6 @@ classdef Symphony < handle
                 
                 daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
                 daq.InitHardware();
-                daq.SampleRate = sampleRate;
                 
                 % Finding input and output streams by name
                 outStream = daq.GetStream('ANALOG_OUT.0');
@@ -111,7 +110,6 @@ classdef Symphony < handle
                 import Symphony.SimulationDAQController.*;
                 Converters.Register('V','V', @(m) m);
                 daq = SimulationDAQController();
-                daq.SampleRate = sampleRate;
                 daq.BeginSetup();
                 
                 outStream = DAQOutputStream('OUT');

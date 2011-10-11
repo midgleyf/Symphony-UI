@@ -30,8 +30,8 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         
         function stimulus = stimulusForDevice(obj, deviceName)
             sampleRate = obj.deviceSampleRate(deviceName, 'OUT');
-            epochSamples = floor(double(obj.epochDuration) / 1000.0 * sampleRate.Quantity);
-            pulseSamples = floor(double(obj.pulseDuration) / 1000.0 * sampleRate.Quantity);
+            epochSamples = floor(double(obj.epochDuration) / 1000.0 * System.Decimal.ToDouble(sampleRate.Quantity));
+            pulseSamples = floor(double(obj.pulseDuration) / 1000.0 * System.Decimal.ToDouble(sampleRate.Quantity));
             pulseStart = floor((epochSamples - pulseSamples) / 2.0);
             stimulus = ones(1, epochSamples) * obj.background;
             stimulus(pulseStart:pulseStart + pulseSamples - 1) = ones(1, pulseSamples) * obj.pulseAmplitude + obj.background;
@@ -40,7 +40,7 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         
         function [stimuli, sampleRate] = sampleStimuli(obj)
             stimuli = {obj.stimulusForDevice('test-device')};
-            sampleRate = obj.deviceSampleRate('test-device', 'OUT').Quantity;
+            sampleRate = System.Decimal.ToDouble(obj.deviceSampleRate('test-device', 'OUT').Quantity);
         end
         
         

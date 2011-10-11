@@ -267,7 +267,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 r = double(Measurement.ToQuantityArray(data));
                 u = char(Measurement.HomogenousUnits(data));
                 
-                s = response.SampleRate.QuantityInBaseUnit;
+                s = System.Decimal.ToDouble(response.SampleRate.QuantityInBaseUnit);
                 % TODO: do we care about the units of the SampleRate measurement?
                 
                 % Cache the results.
