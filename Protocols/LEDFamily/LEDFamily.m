@@ -20,7 +20,7 @@ classdef LEDFamily < SymphonyProtocol
         continuousRun = false;
     end
     
-    properties (Dependent = true, SetAccess = private)
+    properties (Dependent = true, SetAccess = private) % these properties are inherited - i.e., not modifiable
         sampleInterval;    % in microseconds, dependent until we can alter the device sample rate
         ampOfLastStep;
     end
@@ -29,8 +29,8 @@ classdef LEDFamily < SymphonyProtocol
         
         function [stimulus, lightAmplitude] = stimulusForEpoch(obj, epochNum)
             % Calculate the light amplitude for this epoch.
-            phase = single(mod(epochNum - 1, obj.stepsInFamily));
-            lightAmplitude = obj.baseLightAmplitude * obj.ampStepScale ^ phase;
+            phase = single(mod(epochNum - 1, obj.stepsInFamily));               % Frank's clever way to determine which flash in a family to deliver
+            lightAmplitude = obj.baseLightAmplitude * obj.ampStepScale ^ phase;   % Frank's clever way to determine the amplitude of the flash family to deliver
             
             % Create the stimulus
             stimulus = ones(1, obj.prePoints + obj.stimPoints + obj.tailPoints) * obj.lightMean;
@@ -48,12 +48,15 @@ classdef LEDFamily < SymphonyProtocol
         
         
         function prepareRun(obj)
+            import Symphony.Core.*;             % import this so this method knows what a 'Measurement' - see below - is...
+
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
-            
+
             obj.openFigure('Response');
             obj.openFigure('Mean Response', 'GroupByParams', {'lightAmplitude'});
             obj.openFigure('Response Statistics', 'StatsCallback', @responseStatistics);
+            obj.controller.DAQController.SampleRate = Measurement(10000, 'Hz');
         end
         
         
@@ -89,7 +92,7 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function keepGoing = continueRun(obj)
+        function keepGoing = continueRun(obj)   
             % First check the base class method to make sure the user hasn't paused or stopped the protocol.
             keepGoing = continueRun@SymphonyProtocol(obj);
             
@@ -99,12 +102,12 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function interval = get.sampleInterval(obj)
+        function interval = get.sampleInterval(obj)   % Should be read-out from device settings (e.g., sampleRate = obj.deviceSampleRate('test-device', 'OUT'));
             interval = uint16(100);
         end
         
         
-        function amp = get.ampOfLastStep(obj)
+        function amp = get.ampOfLastStep(obj)   % The product of the number of steps in family, the first step amplitude, and the 'scale factor'
             amp = obj.baseLightAmplitude * obj.ampStepScale ^ (obj.stepsInFamily - 1);
         end
 
