@@ -30,6 +30,9 @@ classdef Grid < StimGLProtocol
     methods
         
         function prepareRun(obj)
+            % Call the base class method which clears all figures.
+            prepareRun@SymphonyProtocol(obj);
+            
             obj.loopCount = 1;
             
             % Prepare figures
@@ -57,6 +60,10 @@ classdef Grid < StimGLProtocol
         end
         
         function prepareEpoch(obj)
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
+            
+            % Set constant parameters
             params.x_mon_pix = obj.xMonPix;
             params.y_mon_pix = obj.yMonPix;
             params.nLoops = 0;
@@ -101,6 +108,10 @@ classdef Grid < StimGLProtocol
         
         function completeEpoch(obj)
             Stop(obj.stimGL);
+            
+            % Call the base class method which updates the figures.
+            completeEpoch@SymphonyProtocol(obj);
+            
             % if all grid coordinates completed, reset completedCoords and start a new loop
             if isempty(obj.notCompletedCoords)
                 obj.notCompletedCoords = obj.allCoords;
@@ -109,11 +120,11 @@ classdef Grid < StimGLProtocol
         end
         
         function keepGoing = continueRun(obj)
-            if obj.numberOfLoops == 0
-                % the user must stop the protocol from running
-                keepGoing = true;
-            else
-                keepGoing = obj.loopCount <= obj.numberOfLoops;
+            % First check the base class method to make sure the user hasn't paused or stopped the protocol.
+            keepGoing = continueRun@SymphonyProtocol(obj);
+            
+            if obj.numberOfLoops>0 && obj.loopCount>obj.numberOfLoops
+                keepGoing = false;
             end
             % pause for random inter-epoch interval
             if keepGoing
@@ -129,6 +140,9 @@ classdef Grid < StimGLProtocol
        
         function completeRun(obj)
             Stop(obj.stimGL);
+            
+            % Call the base class method.
+            completeRun@SymphonyProtocol(obj);
         end
         
     end

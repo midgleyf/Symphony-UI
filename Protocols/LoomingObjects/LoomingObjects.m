@@ -7,6 +7,7 @@ classdef LoomingObjects < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 800;
         yMonPix = 600;
+        screenDist = 1000;
     end
     
     properties (Hidden)
@@ -16,31 +17,37 @@ classdef LoomingObjects < StimGLProtocol
 
     properties
         preTime = 0.5;
-        stimTime = 0.5;
         postTime = 0.5;
         interTrialInterval = [1 2];
         backgroundColor = 0;
-        numObjects = {'1','2'};
-        obj1Color = 1;
-        obj1PositionX = 200;
-        obj1PositionY = 300;
-        obj1StartSize = 3;
-        obj1LoomSpeed = 30;
+        %numObjects = {'1','2'};
+        numObjects = 1;
+        objColor = 1;
+        objPositionX = 200;
+        objPositionY = 300;
+        objSize = 10;
+        objSpeed = 10000;
+        thetaMin = 0.5;
+        thetaMax = 30;
+        holdTime = 0.1;
         obj2Color = 1;
         obj2PositionX = 600;
         obj2PositionY = 300;
-        obj2StartSize = 3;
-        obj2LoomSpeed = 30;
+        relCollisionTime = 0.05;
     end
     
     
     methods
         
-        function set.numObjects(obj,numObjects)
-            obj.numObjects = str2double(numObjects);
-        end
+        
+        %function set.numObjects(obj,numObjects)
+        %   obj.numObjects = str2double(numObjects);
+        %end
         
         function prepareRun(obj)
+            % Call the base class method which clears all figures.
+            prepareRun@SymphonyProtocol(obj);
+            
             obj.loopCount = 1;
             
             % Prepare figures
@@ -49,19 +56,24 @@ classdef LoomingObjects < StimGLProtocol
             % Get all combinations of trial types based on object colors,
             % positions, start sizes, and loom speeds
             if obj.numObjects==1
-                obj.trialTypes=allcombs(obj.obj1Color,obj.obj1PositionX,obj.obj1PositionY,obj.obj1StartSize,obj.obj1LoomSpeed);
+                obj.trialTypes=allcombs(obj.objColor,obj.objPositionX,obj.objPositionY,obj.objSpeed);
             elseif obj.numObjects==2
-                obj.trialTypes=allcombs(obj.obj1Color,obj.obj1PositionX,obj.obj1PositionY,obj.obj1StartSize,obj.obj1LoomSpeed,obj.obj2Color,obj.obj2PostionX,obj.obj2PositionY,obj.obj2StartSize,obj.obj2LoomSpeed);
+                obj.trialTypes=allcombs(obj.objColor,obj.objPositionX,obj.objPositionY,obj.objSpeed,obj.obj2Color,obj.obj2PositionX,obj.obj2PositionY,obj.relCollisionTime);
             end
             obj.notCompletedTrialTypes=1:size(obj.trialTypes,1);
         end
         
         function prepareEpoch(obj)
+            % Call the base class method which sets up default backgrounds and records responses.
+            prepareEpoch@SymphonyProtocol(obj);
+            
+            % Set constant parameters
             params.x_mon_pix = obj.xMonPix;
             params.y_mon_pix = obj.yMonPix;
             params.nLoops = 0;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.ftrack_change = 2;
             
             % Set object properties
             params.numObj = obj.numObjects;
@@ -75,46 +87,60 @@ classdef LoomingObjects < StimGLProtocol
             params.objColor = obj.trialTypes(epochTrialType,1);
             params.objXinit = obj.trialTypes(epochTrialType,2);
             params.objYinit = obj.trialTypes(epochTrialType,3);
-            startSize1 = obj.trialTypes(epochTrialType,4);
-            loomSpeed1 = obj.trialTypes(epochTrialType,5);
-            if obj.numObjects==2
+            epochObjSpeed = obj.trialTypes(epochTrialType,4);
+            if obj.numObjects>1
                 params.objType2 = 'ellipse';
-                params.objColor2 = obj.trialTypes(epochTrialType,6);
-                params.objXinit2 = obj.trialTypes(epochTrialType,7);
-                params.objYinit2 = obj.trialTypes(epochTrialType,8);
-                startSize2 = obj.trialTypes(epochTrialType,9);
-                loomSpeed2 = obj.trialTypes(epochTrialType,10);
+                params.objColor2 = obj.trialTypes(epochTrialType,5);
+                params.objXinit2 = obj.trialTypes(epochTrialType,6);
+                params.objYinit2 = obj.trialTypes(epochTrialType,7);
+                epochRelCollisionTime = obj.trialTypes(epochTrialType,8);
             end
             
-            % Set nFrames and the number of delay frames for preTime
+            % Set the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
-            params.delay = obj.preTime*frameRate;
-            params.nFrames = round(obj.stimTime*frameRate);
+            params.delay = round(obj.preTime*frameRate);
             
-            % Calculate tFrames and object length vectors
-            % Pad length vectors with zeros to make object disappear
+            % Calculate length vectors and pad with zeros to make object disappear
             % during postTime plus plenty of extra time to complete stop stimGL
-            params.tFrames = frameRate/loomSpeed1;
-            sizeVector = startSize1+(1:round(params.nFrames/params.tFrames));
-            params.objLenX = [sizeVector zeros(1,ceil((obj.postTime+obj.stimTime+10)/(params.tFrames/frameRate)))];
+            params.tFrames =1;
+            objHalfSize = obj.screenDist*tand(obj.objSize/2);
+            LoverV = objHalfSize/-epochObjSpeed*frameRate;
+            theta = 2*atand(LoverV./(-frameRate*10:-1));
+            theta = theta(theta>=obj.thetaMin);
+            theta(theta>obj.thetaMax) = obj.thetaMax;
+            theta = [theta,obj.thetaMax*ones(1,round(obj.holdTime*frameRate))];
+            sizeVector = round(2*obj.screenDist*tand(theta/2));
+            if obj.numObjects>1
+                frameShift = round(abs(epochRelCollisionTime)*frameRate);
+                if epochRelCollisionTime>=0
+                    sizeVector2 = [zeros(1,frameShift),sizeVector(1:end-frameShift)];
+                else
+                    sizeVector2 = [sizeVector,max(sizeVector)*ones(1,frameShift)];
+                    sizeVector = [zeros(1,frameShift),sizeVector];
+                end
+            end
+            params.nFrames = numel(sizeVector);
+            stimTime = params.nFrames/frameRate;
+            params.objLenX = [sizeVector zeros(1,ceil((obj.postTime+stimTime+10)/(params.tFrames/frameRate)))];
             params.objLenY = params.objLenX;
-            % TODO: object2
-            
+            if obj.numObjects>1
+                params.objLenX2 = [sizeVector2 zeros(1,ceil((obj.postTime+stimTime+10)/(params.tFrames/frameRate)))];
+                params.objLenY2 = params.objLenX2;
+            end
+                       
             % Add epoch-specific parameters for ovation
-            obj.addParameter('epochObj1Color',params.objColor);
-            obj.addParameter('epochObj1Position',[params.objXinit,params.objYinit]);
-            obj.addParameter('epochObj1StartSize',startSize1);
-            obj.addParameter('epochObj1LoomSpeed',loomSpeed1);
-            if obj.numObjects==2
-                obj.addParameter('epochObj1Color',params.objColor1);
-                obj.addParameter('epochObj1Position',[params.objXinit1,params.objYinit2]);
-                obj.addParameter('epochObj1StartSize',startSize1);
-                obj.addParameter('epochObj1LoomSpeed',loomSpeed1);
+            obj.addParameter('epochObjColor',params.objColor);
+            obj.addParameter('epochObjPosition',[params.objXinit,params.objYinit]);
+            obj.addParameter('epochObjSpeed',epochObjSpeed);
+            if obj.numObjects>1
+                obj.addParameter('epochObj2Color',params.objColor2);
+                obj.addParameter('epochObj2Position',[params.objXinit2,params.objYinit2]);
+                obj.addParameter('epochRelCollisionTime',epochRelCollisionTime);
             end
             
             % Create a dummy stimulus so the epoch runs for the desired length
             sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, floor(sampleRate.Quantity*(obj.preTime+obj.stimTime+obj.postTime)));
+            stimulus = zeros(1, floor(sampleRate.Quantity*(obj.preTime+stimTime+obj.postTime)));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in
@@ -124,6 +150,10 @@ classdef LoomingObjects < StimGLProtocol
         
         function completeEpoch(obj)
             Stop(obj.stimGL);
+            
+            % Call the base class method which updates the figures.
+            completeEpoch@SymphonyProtocol(obj);
+            
             % if all stim sizes completed, reset notCompeletedSizes and start a new loop
             if isempty(obj.notCompletedTrialTypes)
                 obj.notCompletedTrialTypes = obj.trialTypes;
@@ -132,11 +162,11 @@ classdef LoomingObjects < StimGLProtocol
         end
         
         function keepGoing = continueRun(obj)
-            if obj.numberOfLoops == 0
-                % the user must stop the protocol from running
-                keepGoing = true;
-            else
-                keepGoing = obj.loopCount <= obj.numberOfLoops;
+            % First check the base class method to make sure the user hasn't paused or stopped the protocol.
+            keepGoing = continueRun@SymphonyProtocol(obj);
+            
+            if obj.numberOfLoops>0 && obj.loopCount>obj.numberOfLoops
+                keepGoing = false;
             end
             % pause for random inter-epoch interval
             if keepGoing
@@ -152,6 +182,9 @@ classdef LoomingObjects < StimGLProtocol
        
         function completeRun(obj)
             Stop(obj.stimGL);
+            
+            % Call the base class method.
+            completeRun@SymphonyProtocol(obj);
         end
         
     end
