@@ -2,15 +2,17 @@ classdef RenderedStimulus < handle
    
     properties
         StimulusID
+        Units
         Parameters
         Data
     end
     
     methods
-        function obj = RenderedStimulus(identifier, parameters, data)
+        function obj = RenderedStimulus(identifier, units, parameters, data)
             obj = obj@handle();
             
             obj.StimulusID = identifier;
+            obj.Units = units;
             obj.Parameters = parameters;
             obj.Data = data;
         end

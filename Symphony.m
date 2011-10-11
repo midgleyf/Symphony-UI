@@ -134,7 +134,7 @@ classdef Symphony < handle
                 
                 daq.SimulationRunner = Simulation(@(output,step) loopbackSimulation(obj, output, step, outStream, inStream));
                 
-                dev = UnitConvertingExternalDevice('test-device', obj.controller, Measurement(0, 'V'));
+                dev = UnitConvertingExternalDevice('test-device', 'Tektronix', obj.controller, Measurement(0, 'V'));
                 dev.MeasurementConversionTarget = 'V';
                 dev.Clock = daq;
                 dev.BindStream(inStream);
@@ -148,7 +148,7 @@ classdef Symphony < handle
             obj.controller.Clock = daq;
             
             % Create the 'trigger' device.
-%             triggerDev = UnitConvertingExternalDevice('trigger', obj.controller, Measurement(0, 'V'));
+%             triggerDev = UnitConvertingExternalDevice('trigger', 'Tektronix', obj.controller, Measurement(0, 'V'));
 %             triggerDev.MeasurementConversionTarget = 'V';
 %             triggerDev.Clock = daq;
 %             triggerDev.BindStream(triggerStream);

@@ -5,15 +5,17 @@ classdef IExternalDevice < Symphony.Core.ITimelineProducer
         Controller
         Background
         Streams
+        Manufacturer
     end
     
     methods
-        function obj = IExternalDevice(name, controller, background)
+        function obj = IExternalDevice(name, manufacturer, controller, background)
             obj = obj@Symphony.Core.ITimelineProducer();
             
             obj.Name = name;
             obj.Controller = controller;
             obj.Background = background;
+            obj.Manufacturer = manufacturer;
             
             obj.Streams = GenericDictionary();
             

@@ -184,15 +184,16 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 error('There is no device named ''%s''.', deviceName);
             end
             
-            if nargin == 5
-                stimDataList = Measurement.FromArray(stimulusData, units);
-            else
-                stimDataList = Measurement.FromArray(stimulusData.*1e-3, 'V');
+            if nargin == 4
+                units = 'V';
+                stimulusData = stimulusData .* 1e-3;
             end
+            
+            stimDataList = Measurement.FromArray(stimulusData, units);
 
             outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
 
-            stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
+            stim = RenderedStimulus(stimulusID, units, structToDictionary(struct()), outputData);
 
             obj.epoch.Stimuli.Add(device, stim);
             
