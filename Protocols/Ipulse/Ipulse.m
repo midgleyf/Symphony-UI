@@ -31,8 +31,8 @@ classdef Ipulse < SymphonyProtocol
         
         function [stimulus, epochIamp] = stimulusForEpoch(obj, epochNum)
             epochIamp = obj.Iamp(mod(epochNum - 1, length(obj.Iamp)) + 1);
-            stimulus = zeros(1, obj.prePts+obj.stimPts+obj.postPts);
-            stimulus(obj.prePts+1:obj.prePts+obj.stimPts) = epochIamp;
+            stimulus=zeros(1, obj.prePts+obj.stimPts+obj.postPts);
+            stimulus(obj.prePts+1:obj.prePts+obj.stimPts) = epochIamp.*10e-9;
         end
         
         
