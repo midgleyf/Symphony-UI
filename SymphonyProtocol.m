@@ -320,7 +320,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     fields = fieldnames(pluginParams);
                     for fieldName = fields'
                         fieldValue = pluginParams.(fieldName{1});
-                        if length(fieldValue) > 1
+                        if ~ischar(fieldValue) && length(fieldValue) > 1
                             if isnumeric(fieldValue)
                                 fieldValue = sprintf('%g ', fieldValue);
                             else
