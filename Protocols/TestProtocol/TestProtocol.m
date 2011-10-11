@@ -7,29 +7,29 @@ classdef TestProtocol < SymphonyProtocol
     end
     
     properties
-        epochMax = uint8(4)
-        stimSamples = uint32(100)
+        epochMax = uint8(4) 
+        stimSamples = uint32(100) 
         rampFrequency = true
     end
     
     methods
         
         function [stimulus, freqScale] = stimulusForEpoch(obj, epochNum)
-            if obj.rampFrequency
-                freqScale = 1000.0 / double(epochNum);
-            else
-                freqScale = 1000.0;
+            if obj.rampFrequency                            % if checkbox engaged
+                freqScale = 1000.0 / double(epochNum);          % decrease the factor by which the period of the sine wave is slowed as the epoch number increases
+            else                                            % if checkbox is not engaged    
+                freqScale = 1000.0;                             % the period of the sine wave is ~6300 (2 Pi * 1000) points (or 0.63s assuming 10 KHz sampling; see below) 
             end
-            stimulus = 1000.*sin((1:double(obj.stimSamples)) / freqScale);
+            stimulus = sin((1:double(obj.stimSamples)) / freqScale);   % given the frequency scale (aka period), and the number of samples in the stimulus (defined from the properties menu), compute the stimulus for this epoch
         end
         
         
-        function [stimuli, sampleRate] = sampleStimuli(obj)
-            stimuli = cell(obj.epochMax, 1);
-            for i = 1:obj.epochMax
-                stimuli{i} = obj.stimulusForEpoch(i);
+        function [stimuli, sampleRate] = sampleStimuli(obj)     
+            stimuli = cell(obj.epochMax, 1);                    % create a cell for each of the epochs
+            for i = 1:obj.epochMax                                % for each of the epochs
+                stimuli{i} = obj.stimulusForEpoch(i);               % put the stimulus for that epoch in the appropriate cell
             end
-            sampleRate = 10000;
+            sampleRate = 10000;                         % WHY IS THIS HERE? (Isn't sampleRate defined by the value associated with the device)?)
         end
         
         
@@ -51,16 +51,27 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function prepareEpoch(obj)
+            [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);     % for this epoch
+            obj.addParameter('freqScale', freqScale);                        % grab and save the freqScale parameter defined above   
+            obj.addStimulus('test-device', 'test-stimulus', stimulus);        % grab the stimulus (also defined above), give it a name, and add it to the defined device
+
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
             
             [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('freqScale', freqScale);
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
+
+            
+            obj.setDeviceBackground('test-device', 0);                      % set the background of the device between epochs to this value
+            
+            obj.recordResponse('test-device');                              % record the response associated with the 'test-device'
+
         end
         
         
         function keepGoing = continueRun(obj)
+            keepGoing = obj.epochNum < obj.epochMax;                        % keep going as long as the epochNum is less than the epochMax
             % First check the base class method to make sure the user hasn't paused or stopped the protocol.
             keepGoing = continueRun@SymphonyProtocol(obj);
             
