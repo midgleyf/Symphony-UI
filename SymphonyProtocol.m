@@ -319,7 +319,15 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     pluginParams = obj.parameters();
                     fields = fieldnames(pluginParams);
                     for fieldName = fields'
-                        obj.epoch.ProtocolParameters.Add(fieldName{1}, pluginParams.(fieldName{1}));
+                        fieldValue = pluginParams.(fieldName{1});
+                        if length(fieldValue) > 1
+                            if isnumeric(fieldValue)
+                                fieldValue = sprintf('%g ', fieldValue);
+                            else
+                                error('Parameter values must be scalar or vectors of numbers.');
+                            end
+                        end
+                        obj.epoch.ProtocolParameters.Add(fieldName{1}, fieldValue);
                     end
                     
                     try
