@@ -75,36 +75,48 @@ classdef Symphony < handle
                 
                 daq = HekaDAQController(1, 0); %PCI18 = 1, USB18=5
                 daq.InitHardware();
-                daq.SampleRate = sampleRate;
-                
-                % Finding input and output streams by name
-                outStream = daq.GetStream('ANALOG_OUT.0');
-                inStream = daq.GetStream('ANALOG_IN.0');
-%                 triggerStream = daq.GetStream('DIGITAL_OUT.0');
-                
-                % Create the MultiClamp device
-                obj.commander = MultiClampCommander(831400, 1, daq);
-                dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
-                dev.Name = 'test-device';
-                dev.Clock = daq;
-                dev.BindStream(inStream);
-                dev.BindStream(outStream);
-                
-                % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
-                mode = '';
-                while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
-                    gotMode = false;
-                    try
-                        mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
-                        if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
-                            gotMode = true;
+                try
+                    daq.SampleRate = sampleRate;
+
+                    % Finding input and output streams by name
+                    outStream = daq.GetStream('ANALOG_OUT.0');
+                    inStream = daq.GetStream('ANALOG_IN.0');
+    %                 triggerStream = daq.GetStream('DIGITAL_OUT.0');
+
+                    % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
+                    % TODO: Add some way for the user to cancel so they don't get stuck in an infinite loop.
+                    mode = '';
+                    while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
+                        gotMode = false;
+                        try
+                            mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
+                            if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
+                                gotMode = true;
+                            end
+                        catch ME %#ok<NASGU>
                         end
-                    catch ME %#ok<NASGU>
+
+                        if ~gotMode
+                            waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
+                        end
                     end
 
-                    if ~gotMode
-                        waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
+                    % Create the MultiClamp device
+                    obj.commander = MultiClampCommander(831400, 1, daq);
+                    if strcmp(mode, 'VClamp')
+                        dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
+                    else
+                        dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'A'));
                     end
+                    dev.Name = 'test-device';
+                    dev.Clock = daq;
+                    dev.BindStream(inStream);
+                    dev.BindStream(outStream);
+                catch ME
+                    % Release any hold we have on the hardware before rethrowing the exception.
+                    daq.CloseHardware();
+                    
+                    throw(ME);
                 end
             elseif strcmpi(daqName, 'simulation')
                 
