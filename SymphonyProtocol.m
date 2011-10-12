@@ -135,6 +135,13 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         
         function addParameter(obj, name, value)
+            if ~ischar(value) && length(value) > 1
+                if isnumeric(value)
+                    value = sprintf('%g ', value);
+                else
+                    error('Parameter values must be scalar or vectors of numbers.');
+                end
+            end
             obj.epoch.ProtocolParameters.Add(name, value);
         end
         
