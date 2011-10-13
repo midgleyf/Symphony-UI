@@ -24,8 +24,8 @@ classdef Grid < StimGLProtocol
         postTime = 0.5;
         interTrialInterval = [1 2];
         backgroundColor = 0;
-        stimColor = 1;
-        stimSize = 10;
+        objectColor = 1;
+        objectSize = 10;
         gridOrigin = [-40.5 -14];
         gridWidth = 81;
         gridHeight = 49;
@@ -42,26 +42,14 @@ classdef Grid < StimGLProtocol
             % Prepare figures
             %obj.openFigure('Response');
             
-            % Convert degrees to pixels; round values used below
-            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
-            screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            stimSizePix = round(2*screenDistPix*tand(obj.stimSize/2));
-            gridWidthPix = round(2*screenDistPix*tand(obj.gridWidth/2));
-            gridHeightPix = round(2*screenDistPix*tand(obj.gridHeight/2));
-            gridOriginPix = screenDistPix*tand(abs(obj.gridOrigin));
-            gridOriginPix(obj.gridOrigin<0)=-gridOriginPix(obj.gridOrigin<0);
-            gridOriginPix = round(gridOriginPix+[obj.xMonPix/2,screenHeightBelowPix]);
-            
-            % Get grid x and y coordinates
-            % force stimSize to even number because stim object centers defined by stimSize/2
-            stimSizePix = 2*(round(stimSizePix/2));
-            nXpts = floor(gridWidthPix/stimSizePix);
-            nYpts = floor(gridHeightPix/stimSizePix);
+            % Get grid x and y coordinates in degrees
+            nXpts = floor(obj.gridWidth/obj.objectSize);
+            nYpts = floor(obj.gridHeight/obj.objectSize);
             % shift grid towards center of screen if it does not fill screen
-            centerShiftX = round((gridWidthPix-nXpts*stimSizePix)/2);
-            centerShiftY = round((gridHeightPix-nYpts*stimSizePix)/2);
-            Xcoords = centerShiftX+gridOriginPix(1)+(stimSizePix/2:stimSizePix:nXpts*stimSizePix-stimSizePix/2);
-            Ycoords = centerShiftY+gridOriginPix(2)+(stimSizePix/2:stimSizePix:nYpts*stimSizePix-stimSizePix/2);
+            centerShiftX = 0.5*(obj.gridWidth-nXpts*obj.objectSize);
+            centerShiftY = 0.5*(obj.gridHeight-nYpts*obj.objectSize);
+            Xcoords = centerShiftX+obj.gridOrigin(1)+(obj.objectSize/2:obj.objectSize:nXpts*obj.objectSize-obj.objectSize/2);
+            Ycoords = centerShiftY+obj.gridOrigin(2)+(obj.objectSize/2:obj.objectSize:nYpts*obj.objectSize-obj.objectSize/2);
             obj.allCoords = allcombs(Xcoords,Ycoords);
             obj.notCompletedCoords = 1:size(obj.allCoords,1);
         end
@@ -79,15 +67,22 @@ classdef Grid < StimGLProtocol
             
             % Set object properties
             params.numObj = 1;
-            params.objColor = obj.stimColor;
+            params.objColor = obj.objectColor;
             params.objType = 'box';
             % pick a random grid point; complete all grid points before repeating any
             rng('shuffle');
             randIndex = randi(numel(obj.notCompletedCoords),1);
-            stimCoord = obj.allCoords(obj.notCompletedCoords(randIndex),:);
+            epochCoord = obj.allCoords(obj.notCompletedCoords(randIndex),:);
             obj.notCompletedCoords(randIndex) = [];
-            params.objXinit = stimCoord(1);
-            params.objYinit = stimCoord(2);
+            % convert object position and size from degrees to pixels
+            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
+            objectEdgesXPix = round(obj.xMonPix/2+screenDistPix*tand([epochCoord(1)-obj.objectSize/2,epochCoord(1)+obj.objectSize/2]));
+            objectEdgesYPix = round(screenHeightBelowPix+screenDistPix*tand([epochCoord(2)-obj.objectSize/2,epochCoord(2)+obj.objectSize/2])); 
+            objectSizeXPix = diff(objectEdgesXPix);
+            objectSizeYPix = diff(objectEdgesYPix);
+            params.objXinit = round(objectEdgesXPix(1)+objectSizeXPix/2);
+            params.objYinit = round(objectEdgesYPix(1)+objectSizeYPix/2);
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -97,19 +92,13 @@ classdef Grid < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime plus plenty of extra time to complete stop stimGL
-            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
-            stimSizePix = round(2*screenDistPix*tand(obj.stimSize/2));
-            params.objLenX = [stimSizePix zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
-            params.objLenY = params.objLenX;
+            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
+            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
             % convert stimCoords back to degrees
-            screenHeightBelowPix = round(obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth));
-            stimCoordOffset = stimCoord-[obj.xMonPix/2,screenHeightBelowPix];
-            stimCoordDeg = atand(abs(stimCoordOffset)./screenDistPix);
-            stimCoordDeg(stimCoordOffset<0) = -stimCoordDeg(stimCoordOffset<0);
-            obj.addParameter('stimPosX', stimCoordDeg(1));
-            obj.addParameter('stimPosY', stimCoordDeg(2));
+            obj.addParameter('stimPosX', epochCoord(1));
+            obj.addParameter('stimPosY', epochCoord(2));
             
             % Create a dummy stimulus so the epoch runs for the desired length
             sampleRate = 1000;
