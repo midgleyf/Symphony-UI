@@ -5,8 +5,12 @@ classdef Grid < StimGLProtocol
         version = 1
         displayName = 'Moving Objects'
         plugInName = 'MovingObjects'
-        xMonPix = 800;
-        yMonPix = 600;
+        xMonPix = 1280;
+        yMonPix = 720;
+        screenDist = 12.8;
+        screenWidth = 22.4;
+        screenHeight = 12.6;
+        screenHeightBelow = 3.3;
     end
     
     properties (Hidden)
@@ -21,10 +25,10 @@ classdef Grid < StimGLProtocol
         interTrialInterval = [1 2];
         backgroundColor = 0;
         stimColor = 1;
-        stimSize = 20;
-        gridOrigin = [0 0];
-        gridWidth = 800;
-        gridHeight = 600;
+        stimSize = 10;
+        gridOrigin = [-40.5 -14];
+        gridWidth = 81;
+        gridHeight = 49;
     end
     
     methods
@@ -38,23 +42,26 @@ classdef Grid < StimGLProtocol
             % Prepare figures
             %obj.openFigure('Response');
             
+            % Convert degrees to pixels; round values used below
+            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
+            stimSizePix = round(2*screenDistPix*tand(obj.stimSize/2));
+            gridWidthPix = round(2*screenDistPix*tand(obj.gridWidth/2));
+            gridHeightPix = round(2*screenDistPix*tand(obj.gridHeight/2));
+            gridOriginPix = screenDistPix*tand(abs(obj.gridOrigin));
+            gridOriginPix(obj.gridOrigin<0)=-gridOriginPix(obj.gridOrigin<0);
+            gridOriginPix = round(gridOriginPix+[obj.xMonPix/2,screenHeightBelowPix]);
+            
             % Get grid x and y coordinates
-            % shrink grid if does not fit on screen
-            if obj.gridOrigin(1)+obj.gridWidth>obj.xMonPix
-                obj.gridWidth = obj.xMonPix-obj.gridOrigin(1);
-            end
-            if obj.gridOrigin(2)+obj.gridHeight>obj.yMonPix
-                obj.gridHeight = obj.yMonPix-obj.gridOrigin(2);
-            end
             % force stimSize to even number because stim object centers defined by stimSize/2
-            obj.stimSize = 2*(round(obj.stimSize/2));
-            nXpts = floor(obj.gridWidth/obj.stimSize);
-            nYpts = floor(obj.gridHeight/obj.stimSize);
+            stimSizePix = 2*(round(stimSizePix/2));
+            nXpts = floor(gridWidthPix/stimSizePix);
+            nYpts = floor(gridHeightPix/stimSizePix);
             % shift grid towards center of screen if it does not fill screen
-            centerShiftX = round((obj.gridWidth-nXpts*obj.stimSize)/2);
-            centerShiftY = round((obj.gridHeight-nYpts*obj.stimSize)/2);
-            Xcoords = centerShiftX+obj.gridOrigin(1)+(obj.stimSize/2:obj.stimSize:nXpts*obj.stimSize-obj.stimSize/2);
-            Ycoords = centerShiftY+obj.gridOrigin(2)+(obj.stimSize/2:obj.stimSize:nYpts*obj.stimSize-obj.stimSize/2);
+            centerShiftX = round((gridWidthPix-nXpts*stimSizePix)/2);
+            centerShiftY = round((gridHeightPix-nYpts*stimSizePix)/2);
+            Xcoords = centerShiftX+gridOriginPix(1)+(stimSizePix/2:stimSizePix:nXpts*stimSizePix-stimSizePix/2);
+            Ycoords = centerShiftY+gridOriginPix(2)+(stimSizePix/2:stimSizePix:nYpts*stimSizePix-stimSizePix/2);
             obj.allCoords = allcombs(Xcoords,Ycoords);
             obj.notCompletedCoords = 1:size(obj.allCoords,1);
         end
@@ -90,15 +97,23 @@ classdef Grid < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime plus plenty of extra time to complete stop stimGL
-            params.objLenX = [obj.stimSize zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
+            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            stimSizePix = round(2*screenDistPix*tand(obj.stimSize/2));
+            params.objLenX = [stimSizePix zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
             params.objLenY = params.objLenX;
             
             % Add epoch-specific parameters for ovation
-            obj.addParameter('stimCoord', stimCoord);
+            % convert stimCoords back to degrees
+            screenHeightBelowPix = round(obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth));
+            stimCoordOffset = stimCoord-[obj.xMonPix/2,screenHeightBelowPix];
+            stimCoordDeg = atand(abs(stimCoordOffset)./screenDistPix);
+            stimCoordDeg(stimCoordOffset<0) = -stimCoordDeg(stimCoordOffset<0);
+            obj.addParameter('stimPosX', stimCoordDeg(1));
+            obj.addParameter('stimPosY', stimCoordDeg(2));
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, floor(sampleRate.Quantity*(obj.preTime+obj.stimTime+obj.postTime)));
+            sampleRate = 1000;
+            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in

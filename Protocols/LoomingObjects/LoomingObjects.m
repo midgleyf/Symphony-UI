@@ -5,9 +5,12 @@ classdef LoomingObjects < StimGLProtocol
         version = 1
         displayName = 'Looming Objects'
         plugInName = 'MovingObjects'
-        xMonPix = 800;
-        yMonPix = 600;
-        screenDist = 1000;
+        xMonPix = 1280;
+        yMonPix = 720;
+        screenDist = 12.8;
+        screenWidth = 22.4;
+        screenHeightAbove = 9.3;
+        screenHeightBelow = 3.3;
     end
     
     properties (Hidden)
@@ -131,17 +134,19 @@ classdef LoomingObjects < StimGLProtocol
                        
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjColor',params.objColor);
-            obj.addParameter('epochObjPosition',[params.objXinit,params.objYinit]);
+            obj.addParameter('epochObjPosX',params.objXinit);
+            obj.addParameter('epochObjPosY',params.objYinit);
             obj.addParameter('epochObjSpeed',epochObjSpeed);
             if obj.numObjects==2
                 obj.addParameter('epochObj2Color',params.objColor2);
-                obj.addParameter('epochObj2Position',[params.objXinit2,params.objYinit2]);
+                obj.addParameter('epochObj2PosX',params.objXinit2);
+                obj.addParameter('epochObj2PosY',params.objYinit2);
                 obj.addParameter('epochRelCollisionTime',epochRelCollisionTime);
             end
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, floor(sampleRate.Quantity*(obj.preTime+stimTime+obj.postTime)));
+            sampleRate = 1000;
+            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in

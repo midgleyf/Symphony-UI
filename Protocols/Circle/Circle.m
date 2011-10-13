@@ -5,8 +5,8 @@ classdef Circle < StimGLProtocol
         version = 1
         displayName = 'Circle'
         plugInName = 'MovingObjects'
-        xMonPix = 800;
-        yMonPix = 600;
+        xMonPix = 1280;
+        yMonPix = 720;
     end
     
     properties (Hidden)
@@ -81,8 +81,8 @@ classdef Circle < StimGLProtocol
             obj.addParameter('epochSize', epochStimSize);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, floor(sampleRate.Quantity*(obj.preTime+obj.stimTime+obj.postTime)));
+            sampleRate = 1000;
+            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in

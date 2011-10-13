@@ -120,19 +120,21 @@ classdef LinearLoom < StimGLProtocol
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjColor',params.objColor);
-            obj.addParameter('epochObjPosition',[params.objXinit,params.objYinit]);
+            obj.addParameter('epochObjPosX',params.objXinit);
+            obj.addParameter('epochObjPosY',params.objYinit);
             obj.addParameter('epochObjStartSize',startSize);
             obj.addParameter('epochObjLoomSpeed',loomSpeed);
             if obj.numObjects==2
                 obj.addParameter('epochObj2Color',params.objColor2);
-                obj.addParameter('epochObj2Position',[params.objXinit2,params.objYinit2]);
+                obj.addParameter('epochObj2PosX',params.objXinit2);
+                obj.addParameter('epochObj2PosY',params.objYinit2);
                 obj.addParameter('epochObj2StartSize',startSize2);
                 obj.addParameter('epochObj2LoomSpeed',loomSpeed2);
             end
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = obj.deviceSampleRate('test-device', 'OUT');
-            stimulus = zeros(1, floor(sampleRate.Quantity*(obj.preTime+obj.stimTime+obj.postTime)));
+            sampleRate = 1000;
+            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in
