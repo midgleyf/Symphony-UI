@@ -828,8 +828,7 @@ classdef Symphony < handle
                     obj.metadataNode = obj.metadataDoc.getDocumentElement;
                     
                     % Add the source hierarchy to the metadata.
-                    ancestors = group.source.ancestors();
-                    ancestors(1).persistToMetadata(obj.metadataNode);
+                    group.source.persistToMetadata(obj.metadataNode);
                 end
                 
                 obj.epochGroup = group;

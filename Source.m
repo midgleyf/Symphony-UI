@@ -92,15 +92,19 @@ classdef Source < handle
         function persistToMetadata(obj, parentNode)
             docNode = parentNode.getOwnerDocument();
             
+            % Persist all ancestor sources.
+            ancestors = obj.ancestors();
+            for i = 1:length(ancestors)
+                sourceNode = parentNode.appendChild(docNode.createElement('source'));
+                sourceNode.setAttribute('label', ancestors(i).name);
+                sourceNode.setAttribute('identifier', char(ancestors(i).identifier.ToString()));
+                parentNode = sourceNode;
+            end
+            
             % Persist this source.
             sourceNode = parentNode.appendChild(docNode.createElement('source'));
             sourceNode.setAttribute('label', obj.name);
             sourceNode.setAttribute('identifier', char(obj.identifier.ToString()));
-            
-            % Persist all child sources.
-            for i = 1:length(obj.childSources)
-                obj.childSources(i).persistToMetadata(sourceNode);
-            end
         end
         
         
