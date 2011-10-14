@@ -226,7 +226,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             elseif isnumeric(background)
                 background = Measurement(background, 'V');
             end
-            obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
+            
+            device.Background = background;
+            if ~isempty(obj.epoch)
+                obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
+            end
         end
         
         
