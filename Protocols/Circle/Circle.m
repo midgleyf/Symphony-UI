@@ -7,26 +7,30 @@ classdef Circle < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
+        screenDist = 12.8;
+        screenWidth = 22.4;
+        screenHeight = 12.6;
+        screenHeightBelow = 3.3;
     end
     
     properties (Hidden)
-        notCompletedSizes
+        trialTypes
+        notCompletedTrialTypes
     end
 
     properties
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        interTrialInterval = [1 2];
+        intertrialInterval = [1,2];
         backgroundColor = 0;
-        stimColor = 1;
-        stimSize = [5,10,20,40];
-        RFcenterX = 400;
-        RFcenterY = 300;
+        objectColor = [0.5,1];
+        objectSize = [1,5,10,20];
+        RFcenterX = 0;
+        RFcenterY = 0;
         Xoffset = 0;
         Yoffset = 0;
     end
-    
     
     methods
         
@@ -39,7 +43,9 @@ classdef Circle < StimGLProtocol
             % Prepare figures
             %obj.openFigure('Response');
             
-            obj.notCompletedSizes = obj.stimSize;
+            % Get all combinations of trial types based on object color and size
+            obj.trialTypes = allcombs(obj.objectColor,obj.objectSize);
+            obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
         end
         
         function prepareEpoch(obj)
@@ -49,22 +55,32 @@ classdef Circle < StimGLProtocol
             % Set constant parameters
             params.x_mon_pix = obj.xMonPix;
             params.y_mon_pix = obj.yMonPix;
-            params.nLoops = 0;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             
+            % Pick a combination of object color and size from the trialTypes list
+            % complete all combinations before repeating any particular combination
+            rng('shuffle');
+            randIndex = randi(numel(obj.notCompletedTrialTypes),1);
+            epochTrialType = obj.notCompletedTrialTypes(randIndex);
+            obj.notCompletedTrialTypes(randIndex) = [];
+            epochObjectColor = obj.trialTypes(epochTrialType,1);
+            epochObjectSize = obj.trialTypes(epochTrialType,2);
+            
             % Set object properties
             params.numObj = 1;
-            params.objColor = obj.stimColor;
+            params.objColor = epochObjectColor;
             params.objType = 'ellipse';
-            params.objXinit = obj.RFcenterX+obj.Xoffset;
-            params.objYinit = obj.RFcenterY+obj.Yoffset;
-            
-            % Pick a stim size from the stimSize vector; complete all sizes before repeating any
-            rng('shuffle');
-            randIndex = randi(numel(obj.notCompletedSizes),1);
-            epochStimSize = obj.notCompletedSizes(randIndex);
-            obj.notCompletedSizes(randIndex) = [];
+            % get object position and size in pixels
+            objectPosDeg = [obj.RFcenterX+obj.Xoffset,obj.RFcenterY+obj.Yoffset];
+            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
+            objectEdgesXPix = obj.xMonPix/2+screenDistPix*tand([objectPosDeg(1)-epochObjectSize/2,objectPosDeg(1)+epochObjectSize/2]);
+            objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([objectPosDeg(2)-epochObjectSize/2,objectPosDeg(2)+epochObjectSize/2]);
+            objectSizeXPix = diff(objectEdgesXPix);
+            objectSizeYPix = diff(objectEdgesYPix);
+            params.objXinit = objectEdgesXPix(1)+objectSizeXPix/2;
+            params.objYinit = objectEdgesYPix(1)+objectSizeYPix/2;
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -73,12 +89,13 @@ classdef Circle < StimGLProtocol
             params.tFrames = params.nFrames;
             
             % Pad object length vector with zeros to make object disappear
-            % during postTime plus plenty of extra time to complete stop stimGL
-            params.objLenX = [epochStimSize zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
-            params.objLenY = params.objLenX;
+            % during postTime and while stop stimGL completes
+            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
+            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
-            obj.addParameter('epochSize', epochStimSize);
+            obj.addParameter('epochObjectColor', epochObjectColor);
+            obj.addParameter('epochObjectSize', epochObjectSize);
             
             % Create a dummy stimulus so the epoch runs for the desired length
             sampleRate = 1000;
@@ -96,9 +113,9 @@ classdef Circle < StimGLProtocol
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);
             
-            % if all stim sizes completed, reset notCompeletedSizes and start a new loop
-            if isempty(obj.notCompletedSizes)
-                obj.notCompletedSizes = obj.stimSize;
+            % if all trial types completed, reset completedTrialTypes and start a new loop
+            if isempty(obj.notCompletedTrialTypes)
+                obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
                 obj.loopCount = obj.loopCount+1;
             end
         end
@@ -114,10 +131,10 @@ classdef Circle < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on
-                if numel(obj.interTrialInterval)==1
-                    pause(obj.interTrialInterval);
+                if numel(obj.intertrialInterval)==1
+                    pause(obj.intertrialInterval);
                 else
-                    pause(rand(1)*diff(obj.interTrialInterval)+obj.interTrialInterval(1));
+                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
                 end
             end
         end

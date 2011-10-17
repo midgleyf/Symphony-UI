@@ -3,7 +3,7 @@ classdef Grid < StimGLProtocol
     properties (Constant)
         identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
         version = 1
-        displayName = 'Moving Objects'
+        displayName = 'Grid'
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
@@ -22,13 +22,13 @@ classdef Grid < StimGLProtocol
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        interTrialInterval = [1 2];
+        intertrialInterval = [1,2];
         backgroundColor = 0;
         objectColor = 1;
         objectSize = 10;
-        gridOrigin = [-40.5 -14];
-        gridWidth = 81;
-        gridHeight = 49;
+        gridOrigin = [-40,-14.25];
+        gridWidth = 80;
+        gridHeight = 50;
     end
     
     methods
@@ -61,28 +61,28 @@ classdef Grid < StimGLProtocol
             % Set constant parameters
             params.x_mon_pix = obj.xMonPix;
             params.y_mon_pix = obj.yMonPix;
-            params.nLoops = 0;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            
+            % Pick a random grid point; complete all grid points before repeating any
+            rng('shuffle');
+            randIndex = randi(numel(obj.notCompletedCoords),1);
+            epochCoord = obj.allCoords(obj.notCompletedCoords(randIndex),:);
+            obj.notCompletedCoords(randIndex) = [];
             
             % Set object properties
             params.numObj = 1;
             params.objColor = obj.objectColor;
             params.objType = 'box';
-            % pick a random grid point; complete all grid points before repeating any
-            rng('shuffle');
-            randIndex = randi(numel(obj.notCompletedCoords),1);
-            epochCoord = obj.allCoords(obj.notCompletedCoords(randIndex),:);
-            obj.notCompletedCoords(randIndex) = [];
-            % convert object position and size from degrees to pixels
+            % get object position and size in pixels
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            objectEdgesXPix = round(obj.xMonPix/2+screenDistPix*tand([epochCoord(1)-obj.objectSize/2,epochCoord(1)+obj.objectSize/2]));
-            objectEdgesYPix = round(screenHeightBelowPix+screenDistPix*tand([epochCoord(2)-obj.objectSize/2,epochCoord(2)+obj.objectSize/2])); 
+            objectEdgesXPix = obj.xMonPix/2+screenDistPix*tand([epochCoord(1)-obj.objectSize/2,epochCoord(1)+obj.objectSize/2]);
+            objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([epochCoord(2)-obj.objectSize/2,epochCoord(2)+obj.objectSize/2]); 
             objectSizeXPix = diff(objectEdgesXPix);
             objectSizeYPix = diff(objectEdgesYPix);
-            params.objXinit = round(objectEdgesXPix(1)+objectSizeXPix/2);
-            params.objYinit = round(objectEdgesYPix(1)+objectSizeYPix/2);
+            params.objXinit = objectEdgesXPix(1)+objectSizeXPix/2;
+            params.objYinit = objectEdgesYPix(1)+objectSizeYPix/2;
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -91,9 +91,9 @@ classdef Grid < StimGLProtocol
             params.tFrames = params.nFrames;
             
             % Pad object length vector with zeros to make object disappear
-            % during postTime plus plenty of extra time to complete stop stimGL
-            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
-            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+obj.stimTime+10)/obj.stimTime))];
+            % during postTime and while stop stimGL completes
+            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
+            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
             % convert stimCoords back to degrees
@@ -134,10 +134,10 @@ classdef Grid < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on
-                if numel(obj.interTrialInterval)==1
-                    pause(obj.interTrialInterval);
+                if numel(obj.intertrialInterval)==1
+                    pause(obj.intertrialInterval);
                 else
-                    pause(rand(1)*diff(obj.interTrialInterval)+obj.interTrialInterval(1));
+                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
                 end
             end
         end

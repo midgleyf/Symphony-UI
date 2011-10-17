@@ -7,6 +7,10 @@ classdef MovingObjects < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
+        screenDist = 12.8;
+        screenWidth = 22.4;
+        screenHeight = 12.6;
+        screenHeightBelow = 3.3;
     end
     
     properties (Hidden)
@@ -17,25 +21,20 @@ classdef MovingObjects < StimGLProtocol
     properties
         preTime = 1;
         postTime = 2;
-        interTrialInterval = [1 4];
+        intertrialInterval = [1,2];
         backgroundColor = 0;
-        objectShape = {'ellipse','box'};
         objectColor = 1;
-        objectSize = 25;
+        objectSize = [5,20];
         RFcenterX = 400;
         RFcenterY = 300;
         Xoffset = 0;
         Yoffset = 0;
-        objectSpeed = 10;
+        objectSpeed = [10,30];
         objectDir = 0:45:315;
     end
     
     
     methods
-        
-        function set.objectShape(obj,objectShape)
-            obj.objectShape = char(objectShape);
-        end
         
         function prepareRun(obj)
             % Call the base class method which clears all figures.
@@ -47,7 +46,7 @@ classdef MovingObjects < StimGLProtocol
             %obj.openFigure('Response');
             
             % Get all combinations of trial types based on object direction, speed, and size
-            obj.trialTypes = allcombs(obj.objectDir,obj.objectSpeed,obj.objectSize);
+            obj.trialTypes = allcombs(obj.objectSize,obj.objectSpeed,obj.objectDir);
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
         end
         
@@ -58,174 +57,257 @@ classdef MovingObjects < StimGLProtocol
             % Set constant parameters
             params.x_mon_pix = obj.xMonPix;
             params.y_mon_pix = obj.yMonPix;
-            params.wrapEdge = 1;
-            params.nLoops = 0;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             
-            % Set object properties
-            params.numObj = 1;
-            params.objColor = obj.objectColor;
-            params.objType = obj.objectShape;
-            % pick a combination of object direction/speed/size from the trialTypes list
+            % Pick a combination of object size/speed/direction from the trialTypes list
             % complete all combinations before repeating any particular combination
             rng('shuffle');
             randIndex = randi(numel(obj.notCompletedTrialTypes),1);
             epochTrialType = obj.notCompletedTrialTypes(randIndex);
             obj.notCompletedTrialTypes(randIndex) = [];
-            angle = obj.trialTypes(epochTrialType,1);
-            speed = obj.trialTypes(epochTrialType,2);
-            objSize = obj.trialTypes(epochTrialType,3);
-            % deterine object path, velocity components, and number of frames to complete path
-            Xpos=obj.RFcenterX+obj.Xoffset;
-            Ypos=obj.RFcenterY+obj.Yoffset;
-            if angle==0
-                params.objXinit = Xpos;
-                params.objYinit = 0;
-                params.objVelX = 0;
-                params.objVelY = speed;
-                params.nFrames = round(obj.yMonPix/speed);
-            elseif angle>0 && angle<90
-                m = tand(90-angle);
-                xintercept = Xpos-Ypos/m;
+            epochObjectSize = obj.trialTypes(epochTrialType,1);
+            epochObjectSpeed = obj.trialTypes(epochTrialType,2);
+            epochObjectDir = obj.trialTypes(epochTrialType,3);
+            
+            % Determine object path (get start and end postions in pixels)
+            % (add offset so objects start and end just off the screen)
+            screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
+            XcenterDeg=obj.RFcenterX+obj.Xoffset;
+            YcenterDeg=obj.RFcenterY+obj.Yoffset;
+            XcenterPix = 0.5*obj.xMonPix+screenDistPix*tand(XcenterDeg);
+            YcenterPix = screenHeightBelowPix+screenDistPix*tand(YcenterDeg);
+            if epochObjectDir==0
+                XstartPix = XcenterPix;
+                YstartPix = 0;
+                XendPix = XcenterPix;
+                YendPix = obj.yMonPix;
+                XstartOffsetDeg = 0;
+                YstartOffsetDeg = -0.5*epochObjectSize;
+                XendOffsetDeg = 0;
+                YendOffsetDeg = 0.5*epochObjectSize;
+            elseif epochObjectDir>0 && epochObjectDir<90
+                m = tand(90-epochObjectDir);
+                xintercept = XcenterPix-YcenterPix/m;
                 yintercept = -m*xintercept;
                 if xintercept<0
-                    params.objXinit = 0;
-                    params.objYinit = yintercept;
+                    XstartPix = 0;
+                    YstartPix = yintercept;
+                    XstartOffsetDeg = -0.5*epochObjectSize;
+                    YstartOffsetDeg = -0.5*epochObjectSize*m;
                 else
-                    params.objXinit = xintercept;
-                    params.objYinit = 0;
+                    XstartPix = xintercept;
+                    YstartPix = 0;
+                    XstartOffsetDeg = -0.5*epochObjectSize/m;
+                    YstartOffsetDeg = -0.5*epochObjectSize;
                 end
-                params.objVelX = round(speed*cosd(90-angle));
-                params.objVelY = round(speed*sind(90-angle));
-                Xend = (obj.yMonPix-yintercept)/m;
-                if Xend>obj.xMonPix
-                    Xend=obj.xMonPix;
+                XendPix = (obj.yMonPix-yintercept)/m;
+                if XendPix>obj.xMonPix
+                    XendPix=obj.xMonPix;
+                    XendOffsetDeg = 0.5*epochObjectSize;
+                else
+                    XendOffsetDeg = 0.5*epochObjectSize/m;
                 end
-                Yend = m*obj.xMonPix+yintercept;
-                if Yend>obj.yMonPix
-                    Yend=obj.yMonPix;
+                YendPix = m*obj.xMonPix+yintercept;
+                if YendPix>obj.yMonPix
+                    YendPix=obj.yMonPix;
+                    YendOffsetDeg = 0.5*epochObjectSize;
+                else
+                    YendOffsetDeg = 0.5*epochObjectSize*m;
                 end
-                distance = sqrt((Xend-params.objXinit)^2+(Yend-params.objYinit)^2);
-                params.nFrames = round(distance/speed);
-            elseif angle==90
-                params.objXinit = 0;
-                params.objYinit = Ypos;
-                params.objVelX = speed;
-                params.objVelY = 0;
-                params.nFrames = round(obj.xMonPix/speed);
-            elseif angle>90 && angle<180
-                m = -tand(angle-90);
-                xintercept = Xpos-(obj.yMonPix-Ypos)/-m;
+            elseif epochObjectDir==90
+                XstartPix = 0;
+                YstartPix = YcenterPix;
+                XendPix = obj.xMonPix;
+                YendPix = YcenterPix;
+                XstartOffsetDeg = -0.5*epochObjectSize;
+                YstartOffsetDeg = 0;
+                XendOffsetDeg = 0.5*epochObjectSize;
+                YendOffsetDeg = 0;
+            elseif epochObjectDir>90 && epochObjectDir<180
+                m = -tand(epochObjectDir-90);
+                xintercept = XcenterPix-(obj.yMonPix-YcenterPix)/-m;
                 yintercept = -m*xintercept;
                 if xintercept<0
-                    params.objXinit = 0;
-                    params.objYinit = obj.yMonPix+yintercept;
+                    XstartPix = 0;
+                    YstartPix = obj.yMonPix+yintercept;
+                    XstartOffsetDeg = -0.5*epochObjectSize;
+                    YstartOffsetDeg = 0.5*epochObjectSize*(-m);
                 else
-                    params.objXinit = xintercept;
-                    params.objYinit = obj.yMonPix;
+                    XstartPix = xintercept;
+                    YstartPix = obj.yMonPix;
+                    XstartOffsetDeg = -0.5*epochObjectSize/(-m);
+                    YstartOffsetDeg = 0.5*epochObjectSize;
                 end
-                params.objVelX = round(speed*cosd(angle-90));
-                params.objVelY = -round(speed*sind(angle-90));
-                Xend = (-obj.yMonPix-yintercept)/m;
-                if Xend>obj.xMonPix
-                    Xend=obj.xMonPix;
-                end
-                Yend = m*obj.xMonPix+yintercept;
-                if Yend<-obj.yMonPix
-                    Yend = 0;
+                XendPix = (-obj.yMonPix-yintercept)/m;
+                if XendPix>obj.xMonPix
+                    XendPix=obj.xMonPix;
+                    XendOffsetDeg = 0.5*epochObjectSize;
                 else
-                    Yend = obj.yMonPix+Yend;
+                    XendOffsetDeg = 0.5*epochObjectSize/(-m);
                 end
-                distance = sqrt((Xend-params.objXinit)^2+(Yend-params.objYinit)^2);
-                params.nFrames = round(distance/speed);
-            elseif angle==180
-                params.objXinit = Xpos;
-                params.objYinit = obj.yMonPix;
-                params.objVelX = 0;
-                params.objVelY = -speed;
-                params.nFrames = round(obj.yMonPix/speed);
-            elseif angle>180 && angle<270
-                m = tand(270-angle);
-                xintercept = -obj.xMonPix+Xpos+(obj.yMonPix-Ypos)/m;
+                YendPix = m*obj.xMonPix+yintercept;
+                if YendPix<-obj.yMonPix
+                    YendPix = 0;
+                    YendOffsetDeg = -0.5*epochObjectSize;
+                else
+                    YendPix = obj.yMonPix+YendPix;
+                    YendOffsetDeg = -0.5*epochObjectSize*(-m);
+                end
+            elseif epochObjectDir==180
+                XstartPix = XcenterPix;
+                YstartPix = obj.yMonPix;
+                XendPix = XcenterPix;
+                YendPix = 0;
+                XstartOffsetDeg = 0;
+                YstartOffsetDeg = 0.5*epochObjectSize;
+                XendOffsetDeg = 0;
+                YendOffsetDeg = -0.5*epochObjectSize;
+            elseif epochObjectDir>180 && epochObjectDir<270
+                m = tand(270-epochObjectDir);
+                xintercept = -obj.xMonPix+XcenterPix+(obj.yMonPix-YcenterPix)/m;
                 yintercept = -m*xintercept;
                 if xintercept>0
-                    params.objXinit = obj.xMonPix;
-                    params.objYinit = obj.yMonPix+yintercept;
+                    XstartPix = obj.xMonPix;
+                    YstartPix = obj.yMonPix+yintercept;
+                    XstartOffsetDeg = 0.5*epochObjectSize;
+                    YstartOffsetDeg = 0.5*epochObjectSize*m;
                 else
-                    params.objXinit = obj.xMonPix+xintercept;
-                    params.objYinit = obj.yMonPix;
+                    XstartPix = obj.xMonPix+xintercept;
+                    YstartPix = obj.yMonPix;
+                    XstartOffsetDeg = 0.5*epochObjectSize/m;
+                    YstartOffsetDeg = 0.5*epochObjectSize;
                 end
-                params.objVelX = -round(speed*cosd(270-angle));
-                params.objVelY = -round(speed*sind(270-angle));
-                Xend = (-obj.yMonPix-yintercept)/m;
-                if Xend<-obj.xMonPix
-                    Xend = 0;
+                XendPix = (-obj.yMonPix-yintercept)/m;
+                if XendPix<-obj.xMonPix
+                    XendPix = 0;
+                    XendOffsetDeg = -0.5*epochObjectSize;
                 else
-                    Xend = obj.xMonPix+Xend;
+                    XendPix = obj.xMonPix+XendPix;
+                    XendOffsetDeg = -0.5*epochObjectSize/m;
                 end
-                Yend = m*-obj.xMonPix+yintercept;
-                if Yend<-obj.yMonPix
-                    Yend = 0;
+                YendPix = m*-obj.xMonPix+yintercept;
+                if YendPix<-obj.yMonPix
+                    YendPix = 0;
+                    YendOffsetDeg = -0.5*epochObjectSize;
                 else
-                    Yend = obj.yMonPix+Yend;
+                    YendPix = obj.yMonPix+YendPix;
+                    YendOffsetDeg = -0.5*epochObjectSize*m;
                 end
-                distance = sqrt((Xend-params.objXinit)^2+(Yend-params.objYinit)^2);
-                params.nFrames = round(distance/speed);
-            elseif angle==270
-                params.objXinit = obj.xMonPix;
-                params.objYinit = Ypos;
-                params.objVelX = -speed;
-                params.objVelY = 0;
-                params.nFrames = round(obj.xMonPix/speed);
-            elseif angle>270 && angle<360
-                m = -tand(angle-270);
-                xintercept = -obj.xMonPix+Xpos+Ypos/-m;
+            elseif epochObjectDir==270
+                XstartPix = obj.xMonPix;
+                YstartPix = YcenterPix;
+                XendPix = 0;
+                YendPix = YcenterPix;
+                XstartOffsetDeg = 0.5*epochObjectSize;
+                YstartOffsetDeg = 0;
+                XendOffsetDeg = -0.5*epochObjectSize;
+                YendOffsetDeg = 0;
+            elseif epochObjectDir>270 && epochObjectDir<360
+                m = -tand(epochObjectDir-270);
+                xintercept = -obj.xMonPix+XcenterPix+YcenterPix/-m;
                 yintercept = -m*xintercept;
                 if xintercept>0
-                    params.objXinit = obj.xMonPix;
-                    params.objYinit = yintercept;
+                    XstartPix = obj.xMonPix;
+                    YstartPix = yintercept;
+                    XstartOffsetDeg = 0.5*epochObjectSize;
+                    YstartOffsetDeg = -0.5*epochObjectSize*(-m);
                 else
-                    params.objXinit = obj.xMonPix+xintercept;
-                    params.objYinit = 0;
+                    XstartPix = obj.xMonPix+xintercept;
+                    YstartPix = 0;
+                    XstartOffsetDeg = 0.5*epochObjectSize/(-m);
+                    YstartOffsetDeg = -0.5*epochObjectSize;
                 end
-                params.objVelX = -round(speed*cosd(angle-270));
-                params.objVelY = round(speed*sind(angle-270));
-                Xend = (obj.yMonPix-yintercept)/m;
-                if Xend<-obj.xMonPix
-                    Xend = 0;
+                XendPix = (obj.yMonPix-yintercept)/m;
+                if XendPix<-obj.xMonPix
+                    XendPix = 0;
+                    XendOffsetDeg = -0.5*epochObjectSize;
                 else
-                    Xend = obj.xMonPix+Xend;
+                    XendPix = obj.xMonPix+XendPix;
+                    XendOffsetDeg = -0.5*epochObjectSize/(-m);
                 end
-                Yend = m*-obj.xMonPix+yintercept;
-                if Yend>obj.yMonPix
-                    Yend = obj.yMonPix;
+                YendPix = m*-obj.xMonPix+yintercept;
+                if YendPix>obj.yMonPix
+                    YendPix = obj.yMonPix;
+                    YendOffsetDeg = 0.5*epochObjectSize;
+                else
+                    YendOffsetDeg = 0.5*epochObjectSize*(-m);
                 end
-                distance = sqrt((Xend-params.objXinit)^2+(Yend-params.objYinit)^2);
-                params.nFrames = round(distance/speed);
             end
             
-            % Set number of delay frames for preTime
+            % Determine number of frames to complete path and X and Y positions in degrees at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
-            params.delay = obj.preTime*frameRate;
+            XstartDeg = atand((XstartPix-0.5*obj.xMonPix)/screenDistPix)+XstartOffsetDeg;
+            XendDeg = atand((XendPix-0.5*obj.xMonPix)/screenDistPix)+XendOffsetDeg;
+            YstartDeg = atand((YstartPix-screenHeightBelowPix)/screenDistPix)+YstartOffsetDeg;
+            YendDeg = atand((YendPix-screenHeightBelowPix)/screenDistPix)+YendOffsetDeg;
+            pathDistDeg = sqrt((XendDeg-XstartDeg)^2+(YendDeg-YstartDeg)^2);
+            nStimFrames = round(pathDistDeg/epochObjectSpeed*frameRate)+1;
+            if XendDeg==XstartDeg
+                XposVectorDeg = XstartDeg*ones(1,nStimFrames);
+            else
+                XposVectorDeg = XstartDeg:(XendDeg-XstartDeg)/(nStimFrames-1):XendDeg;
+            end
+            if YendDeg==YstartDeg
+                YposVectorDeg = YstartDeg*ones(1,nStimFrames);
+            else
+                YposVectorDeg = YstartDeg:(YendDeg-YstartDeg)/(nStimFrames-1):YendDeg;
+            end
+             
+            % Determine object size and position at each frame in pixels
+            % Pad object size vector with zeros to make object disappear
+            % during postTime and while stop stimGL completes
+            leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(XposVectorDeg-0.5*epochObjectSize);
+            rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(XposVectorDeg+0.5*epochObjectSize);
+            bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg-0.5*epochObjectSize);
+            topEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg+0.5*epochObjectSize);
+            XsizeVectorPix = rightEdgesPix-leftEdgesPix;
+            YsizeVectorPix = topEdgesPix-bottomEdgesPix;
+            XposVectorPix = leftEdgesPix+0.5*XsizeVectorPix;
+            YposVectorPix = bottomEdgesPix+0.5*YsizeVectorPix;
+            XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+1)*frameRate)];
+            YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+1)*frameRate)];
             
-            % Pad object length vector with zeros to make object disappear
-            % during postTime plus plenty of extra time to complete stop stimGL
-            params.tFrames = params.nFrames;
-            stimTime = params.nFrames/frameRate;
-            params.objLenX = [objSize zeros(1,ceil((obj.postTime+stimTime+10)/stimTime))];
-            params.objLenY = params.objLenX;
+            % Specify frame parameters in frame_vars.txt file
+            % create frameVars matrix
+            params.nFrames = numel(XsizeVectorPix);
+            frameVars = zeros(params.nFrames,12);
+            frameVars(:,1) = 0:params.nFrames-1; % frame number
+            frameVars(:,4) = 1; % objType (1=ellipse)
+            frameVars(1:numel(XposVectorPix),5) = XposVectorPix;
+            frameVars(numel(XposVectorPix)+1:end,5) = XposVectorPix(end);
+            frameVars(1:numel(YposVectorPix),6) = YposVectorPix;
+            frameVars(numel(YposVectorPix)+1:end,6) = YposVectorPix(end);
+            frameVars(:,7) = XsizeVectorPix;
+            frameVars(:,8) = YsizeVectorPix;
+            frameVars(:,10) = obj.objectColor;
+            frameVars(:,12) = 1; % zScaled needs to be 1
+            % write to file
+            currentDir = cd;
+            protocolDir = fileparts(mfilename('fullpath'));
+            cd(protocolDir);
+            fileID = fopen('frame_vars.txt','w');
+            fprintf(fileID,'"frameNum" "objNum" "subFrameNum" "objType(0=box,1=ellipse,2=sphere)" "x" "y" "r1" "r2" "phi" "color" "z" "zScaled"');
+            fclose(fileID);
+            dlmwrite('frame_vars.txt',frameVars,'delimiter',' ','roffset',1,'-append');
+            cd(currentDir);
+            params.frame_vars = [protocolDir '/frame_vars.txt'];
+            
+            % Set number of delay frames for preTime and determine stimTime
+            params.delay = round(obj.preTime*frameRate);
+            stimTime = nStimFrames/frameRate;
             
             % Add epoch-specific parameters for ovation
-            obj.addParameter('objectEpochDir', angle);
-            obj.addParameter('objectEpochSpeed', speed);
-            obj.addParameter('objectEpochSize', objSize);
-            obj.addParameter('stimFrames', params.nFrames);
+            obj.addParameter('epochObjectDir', epochObjectDir);
+            obj.addParameter('epochObjectSpeed', epochObjectSpeed);
+            obj.addParameter('epochObjectSize', epochObjectSize);
+            obj.addParameter('stimFrames', nStimFrames);
             obj.addParameter('stimTime', stimTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
             sampleRate = 1000;
-            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
+            stimulus = zeros(1, floor(sampleRate*(obj.preTime+stimTime+obj.postTime)));
             obj.addStimulus('test-device', 'test-stimulus', stimulus);
             
             % Start the StimGL plug-in
@@ -241,7 +323,7 @@ classdef MovingObjects < StimGLProtocol
             
             % if all trial types completed, reset completedTrialTypes and start a new loop
             if isempty(obj.notCompletedTrialTypes)
-                obj.notCompletedTrialTypes = obj.trialTypes;
+                obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
                 obj.loopCount = obj.loopCount+1;
             end
         end
@@ -257,10 +339,10 @@ classdef MovingObjects < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on
-                if numel(obj.interTrialInterval)==1
-                    pause(obj.interTrialInterval);
+                if numel(obj.intertrialInterval)==1
+                    pause(obj.intertrialInterval);
                 else
-                    pause(rand(1)*diff(obj.interTrialInterval)+obj.interTrialInterval(1));
+                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
                 end
             end
         end
