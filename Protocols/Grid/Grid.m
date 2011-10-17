@@ -16,42 +16,91 @@ classdef Grid < StimGLProtocol
     properties (Hidden)
         allCoords
         notCompletedCoords
+        plotData
     end
 
     properties
+        threshLimitReturn = [0,100,0];
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        intertrialInterval = [1,2];
+        intertrialIntervalMin = 1;
+        intertrialIntervalMax = 2;
         backgroundColor = 0;
         objectColor = 1;
         objectSize = 10;
-        gridOrigin = [-40,-14.25];
-        gridWidth = 80;
-        gridHeight = 50;
+        gridOriginX = -40.5;
+        gridOriginY = -14;
+        gridWidth = 81;
+        gridHeight = 49.5;
+    end
+    
+    properties (Dependent = true, SetAccess = private)
+        Xcoords;
+        Ycoords;
     end
     
     methods
+        
+        function Xcoords = get.Xcoords(obj)
+            nPts = floor(obj.gridWidth/obj.objectSize);
+            centerShift = 0.5*(obj.gridWidth-nPts*obj.objectSize);
+            Xcoords = centerShift+obj.gridOriginX+(obj.objectSize/2:obj.objectSize:nPts*obj.objectSize-obj.objectSize/2);
+        end
+        
+        function Ycoords = get.Ycoords(obj)
+            nPts = floor(obj.gridHeight/obj.objectSize);
+            centerShift = 0.5*(obj.gridHeight-nPts*obj.objectSize);
+            Ycoords = centerShift+obj.gridOriginY+(obj.objectSize/2:obj.objectSize:nPts*obj.objectSize-obj.objectSize/2);
+        end
         
         function prepareRun(obj)
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
             
             obj.loopCount = 1;
+            obj.allCoords = allcombs(obj.Xcoords,obj.Ycoords);
+            allcombs(obj.Xcoords,obj.Ycoords);
+            obj.notCompletedCoords = 1:size(obj.allCoords,1);
             
             % Prepare figures
-            %obj.openFigure('Response');
-            
-            % Get grid x and y coordinates in degrees
-            nXpts = floor(obj.gridWidth/obj.objectSize);
-            nYpts = floor(obj.gridHeight/obj.objectSize);
-            % shift grid towards center of screen if it does not fill screen
-            centerShiftX = 0.5*(obj.gridWidth-nXpts*obj.objectSize);
-            centerShiftY = 0.5*(obj.gridHeight-nYpts*obj.objectSize);
-            Xcoords = centerShiftX+obj.gridOrigin(1)+(obj.objectSize/2:obj.objectSize:nXpts*obj.objectSize-obj.objectSize/2);
-            Ycoords = centerShiftY+obj.gridOrigin(2)+(obj.objectSize/2:obj.objectSize:nYpts*obj.objectSize-obj.objectSize/2);
-            obj.allCoords = allcombs(Xcoords,Ycoords);
-            obj.notCompletedCoords = 1:size(obj.allCoords,1);
+            obj.plotData.spikePts = [];
+            obj.plotData.meanOnResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
+            obj.plotData.meanOffResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
+            obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
+            obj.openFigure('Custom','Name','MeanOnRespFig','UpdateCallback',@updateMeanOnRespFig);
+            obj.openFigure('Custom','Name','MeanOffRespFig','UpdateCallback',@updateMeanOffRespFig);
+        end
+        
+        function updateResponseFig(obj,axesHandle)
+            %sampInt=1/10000*1000;
+            %t=sampInt:sampInt:sampInt*double(obj.prePts+obj.stimPts+obj.postPts);
+            data = obj.response;
+            plot(axesHandle,data,'k');
+            hold on;
+            plot(axesHandle,obj.plotData.spikePts,data(obj.plotData.spikePts),'go');
+            hold off;
+            xlabel(axesHandle,'ms');
+            ylabel(axesHandle,'mV');
+            set(axesHandle,'TickDir','out','Box','off');
+            if obj.epochNum==1
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.225 0.96 0.075 0.03],'String','thresh');
+                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.31 0.95 0.075 0.05],'String',num2str(obj.threshLimitReturn(1)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.45 0.96 0.075 0.03],'String','limit');
+                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.535 0.95 0.075 0.05],'String',num2str(obj.threshLimitReturn(2)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.675 0.96 0.075 0.03],'String','return');
+                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.76 0.95 0.075 0.05],'String',num2str(obj.threshLimitReturn(3)));
+            end
+        end
+        
+        function updateMeanOnRespFig(obj,axesHandle)
+            imagesc(obj.plotData.meanOnResp,'Parent',axesHandle); colorbar;
+            set(axesHandle,'TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',obj.Ycoords);
+        end
+        
+        function updateMeanOffRespFig(obj,axesHandle)
+            imagesc(obj.plotData.meanOffResp,'Parent',axesHandle); colorbar;
+            set(axesHandle,'TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',obj.Ycoords);
         end
         
         function prepareEpoch(obj)
@@ -113,6 +162,39 @@ classdef Grid < StimGLProtocol
         function completeEpoch(obj)
             Stop(obj.stimGL);
             
+            % Find spikes
+            data=obj.response;
+            if obj.epochNum==1
+                threshold = obj.threshLimitReturn(1);
+                limitThresh = obj.threshLimitReturn(2);
+                returnThresh = obj.threshLimitReturn(3);
+            else
+                threshold = str2double(get(obj.plotData.threshEditHandle,'String'));
+                limitThresh = str2double(get(obj.plotData.limitEditHandle,'String'));
+                returnThresh = str2double(get(obj.plotData.returnEditHandle,'String'));
+            end
+            % flip data and threshold if negative-going spike peaks
+            if false%~handles.posSpikePolarity
+                data=-data; 
+                threshold=-threshold;
+                limitThresh=-limitThresh;
+                returnThresh=-returnThresh;
+            end
+            % find sample number of spike peaks
+            obj.plotData.spikePts=[];
+            posThreshCross=find(data>=threshold,1);
+            while ~isempty(posThreshCross)
+                negThreshCross=posThreshCross+find(data(posThreshCross+1:end)<=returnThresh,1);
+                if isempty(negThreshCross)
+                    break;
+                end
+                [peak peakIndex]=max(data(posThreshCross:negThreshCross));
+                if isnan(limitThresh) || peak<limitThresh
+                    obj.plotData.spikePts(end+1)=posThreshCross-1+peakIndex;
+                end
+                posThreshCross=negThreshCross+find(data(negThreshCross+1:end)>=threshold,1);
+            end
+            
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);
             
@@ -133,12 +215,8 @@ classdef Grid < StimGLProtocol
             % pause for random inter-epoch interval
             if keepGoing
                 rng('shuffle');
-                pause on
-                if numel(obj.intertrialInterval)==1
-                    pause(obj.intertrialInterval);
-                else
-                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
-                end
+                pause on;
+                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
             end
         end
        

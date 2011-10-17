@@ -22,7 +22,8 @@ classdef Circle < StimGLProtocol
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        intertrialInterval = [1,2];
+        intertrialIntervalMin = 1;
+        intertrialIntervalMax = 2;
         backgroundColor = 0;
         objectColor = [0.5,1];
         objectSize = [1,5,10,20];
@@ -130,12 +131,8 @@ classdef Circle < StimGLProtocol
             % pause for random inter-epoch interval
             if keepGoing
                 rng('shuffle');
-                pause on
-                if numel(obj.intertrialInterval)==1
-                    pause(obj.intertrialInterval);
-                else
-                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
-                end
+                pause on;
+                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
             end
         end
        

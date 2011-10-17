@@ -22,7 +22,8 @@ classdef ExpandingObjects < StimGLProtocol
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        intertrialInterval = [1 2];
+        intertrialIntervalMin = 1;
+        intertrialIntervalMax = 2;
         backgroundColor = 0;
         %numObjects = {'1','2'};
         numObjects = 1;
@@ -125,44 +126,44 @@ classdef ExpandingObjects < StimGLProtocol
              % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
             params.nFrames = numel(XsizeVectorPix);
-            frameVars = zeros(params.nFrames,12);
-            frameVars(:,1) = 0:params.nFrames-1; % frame number
-            frameVars(:,4) = 1; % objType (1=ellipse)
-            frameVars(1:numel(XposVectorPix),5) = XposVectorPix;
-            frameVars(numel(XposVectorPix)+1:end,5) = XposVectorPix(end);
-            frameVars(1:numel(YposVectorPix),6) = YposVectorPix;
-            frameVars(numel(YposVectorPix)+1:end,6) = YposVectorPix(end);
-            frameVars(:,7) = XsizeVectorPix;
-            frameVars(:,8) = YsizeVectorPix;
+            if obj.numObjects==1
+                frameVars = zeros(params.nFrames,12);
+                frameVars(:,1) = 0:params.nFrames-1; % frame number
+                frameVars(1:numel(XposVectorPix),5) = XposVectorPix;
+                frameVars(numel(XposVectorPix)+1:end,5) = XposVectorPix(end);
+                frameVars(1:numel(YposVectorPix),6) = YposVectorPix;
+                frameVars(numel(YposVectorPix)+1:end,6) = YposVectorPix(end);
+                frameVars(:,7) = XsizeVectorPix;
+                frameVars(:,8) = YsizeVectorPix;
+            else % objects 1 and 2 on alternating lines
+                frameVars = zeros(2*params.nFrames,12);
+                frameVars(1:2:end,1) = 0:params.nFrames-1;
+                frameVars(2:2:end,1) = 0:params.nFrames-1;
+                frameVars(2:2:end,2) = 1; % objNum (obj1=0, obj2=1)
+                frameVars(1:2:2*numel(XposVectorPix),5) = XposVectorPix;
+                frameVars(2*numel(XposVectorPix)+1:end,5) = XposVectorPix(end);
+                frameVars(2:2:2*numel(XposVectorPix2)+1,5) = XposVectorPix2;
+                frameVars(2*numel(XposVectorPix2)+2:end,5) = XposVectorPix2(end);
+                frameVars(1:2:2*numel(YposVectorPix),6) = YposVectorPix;
+                frameVars(2*numel(YposVectorPix)+1:end,6) = YposVectorPix(end);
+                frameVars(2:2:2*numel(YposVectorPix2)+1,6) = YposVectorPix2;
+                frameVars(2*numel(YposVectorPix2)+2:end,6) = YposVectorPix2(end);
+                frameVars(1:2:end,7) = XsizeVectorPix;
+                frameVars(1:2:end,8) = YsizeVectorPix;
+                frameVars(2:2:end,7) = XsizeVectorPix2;
+                frameVars(2:2:end,8) = YsizeVectorPix2;
+            end
+            frameVars(:,4) = 1; % objType (ellipse=1)
             frameVars(:,10) = obj.objectColor;
             frameVars(:,12) = 1; % zScaled needs to be 1
-            % write to file
+            % write to text file in same folder as m file
             currentDir = cd;
             protocolDir = fileparts(mfilename('fullpath'));
             cd(protocolDir);
             fileID = fopen('frame_vars.txt','w');
             fprintf(fileID,'"frameNum" "objNum" "subFrameNum" "objType(0=box,1=ellipse,2=sphere)" "x" "y" "r1" "r2" "phi" "color" "z" "zScaled"');
             fclose(fileID);
-            if obj.numObjects==1
-                dlmwrite('frame_vars.txt',frameVars,'delimiter',' ','roffset',1,'-append');
-            else
-                % create frameVars matrix for object2
-                frameVars2 = frameVars;
-                frameVars2(:,2) = 1; % object number (object1=0, object2=1)
-                frameVars2(1:numel(XposVectorPix2),5) = XposVectorPix2;
-                frameVars2(numel(XposVectorPix2)+1:end,5) = XposVectorPix2(end);
-                frameVars2(1:numel(YposVectorPix2),6) = YposVectorPix2;
-                frameVars2(numel(YposVectorPix2)+1:end,6) = YposVectorPix2(end);
-                frameVars2(:,7) = XsizeVectorPix2;
-                frameVars2(:,8) = YsizeVectorPix2;
-                % build text file line by line (object1 and object2 lines alternate)
-                dlmwrite('frame_vars.txt',frameVars(1,:),'delimiter',' ','roffset',1,'-append');
-                dlmwrite('frame_vars.txt',frameVars2(1,:),'delimiter',' ','-append');
-                for n=2:size(frameVars,1)
-                    dlmwrite('frame_vars.txt',frameVars(n,:),'delimiter',' ','-append');
-                    dlmwrite('frame_vars.txt',frameVars2(n,:),'delimiter',' ','-append');
-                end
-            end
+            dlmwrite('frame_vars.txt',frameVars,'delimiter',' ','roffset',1,'-append');
             cd(currentDir);
             params.frame_vars = [protocolDir '/frame_vars.txt'];
             
@@ -210,12 +211,8 @@ classdef ExpandingObjects < StimGLProtocol
             % pause for random inter-epoch interval
             if keepGoing
                 rng('shuffle');
-                pause on
-                if numel(obj.intertrialInterval)==1
-                    pause(obj.intertrialInterval);
-                else
-                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
-                end
+                pause on;
+                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
             end
         end
        

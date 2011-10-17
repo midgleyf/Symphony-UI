@@ -21,7 +21,8 @@ classdef MovingObjects < StimGLProtocol
     properties
         preTime = 1;
         postTime = 2;
-        intertrialInterval = [1,2];
+        intertrialIntervalMin = 1;
+        intertrialIntervalMax = 2;
         backgroundColor = 0;
         objectColor = 1;
         objectSize = [5,20];
@@ -338,12 +339,8 @@ classdef MovingObjects < StimGLProtocol
             % pause for random inter-epoch interval
             if keepGoing
                 rng('shuffle');
-                pause on
-                if numel(obj.intertrialInterval)==1
-                    pause(obj.intertrialInterval);
-                else
-                    pause(rand(1)*diff(obj.intertrialInterval)+obj.intertrialInterval(1));
-                end
+                pause on;
+                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
             end
         end
        
