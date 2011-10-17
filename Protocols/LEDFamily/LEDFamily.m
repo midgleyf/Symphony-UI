@@ -68,9 +68,9 @@ classdef LEDFamily < SymphonyProtocol
             
             [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('lightAmplitude', lightAmplitude);
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            obj.addStimulus('DAC1', 'test-stimulus', stimulus);
             
-            obj.setDeviceBackground('test-device', obj.lightMean);
+            obj.setDeviceBackground('DAC1', obj.lightMean);
         end
         
         
