@@ -3,7 +3,7 @@ classdef MultiClampDevice < Symphony.Core.ExternalDeviceBase
     methods
         
         function obj = MultiClampDevice(name, controller, background)
-            obj = obj@Symphony.Core.ExternalDeviceBase(name, controller, background);
+            obj = obj@Symphony.Core.ExternalDeviceBase(name, 'AutoMate', controller, background);
         end
         
         
