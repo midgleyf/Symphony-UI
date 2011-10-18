@@ -14,7 +14,7 @@ classdef LEDFamily < SymphonyProtocol
         stepsInFamily = uint8(3);
         ampStepScale = 2.0;
         lightMean = 0.0;
-        preSynapticHold = int16(-60);
+        preSynapticHold = -60;
         numberOfAverages = uint8(5);
         interpulseInterval = 0.6;
         continuousRun = false;
@@ -68,9 +68,9 @@ classdef LEDFamily < SymphonyProtocol
             
             [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('lightAmplitude', lightAmplitude);
-            obj.addStimulus('DAC1', 'test-stimulus', stimulus);
-            
-            obj.setDeviceBackground('DAC1', obj.lightMean);
+            obj.addStimulus('DAC1', 'test-stimulus', stimulus, 'V');    %
+            obj.setDeviceBackground('DAC1', obj.lightMean, 'V');
+            obj.setDeviceBackground('test-device', double(obj.preSynapticHold) * 1e-3, 'V');
         end
         
         
