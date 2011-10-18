@@ -32,7 +32,7 @@ classdef Ipulse < SymphonyProtocol
         function [stimulus, epochIamp] = stimulusForEpoch(obj, epochNum)
             epochIamp = obj.Iamp(mod(epochNum - 1, length(obj.Iamp)) + 1);
             stimulus=zeros(1, obj.prePts+obj.stimPts+obj.postPts);
-            stimulus(obj.prePts+1:obj.prePts+obj.stimPts) = epochIamp.*10e-9;
+            stimulus(obj.prePts+1:obj.prePts+obj.stimPts) = epochIamp.*10e-12;
         end
         
         
@@ -64,7 +64,7 @@ classdef Ipulse < SymphonyProtocol
             
             [stimulus, epochIamp] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('IAmp', epochIamp);
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            obj.addStimulus('test-device', 'test-stimulus', stimulus, 'A');
             obj.setDeviceBackground('test-device', 0);
         end
         
