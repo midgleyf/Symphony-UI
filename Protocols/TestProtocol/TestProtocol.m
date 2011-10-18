@@ -51,21 +51,16 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function prepareEpoch(obj)
+            prepareEpoch@SymphonyProtocol(obj);
             [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);     % for this epoch
-            obj.addParameter('freqScale', freqScale);                        % grab and save the freqScale parameter defined above   
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);        % grab the stimulus (also defined above), give it a name, and add it to the defined device
+            %obj.addParameter('freqScale', freqScale);                        % grab and save the freqScale parameter defined above   
+            obj.addStimulus('test-device', 'test-stimulus', stimulus.*5e-3, 'V');  % grab the stimulus (also defined above), give it a name, and add it to the defined device; only works properly in voltage clamp
 
             % Call the base class method which sets up default backgrounds and records responses.
-            prepareEpoch@SymphonyProtocol(obj);
-            
-            [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);
-            obj.addParameter('freqScale', freqScale);
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
 
-            
             obj.setDeviceBackground('test-device', 0);                      % set the background of the device between epochs to this value
             
-            obj.recordResponse('test-device');                              % record the response associated with the 'test-device'
+            %obj.recordResponse('test-device');                              % record the response associated with the 'test-device'
 
         end
         
