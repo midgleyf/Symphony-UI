@@ -20,7 +20,7 @@ classdef Grid < StimGLProtocol
     end
 
     properties
-        threshLimitReturn = [0,100,0];
+        spikePolThrLimRet = [Inf,0,100,0];
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -64,7 +64,6 @@ classdef Grid < StimGLProtocol
             obj.notCompletedCoords = 1:size(obj.allCoords,1);
             
             % Prepare figures
-            obj.plotData.spikePts = [];
             obj.plotData.meanOnResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.plotData.meanOffResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
@@ -84,12 +83,14 @@ classdef Grid < StimGLProtocol
             ylabel(axesHandle,'mV');
             set(axesHandle,'TickDir','out','Box','off');
             if obj.epochNum==1
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.225 0.96 0.075 0.03],'String','thresh');
-                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.31 0.95 0.075 0.05],'String',num2str(obj.threshLimitReturn(1)));
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.45 0.96 0.075 0.03],'String','limit');
-                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.535 0.95 0.075 0.05],'String',num2str(obj.threshLimitReturn(2)));
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.675 0.96 0.075 0.03],'String','return');
-                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.76 0.95 0.075 0.05],'String',num2str(obj.threshLimitReturn(3)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.18 0.96 0.075 0.03],'String','polarity');
+                obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.265 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.36 0.96 0.075 0.03],'String','thresh');
+                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.445 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(2)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.54 0.96 0.075 0.03],'String','limit');
+                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.625 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(3)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.72 0.96 0.075 0.03],'String','return');
+                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.805 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             end
         end
         
@@ -165,16 +166,18 @@ classdef Grid < StimGLProtocol
             % Find spikes
             data=obj.response;
             if obj.epochNum==1
-                threshold = obj.threshLimitReturn(1);
-                limitThresh = obj.threshLimitReturn(2);
-                returnThresh = obj.threshLimitReturn(3);
+                polarity = obj.spikePolThrLimRet(1);
+                threshold = obj.spikePolThrLimRet(2);
+                limitThresh = obj.spikePolThrLimRet(3);
+                returnThresh = obj.spikePolThrLimRet(4);
             else
+                polarity = str2double(get(obj.plotData.polarityEditHandle,'String'));
                 threshold = str2double(get(obj.plotData.threshEditHandle,'String'));
                 limitThresh = str2double(get(obj.plotData.limitEditHandle,'String'));
                 returnThresh = str2double(get(obj.plotData.returnEditHandle,'String'));
             end
             % flip data and threshold if negative-going spike peaks
-            if false%~handles.posSpikePolarity
+            if polarity<0
                 data=-data; 
                 threshold=-threshold;
                 limitThresh=-limitThresh;
