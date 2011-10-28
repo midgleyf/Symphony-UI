@@ -22,6 +22,11 @@ classdef RigConfiguration < handle
     end
     
     
+    properties (Hidden)
+        proxySampleRate                 % numeric, in Hz
+    end
+    
+    
     methods
         
         function obj = RigConfiguration()
@@ -50,7 +55,9 @@ classdef RigConfiguration < handle
             % Create a Heka DAQ controller if on Windows or a simulation controller on Mac.
             import Symphony.Core.*;
             
-            if ispc
+            import Heka.*;
+                
+            if ~isempty(which('HekaDAQInputStream'))
                 import Heka.*;
                 
                 % Register the unit converters
@@ -77,7 +84,9 @@ classdef RigConfiguration < handle
             else
                 import Symphony.SimulationDAQController.*;
                 
-                Converters.Register('V','V', @(m) m);
+                disp('Could not load the Heka driver, using the simulation controller instead.');
+                
+                Converters.Register('V', 'V', @(m) m);
                 daq = SimulationDAQController();
                 daq.BeginSetup();
                 
@@ -106,7 +115,12 @@ classdef RigConfiguration < handle
             end
             
             % Update the rate of the DAQ controller.
-            obj.controller.DAQController.SampleRate = Measurement(rate, 'Hz');
+            srProp = findprop(obj.controller.DAQController, 'SampleRate');
+            if isempty(srProp)
+                obj.proxySampleRate = rate;
+            else
+                obj.controller.DAQController.SampleRate = Measurement(rate, 'Hz');
+            end
             
             % Update the rate of all device streams.
             % TODO: is this needed?
@@ -118,11 +132,16 @@ classdef RigConfiguration < handle
         
         
         function rate = get.sampleRate(obj)
-            m = obj.controller.DAQController.SampleRate;
-            if ~strcmp(m.Unit, 'Hz')
-                error('Symphony:SampleRateNotInHz', 'The sample rate is not in Hz.');
+            srProp = findprop(obj.controller.DAQController, 'SampleRate');
+            if isempty(srProp)
+                rate = obj.proxySampleRate;
+            else
+                m = obj.controller.DAQController.SampleRate;
+                if ~strcmp(m.Unit, 'Hz')
+                    error('Symphony:SampleRateNotInHz', 'The sample rate is not in Hz.');
+                end
+                rate = m.QuantityInBaseUnit;
             end
-            rate = m.QuantityInBaseUnit;
         end
         
         
@@ -137,7 +156,7 @@ classdef RigConfiguration < handle
                 else
                     stream = DAQInputStream(streamName);
                 end
-                stream.SampleRate = obj.controller.DAQController.SampleRate;
+                stream.SampleRate = Measurement(obj.sampleRate, 'Hz');
                 stream.MeasurementConversionTarget = 'V';
                 stream.Clock = obj.controller.DAQController;
                 obj.controller.DAQController.AddStream(stream);
@@ -274,7 +293,13 @@ classdef RigConfiguration < handle
             obj.addStreams(dev, outStreamName, inStreamName);
             
             % Make sure the current mode of the MultiClamp is known.
-            obj.multiClampMode(deviceName);
+            try
+                obj.multiClampMode(deviceName);
+            catch ME
+                dev.Controller = [];
+                obj.controller.Devices.Remove(dev);
+                throw(ME);
+            end
         end
         
         
