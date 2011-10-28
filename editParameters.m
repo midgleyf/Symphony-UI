@@ -384,6 +384,7 @@ function saveEditParameters(~, ~, handles)
     try
         % Allow the protocol to apply any of the new settings to the rig.
         handles.protocol.prepareRig();
+        handles.protocol.rigConfig.prepared();
         handles.protocol.rigPrepared = true;
     catch ME
         % TODO: What should be done if the rig can't be prepared?

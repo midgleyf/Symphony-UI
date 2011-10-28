@@ -343,6 +343,13 @@ classdef RigConfiguration < handle
         end
         
         
+        function prepared(obj)
+            if isa(obj.controller.DAQController, 'Heka.HekaDAQController')
+                obj.controller.DAQController.SetStreamsBackground();
+            end
+        end
+        
+        
         function close(obj)
             % Release any hold we have on hardware.
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController')
