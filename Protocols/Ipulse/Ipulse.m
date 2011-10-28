@@ -64,8 +64,8 @@ classdef Ipulse < SymphonyProtocol
             
             [stimulus, epochIamp] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('IAmp', epochIamp);
-            obj.addStimulus('test-device', 'test-stimulus', stimulus, 'A');
-            obj.setDeviceBackground('test-device', 0);
+            obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus, 'A');
+            obj.setDeviceBackground('Amplifier_Ch1', 0);
         end
         
         

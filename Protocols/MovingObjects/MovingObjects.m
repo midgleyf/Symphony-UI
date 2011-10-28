@@ -309,7 +309,7 @@ classdef MovingObjects < StimGLProtocol
             % Create a dummy stimulus so the epoch runs for the desired length
             sampleRate = 1000;
             stimulus = zeros(1, floor(sampleRate*(obj.preTime+stimTime+obj.postTime)));
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus);
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);

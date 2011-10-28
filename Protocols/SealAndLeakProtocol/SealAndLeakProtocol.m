@@ -14,17 +14,28 @@ classdef SealAndLeakProtocol < SymphonyProtocol
     end
     
     
-    properties (Dependent = true, SetAccess = private)
-        mode = 'VClamp'
-    end
-    
-    
     methods
+        
+        function dn = requiredDeviceNames(obj) %#ok<MANU>
+            dn = {'Amplifier_Ch1'};
+        end
         
         function obj = SealAndLeakProtocol()
             obj = obj@SymphonyProtocol();
             
             obj.allowSavingEpochs = false;
+        end
+        
+        
+        function prepareRig(obj)
+            % Call the base class method to set the DAQ sample rate.
+            prepareRig@SymphonyProtocol(obj);
+            
+            if strcmp(obj.multiClampMode, 'VClamp')
+                obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-3, 'V');
+            else
+                obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-12, 'A');
+            end
         end
         
         
@@ -39,30 +50,16 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         
         
         function [stimuli, sampleRate] = sampleStimuli(obj)
-            if strcmp(obj.mode, 'currentClamp')
-                stimuli = {obj.stimulusForDevice('test-device') * 1e-12};
+            if isempty(obj.rigConfig.deviceWithName('Amplifier_Ch1'))
+                stimuli = {};
+                sampleRate = [];
             else
-                stimuli = {obj.stimulusForDevice('test-device') * 1e-3};
-            end
-            sampleRate = System.Decimal.ToDouble(obj.deviceSampleRate('test-device', 'OUT').Quantity);
-        end
-        
-        
-        function m = get.mode(obj)
-            device = obj.controller.GetDevice('test-device');
-            try
-                m = char(device.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
-            catch ME
-                if (isa(ME, 'NET.NetException'))
-                    message = char(ME.ExceptionObject.Message);
+                if strcmp(obj.multiClampMode, 'VClamp')
+                    stimuli = {obj.stimulusForDevice('Amplifier_Ch1') * 1e-3};
                 else
-                    message = ME.message;
+                    stimuli = {obj.stimulusForDevice('Amplifier_Ch1') * 1e-12};
                 end
-                if strncmp('No device parameters', message, 20)
-                    m = 'Toggle MultiClamp mode';
-                else
-                    m = ['unknown (' message ')'];
-                end
+                sampleRate = System.Decimal.ToDouble(obj.deviceSampleRate('Amplifier_Ch1', 'OUT').Quantity);
             end
         end
         
@@ -82,14 +79,12 @@ classdef SealAndLeakProtocol < SymphonyProtocol
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
             
-            stimulus = obj.stimulusForDevice('test-device');
+            stimulus = obj.stimulusForDevice('Amplifier_Ch1');
             
-            if strcmp(obj.mode, 'currentClamp')
-                obj.addStimulus('test-device', 'test-stimulus', stimulus * 1e-12, 'A');
-                obj.setDeviceBackground('test-device', obj.background * 1e-12, 'A');
+            if strcmp(obj.multiClampMode, 'VClamp')
+                obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus * 1e-3, 'V');
             else
-                obj.addStimulus('test-device', 'test-stimulus', stimulus * 1e-3, 'V');
-                obj.setDeviceBackground('test-device', obj.background * 1e-3, 'V');
+                obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus * 1e-12, 'A');
             end
         end
 

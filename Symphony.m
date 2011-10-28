@@ -2,15 +2,22 @@ classdef Symphony < handle
     
     properties
         mainWindow                  % Figure handle of the main window
-        controller                  % The Symphony.Core.Controller instance.
+        
+        rigConfigClassNames
+        rigConfigDisplayNames
+        rigConfig
+        
         protocolClassNames          % The list of protocol class names.
+        protocolDisplayNames
         protocol                    % The current protocol instance.
+        
         figureHandlerClasses        % The list of available figure handlers.
+        
+        missingDeviceName
         sources                     % The hierarchy of sources.
         controls                    % A structure containing the handles for most of the controls in the UI.
         rigNames
-        commander
-        amp_chan1
+        
         persistPath
         persistor                   % The Symphony.EpochPersistor instance.
         epochGroup                  % A structure containing the current epoch group's properties.
@@ -32,19 +39,8 @@ classdef Symphony < handle
             symphonyParentDir = fileparts(symphonyDir);
             Logging.ConfigureLogging(fullfile(symphonyDir, 'debug_log.xml'), symphonyParentDir);
             
-            % Create the controller.
-            try
-                obj.createSymphonyController('heka', 10000);
-            catch ME
-                if strcmp(ME.identifier, 'MATLAB:undefinedVarOrClass')
-                    % The Heka controller is unavaible (probably on a Mac), use the simulator instead.
-                    obj.createSymphonyController('simulation', 10000);
-                else
-                    rethrow(ME);
-                end
-            end
-            
             % See what protocols, figure handlers and sources are available.
+            obj.discoverRigConfigurations();
             obj.discoverProtocols();
             obj.discoverFigureHandlers();
             obj.discoverSources();
@@ -56,143 +52,72 @@ classdef Symphony < handle
         end
         
         
-        function createSymphonyController(obj, daqName, sampleRateInHz)
-            import Symphony.Core.*;
-            import Symphony.ExternalDevices.*;
-            
-            % Create Symphony.Core.Controller
-            
-            obj.controller = Controller();
-            
-            sampleRate = Measurement(sampleRateInHz, 'Hz');
-            
-            if strcmpi(daqName, 'heka')
-                import Heka.*;
-                
-                % Register Unit Converters
-                HekaDAQInputStream.RegisterConverters();
-                HekaDAQOutputStream.RegisterConverters();
-                
-                daq = HekaDAQController(5, 0); %PCI18 = 1, USB18=5
-                daq.InitHardware();
-                try
-                    daq.SampleRate = sampleRate;
-
-                    % Finding input and output streams by name
-                    outStream = daq.GetStream('ANALOG_OUT.0');
-                    inStream = daq.GetStream('ANALOG_IN.0');
-                    dac1_outStream=daq.GetStream('ANALOG_OUT.1');    %create a second DAC output channel/stream
-    %                 triggerStream = daq.GetStream('DIGITAL_OUT.0');
-
-
-                    % Create the LED device (attached to/controlled by DAC1)
-                    dac1Device = UnitConvertingExternalDevice('DAC1', 'LightSpeed', obj.controller, Measurement(0, 'V'));
-                    dac1Device.MeasurementConversionTarget = 'V';
-                    dac1Device.Clock = daq;
-                    dac1Device.BindStream(dac1_outStream);
-    
-    
-                    % Create the MultiClamp device
-                    obj.commander = MultiClampCommander(831786, 1, daq);
-                    try
-                        dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
-                    catch ME
-                        dev = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'A'));
-                    end
-                    dev.Name = 'test-device';
-                    dev.Clock = daq;
-                    dev.BindStream(inStream);
-                    dev.BindStream(outStream);
-                    
-                    % Make sure the user toggles the MultiClamp mode so the data gets telegraphed.
-                    % TODO: Add some way for the user to cancel so they don't get stuck in an infinite loop.
-                    mode = '';
-                    while isempty(mode) || ~(strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp'))
-                        gotMode = false;
-                        try
-                            mode = char(dev.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
-                            if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
-                                gotMode = true;
-                            end
-                        catch ME %#ok<NASGU>
-                            %throw(ME);
-                        end
-
-                        if ~gotMode
-                            waitfor(warndlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'modal'));
-                        end
-                    end
-                    
-%                     if strcmp(mode, 'VClamp')
-%                         dev.Background = Measurement(0, 'V');   % = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'V'));
-%                     else
-%                         dev.Background = Measurement(0, 'A');   % = MultiClampDevice(obj.commander, obj.controller, Measurement(0, 'A'));
-%                     end
-                                    
-                catch ME
-                    % Release any hold we have on the hardware before rethrowing the exception.
-                    daq.CloseHardware();
-                    
-                    throw(ME);
+        %% Rig Configurations
+        
+        
+        function discoverRigConfigurations(obj)
+            % Get the list of rig configurations from the folder.
+            symphonyPath = mfilename('fullpath');
+            parentDir = fileparts(symphonyPath);
+            configsDir = fullfile(parentDir, 'Rig Configurations');
+            rigConfigFiles = dir(fullfile(configsDir, '*.m'));
+            obj.rigConfigClassNames = cell(1, length(rigConfigFiles));
+            obj.rigConfigDisplayNames = cell(1, length(rigConfigFiles));
+            for i = 1:length(rigConfigFiles)
+                className = rigConfigFiles(i).name(1:end-2);
+                obj.rigConfigClassNames{i} = className;
+                obj.rigConfigDisplayNames{i} = classProperty(className, 'displayName');
+                if isempty(obj.rigConfigDisplayNames{i})
+                    obj.rigConfigDisplayNames{i} = className;
                 end
-            elseif strcmpi(daqName, 'simulation')
-                
-                import Symphony.SimulationDAQController.*;
-                Converters.Register('V','V', @(m) m);
-                daq = SimulationDAQController();
-                daq.BeginSetup();
-                
-                outStream = DAQOutputStream('OUT');
-                outStream.SampleRate = sampleRate;
-                outStream.MeasurementConversionTarget = 'V';
-                outStream.Clock = daq;
-                daq.AddStream(outStream);
-                
-                inStream = DAQInputStream('IN');
-                inStream.SampleRate = sampleRate;
-                inStream.MeasurementConversionTarget = 'V';
-                inStream.Clock = daq;
-                daq.AddStream(inStream);
-                
-%                 triggerStream = DAQOutputStream('TRIGGER');
-%                 triggerStream.SampleRate = sampleRate;
-%                 triggerStream.MeasurementConversionTarget = 'V';
-%                 triggerStream.Clock = daq;
-%                 daq.AddStream(triggerStream);
-                
-                daq.SimulationRunner = Simulation(@(output,step) loopbackSimulation(obj, output, step, outStream, inStream));
-                
-                dev = UnitConvertingExternalDevice('test-device', 'Tektronix', obj.controller, Measurement(0, 'V'));
-                dev.MeasurementConversionTarget = 'V';
-                dev.Clock = daq;
-                dev.BindStream(inStream);
-                dev.BindStream(outStream);
-            else
-                error(['Unknown daqName: ' daqName]);
             end
-            
-            daq.Clock = daq;
-            obj.controller.DAQController = daq;
-            obj.controller.Clock = daq;
-            
-            % Create the 'trigger' device.
-%             triggerDev = UnitConvertingExternalDevice('trigger', 'Tektronix', obj.controller, Measurement(0, 'V'));
-%             triggerDev.MeasurementConversionTarget = 'V';
-%             triggerDev.Clock = daq;
-%             triggerDev.BindStream(triggerStream);
-            
-            % Have all devices start emitting their background values.
-            daq.SetStreamsBackground();
         end
         
         
-        function input = loopbackSimulation(obj, output, ~, outStream, inStream)
-            import Symphony.Core.*;
+        function chooseRigConfiguration(obj, ~, ~)
+            if ~isempty(obj.rigConfig)
+                obj.rigConfig.close()
+            end
             
-            input = NET.createGeneric('System.Collections.Generic.Dictionary', {'Symphony.Core.IDAQInputStream','Symphony.Core.IInputData'});
-            outData = output.Item(outStream);
-            inData = InputData(outData.Data, outData.SampleRate, obj.controller.Clock.Now);
-            input.Add(inStream, inData);
+            configIndex = get(obj.controls.rigConfigPopup, 'Value');
+            configClassName = obj.rigConfigClassNames{configIndex};
+            
+            try
+                constructor = str2func(configClassName);
+                obj.rigConfig = constructor();
+            
+                setpref('Symphony', 'LastChosenRigConfig', configClassName);
+            catch ME
+                % The user cancelled editing the parameters so switch back to the previous protocol.
+                configValue = find(strcmp(obj.rigConfigClassNames, class(obj.rigConfig)));
+                set(obj.controls.rigConfigPopup, 'Value', configValue);
+                
+                waitfor(errordlg(['Could not create the device:' char(10) char(10) ME.message], 'Symphony'));
+            end
+            
+            obj.checkRigConfigAndProtocol();
+        end
+        
+        
+        function showRigConfigurationDescription(obj, ~, ~)
+            desc = obj.rigConfig.describeDevices();
+            waitfor(msgbox([obj.rigConfig.displayName ':' char(10) char(10) desc], 'Rig Configuration', 'modal'));
+        end
+        
+        
+        function checkRigConfigAndProtocol(obj)
+            % Check if the current protocol is compatible with the current rig configuration.
+            obj.missingDeviceName = '';
+            deviceNames = obj.protocol.requiredDeviceNames();
+            for i = 1:length(deviceNames)
+                device = obj.rigConfig.deviceWithName(deviceNames{i});
+                if isempty(device)
+                    obj.missingDeviceName = deviceNames{i};
+                    break;
+                end
+            end
+            
+            obj.updateUIState();
         end
         
         
@@ -206,15 +131,22 @@ classdef Symphony < handle
             protocolsDir = fullfile(parentDir, 'Protocols');
             protocolDirs = dir(protocolsDir);
             obj.protocolClassNames = cell(length(protocolsDir), 1);
+            obj.protocolDisplayNames = cell(length(protocolsDir), 1);
             protocolCount = 0;
             for i = 1:length(protocolDirs)
                 if protocolDirs(i).isdir && ~strcmp(protocolDirs(i).name, '.') && ~strcmp(protocolDirs(i).name, '..') && ~strcmp(protocolDirs(i).name, '.svn')
                     protocolCount = protocolCount + 1;
-                    obj.protocolClassNames{protocolCount} = protocolDirs(i).name;
-                    addpath(fullfile(protocolsDir, filesep, protocolDirs(i).name));
+                    className = protocolDirs(i).name;
+                    obj.protocolClassNames{protocolCount} = className;
+                    addpath(fullfile(protocolsDir, filesep, className));
+                    obj.protocolDisplayNames{protocolCount} = classProperty(className, 'displayName');
+                    if isempty(obj.protocolDisplayNames{protocolCount})
+                        obj.protocolDisplayNames{protocolCount} = className;
+                    end
                 end
             end
-            obj.protocolClassNames = sort(obj.protocolClassNames(1:protocolCount)); % TODO: use display names
+            obj.protocolClassNames = obj.protocolClassNames(1:protocolCount);
+            obj.protocolDisplayNames = obj.protocolDisplayNames(1:protocolCount);
         end
         
         
@@ -223,7 +155,7 @@ classdef Symphony < handle
             constructor = str2func(className);
             newProtocol = constructor();
             
-            newProtocol.controller = obj.controller;
+            newProtocol.rigConfig = obj.rigConfig;
             newProtocol.figureHandlerClasses = obj.figureHandlerClasses;
             
             % Use any previously set parameters.
@@ -258,18 +190,8 @@ classdef Symphony < handle
             for i = 1:length(handlerFileNames)
                 if ~handlerFileNames(i).isdir && handlerFileNames(i).name(1) ~= '.'
                     className = handlerFileNames(i).name(1:end-2);
-                    mcls = meta.class.fromName(className);
-                    if ~isempty(mcls)
-                        % Get the type name
-                        props = mcls.PropertyList;
-                        for j = 1:length(props)
-                            prop = props(j);
-                            if strcmp(prop.Name, 'figureType')
-                                typeName = prop.DefaultValue;
-                                break;
-                            end
-                        end
-                        
+                    typeName = classProperty(className, 'figureType');
+                    if ~isempty(typeName)
                         obj.figureHandlerClasses(typeName) = className;
                     end
                 end
@@ -322,6 +244,29 @@ classdef Symphony < handle
                     return;
                 end
                 
+                lastChosenRigConfig = getpref('Symphony', 'LastChosenRigConfig', obj.rigConfigClassNames{1});
+                rigConfigValue = find(strcmp(obj.rigConfigClassNames, lastChosenRigConfig));
+                constructor = str2func(lastChosenRigConfig);
+                try
+                    obj.rigConfig = constructor();
+                catch ME %#ok<NASGU>
+                    % Cannot create a rig config the same as the last one chosen by the user.
+                    % Try to make a default one instead.
+                    % TODO: don't allow the 'toggle multi-clamp' message to appear more than once
+                    for i = 1:length(obj.rigConfigClassNames)
+                        constructor = str2func(obj.rigConfigClassNames{i});
+                        try
+                            obj.rigConfig = constructor();
+                            break
+                        catch ME %#ok<NASGU>
+                        end
+                    end
+                end
+                
+                if isempty(obj.rigConfig)
+                    error('Symphony:NoRigConfiguration', 'Could not create a rig configuration.');
+                end
+                
                 % Create a default protocol plug-in.
                 lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
                 protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
@@ -353,6 +298,38 @@ classdef Symphony < handle
                 
                 obj.controls = struct();
                 
+                % Create the rig configuration controls
+                
+                obj.controls.rigConfigPanel = uipanel(...
+                    'Parent', obj.mainWindow, ...
+                    'Units', 'points', ...
+                    'FontSize', 12, ...
+                    'Title', 'Rig Configuration', ...
+                    'Tag', 'protocolPanel', ...
+                    'Clipping', 'on', ...
+                    'Position', [10 279 336 50], ...
+                    'BackgroundColor', bgColor);
+                
+                obj.controls.rigConfigPopup = uicontrol(...
+                    'Parent', obj.controls.rigConfigPanel, ...
+                    'Units', 'points', ...
+                    'Callback', @(hObject,eventdata)chooseRigConfiguration(obj,hObject,eventdata), ...
+                    'Position', [10 5 200 22], ...
+                    'BackgroundColor', bgColor, ...
+                    'String', obj.rigConfigDisplayNames, ...
+                    'Style', 'popupmenu', ...
+                    'Value', rigConfigValue, ...
+                    'Tag', 'rigConfigPopup');
+                
+                obj.controls.rigDescButton = uicontrol(...
+                    'Parent', obj.controls.rigConfigPanel, ...
+                    'Units', 'points', ...
+                    'Callback', @(hObject,eventdata)showRigConfigurationDescription(obj,hObject,eventdata), ...
+                    'Position', [220 7 22 22], ...
+                    'BackgroundColor', bgColor, ...
+                    'String', '?', ...
+                    'Tag', 'rigDescButton');
+                
                 % Create the protocol controls.
                 
                 obj.controls.protocolPanel = uipanel(...
@@ -371,7 +348,7 @@ classdef Symphony < handle
                     'Callback', @(hObject,eventdata)chooseProtocol(obj,hObject,eventdata), ...
                     'Position', [10 42 130 22], ...
                     'BackgroundColor', bgColor, ...
-                    'String', obj.protocolClassNames, ...
+                    'String', obj.protocolDisplayNames, ...
                     'Style', 'popupmenu', ...
                     'Value', protocolValue, ...
                     'Tag', 'protocolPopup');
@@ -602,13 +579,17 @@ classdef Symphony < handle
                     end
                 catch ME %#ok<NASGU>
                 end
+                
+                obj.checkRigConfigAndProtocol();
             end
         end
         
         
         function editProtocolParameters(obj, ~, ~)
             % The user clicked the "Parameters..." button.
-            editParameters(obj.protocol);
+            if editParameters(obj.protocol)
+                obj.checkRigConfigAndProtocol();
+            end
         end
         
         
@@ -639,6 +620,8 @@ classdef Symphony < handle
                     elseif obj.wasSavingEpochs
                         set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
                     end
+                    
+                    obj.checkRigConfigAndProtocol();
                 else
                     % The user cancelled editing the parameters so switch back to the previous protocol.
                     protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
@@ -653,11 +636,26 @@ classdef Symphony < handle
             figWidth = ceil(figPos(3));
             figHeight = ceil(figPos(4));
             
+            % Expand the rig config panel to the full width and keep it at the top.
+            rigConfigPanelPos = get(obj.controls.rigConfigPanel, 'Position');
+            rigConfigPanelPos(2) = figHeight - 10 - rigConfigPanelPos(4);
+            rigConfigPanelPos(3) = figWidth - 10 - 10;
+            set(obj.controls.rigConfigPanel, 'Position', rigConfigPanelPos);
+            rigDescButtonPos = get(obj.controls.rigDescButton, 'Position');
+            rigDescButtonPos(1) = rigConfigPanelPos(3) - rigDescButtonPos(3) - 10;
+            set(obj.controls.rigDescButton, 'Position', rigDescButtonPos);
+            ripConfigPopupPos = get(obj.controls.rigConfigPopup, 'Position');
+            ripConfigPopupPos(3) = rigDescButtonPos(1) - 10;
+            set(obj.controls.rigConfigPopup, 'Position', ripConfigPopupPos);
+            
             % Expand the protocol panel to the full width and keep it at the top.
             protocolPanelPos = get(obj.controls.protocolPanel, 'Position');
-            protocolPanelPos(2) = figHeight - 10 - protocolPanelPos(4);
+            protocolPanelPos(2) = rigConfigPanelPos(2) - 10 - protocolPanelPos(4);
             protocolPanelPos(3) = figWidth - 10 - 10;
             set(obj.controls.protocolPanel, 'Position', protocolPanelPos);
+            statusPos = get(obj.controls.statusLabel, 'Position');
+            statusPos(3) = protocolPanelPos(3) - 10 - statusPos(1);
+            set(obj.controls.statusLabel, 'Position', statusPos);
             
             % Keep the "Save Epochs" checkbox between the two panels.
             saveEpochsPos = get(obj.controls.saveEpochsCheckbox, 'Position');
@@ -699,8 +697,14 @@ classdef Symphony < handle
             set(obj.controls.statusLabel, 'String', ['Status: ' obj.protocol.state]);
             
             if strcmp(obj.protocol.state, 'stopped')
+                set(obj.controls.rigConfigPopup, 'Enable', 'on');
                 set(obj.controls.startButton, 'String', 'Start');
-                set(obj.controls.startButton, 'Enable', 'on');
+                if isempty(obj.missingDeviceName)
+                    set(obj.controls.startButton, 'Enable', 'on');
+                else
+                    set(obj.controls.startButton, 'Enable', 'off');
+                    set(obj.controls.statusLabel, 'String', ['The protocol cannot be run because there is no ''' obj.missingDeviceName ''' device.']);
+                end
                 set(obj.controls.pauseButton, 'Enable', 'off');
                 set(obj.controls.stopButton, 'Enable', 'off');
                 set(obj.controls.protocolPopup, 'Enable', 'on');
@@ -724,6 +728,7 @@ classdef Symphony < handle
                     set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
                 end
             else    % running or paused
+                set(obj.controls.rigConfigPopup, 'Enable', 'off');
                 set(obj.controls.stopButton, 'Enable', 'on');
                 set(obj.controls.protocolPopup, 'Enable', 'off');
                 set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
@@ -790,6 +795,8 @@ classdef Symphony < handle
         
         
         function closeRequestFcn(obj, ~, ~)
+            % TODO: need to stop the protocol?
+            
             obj.protocol.closeFigures();
             
             if ~isempty(obj.epochGroup)
@@ -802,9 +809,7 @@ classdef Symphony < handle
             delete(obj.sources);
             
             % Release any hold we have on hardware.
-            if isa(obj.controller.DAQController, 'Heka.HekaDAQController')
-                obj.controller.DAQController.CloseHardware();
-            end
+            obj.rigConfig.close()
             
             % Remember the window position.
             setpref('Symphony', 'MainWindow_Position', get(obj.mainWindow, 'Position'));
@@ -821,7 +826,7 @@ classdef Symphony < handle
         function createNewEpochGroup(obj, ~, ~)
             import Symphony.Core.*;
             
-            group = newEpochGroup(obj.epochGroup, obj.sources, obj.controller.Clock);
+            group = newEpochGroup(obj.epochGroup, obj.sources, obj.rigConfig.controller.Clock);
             if ~isempty(group)
                 if isempty(obj.persistor)
                     % Create the persistor and metadata XML.
@@ -908,7 +913,7 @@ classdef Symphony < handle
                 end
 
                 noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
-                noteNode.setAttribute('time', char(obj.controller.Clock.Now().ToString()));
+                noteNode.setAttribute('time', char(obj.rigConfig.controller.Clock.Now().ToString()));
                 noteNode.appendChild(obj.metadataDoc.createTextNode(noteText2));
                 
                 obj.saveMetadata();
@@ -921,7 +926,7 @@ classdef Symphony < handle
         
         function startAcquisition(obj, ~, ~)
             % Edit the protocol parameters if the user hasn't done so already.
-            if ~obj.protocol.parametersEdited
+            if ~obj.protocol.rigPrepared
                 if ~editParameters(obj.protocol)
                     % The user cancelled.
                     return

@@ -1,0 +1,67 @@
+Rig Configurations
+==================
+
+The Symphony UI provides a base class for defining "rig configurations" which describe how a rig is wired.
+
+
+Defining a new rig configuration
+--------------------------------
+
+To define a new rig configuration you need to create a sub-class of the RigConfiguration class.  
+
+Your sub-class should:
+1. Uniquely identify the configuration.
+2. Override the createDevices() methods.
+
+
+Identifying the configuration
+-----------------------------
+
+Identify the configuration using constant properties of the RigConfiguration sub-class.
+
+    properties (Constant)
+        displayName = 'My Configuration'
+    end
+
+
+Adding a MultiClamp device
+--------------------------
+
+To add a MultiClamp device use the addMultiClampDevice() convenience method and supply the name for 
+the device, the channel to use and the names of the output and input streams.  Use an empty string 
+to indicate that no output or input stream should be used.
+
+Example:
+
+    obj.addMultiClampDevice('MC Channel 1', 1, 'ANALOG_OUT.0', 'ANALOG_IN.0');
+
+
+Adding other devices
+--------------------
+
+To add a non-MultiClamp device use the addDevice() convenience method and supply the name for the 
+device and the names of the output and input streams.  Use an empty string to indicate that no 
+output or input stream should be used.
+
+Example:
+
+    obj.addDevice('LED', 'ANALOG_OUT.1', '');   % output only
+
+
+A simple configuration
+----------------------
+
+The following class implements a simple configuration which has one MultiClamp device and one other device.
+
+class SimpleRig < RigConfiguration
+    properties (Constant)
+        displayName = 'Simple Rig'
+    end
+    
+    methods
+        function createDevices(obj)
+            obj.addMultiClampDevice('MC Channel 1', 1, 'ANALOG_OUT.0', 'ANALOG_IN.0');
+            obj.addDevice('LED', 'ANALOG_OUT.1', '');   % output only
+        end
+    end
+end

@@ -1,20 +1,34 @@
 classdef MultiClampDevice < Symphony.Core.ExternalDeviceBase
-   
+    
+    properties
+        backgrounds
+        mode = 'VClamp'
+    end
+    
+    
     methods
         
-        function obj = MultiClampDevice(name, controller, background)
-            obj = obj@Symphony.Core.ExternalDeviceBase(name, 'AutoMate', controller, background);
+        function obj = MultiClampDevice(serialNumber, channel, clock, controller, modes, backgrounds) %#ok<INUSL,INUSD>
+            obj = obj@Symphony.Core.ExternalDeviceBase('', 'AutoMate', controller, backgrounds(1));
+            
+            obj.backgrounds = containers.Map();
+            for i = 1:length(modes)
+                obj.backgrounds(char(modes(i))) = backgrounds(i);
+            end
         end
         
         
-        function params = DeviceParametersForInput(~, ~)
-            params.Data.OperatingMode = 'VClamp';
+        function params = DeviceParametersForInput(obj, ~)
+            params.Data.OperatingMode = obj.mode;
         end
         
         
-        function params = DeviceParametersForOutput(~, ~)
-            params.Data.OperatingMode = 'VClamp';
+        function params = DeviceParametersForOutput(obj, ~)
+            params.Data.OperatingMode = obj.mode;
         end
         
+        function b = Background(obj)
+            b = obj.backgrounds(obj.mode);
+        end
     end
 end

@@ -43,7 +43,7 @@ classdef Array < handle
                     if length(s) < 2
                         if strcmp(class(val), 'Array')
                             error('NETArray:subsasgn', 'Object must be scalar')
-                        elseif ischar(val)
+                        else
                           snew = substruct('.', 'items', '{}', s(1).subs(:));
                           obj = subsasgn(obj, snew, val);
                         end
@@ -61,6 +61,9 @@ classdef Array < handle
                 case '()'
                     if length(s) < 2
                         sref = builtin('subsref', obj.items, s);
+                        if iscell(sref)
+                            sref = sref{1};
+                        end
                     else
                         sref = builtin('subsref', obj, s);
                     end

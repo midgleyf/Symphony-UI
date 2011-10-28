@@ -14,13 +14,18 @@ classdef TestProtocol < SymphonyProtocol
     
     methods
         
+        function dn = requiredDeviceNames(obj) %#ok<MANU>
+            dn = {'Amplifier_Ch1'};
+        end
+        
+        
         function [stimulus, freqScale] = stimulusForEpoch(obj, epochNum)
             if obj.rampFrequency                            % if checkbox engaged
                 freqScale = 1000.0 / double(epochNum);          % decrease the factor by which the period of the sine wave is slowed as the epoch number increases
             else                                            % if checkbox is not engaged    
                 freqScale = 1000.0;                             % the period of the sine wave is ~6300 (2 Pi * 1000) points (or 0.63s assuming 10 KHz sampling; see below) 
             end
-            stimulus = sin((1:double(obj.stimSamples)) / freqScale);   % given the frequency scale (aka period), and the number of samples in the stimulus (defined from the properties menu), compute the stimulus for this epoch
+            stimulus = sin((1:double(obj.stimSamples)) / freqScale) .* 5e-3;   % given the frequency scale (aka period), and the number of samples in the stimulus (defined from the properties menu), compute the stimulus for this epoch
         end
         
         
@@ -44,6 +49,7 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function updateFigure(obj, axesHandle)
+            % Trivial example that just draws the current epoch number in the figure.
             cla(axesHandle)
             set(axesHandle, 'XTick', [], 'YTick', []);
             text(0.5, 0.5, ['Epoch ' num2str(obj.epochNum)], 'FontSize', 48, 'HorizontalAlignment', 'center');
@@ -51,27 +57,25 @@ classdef TestProtocol < SymphonyProtocol
         
         
         function prepareEpoch(obj)
-            prepareEpoch@SymphonyProtocol(obj);
-            [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);     % for this epoch
-            %obj.addParameter('freqScale', freqScale);                        % grab and save the freqScale parameter defined above   
-            obj.addStimulus('test-device', 'test-stimulus', stimulus.*5e-3, 'V');  % grab the stimulus (also defined above), give it a name, and add it to the defined device; only works properly in voltage clamp
-
             % Call the base class method which sets up default backgrounds and records responses.
-
-            obj.setDeviceBackground('test-device', 0);                      % set the background of the device between epochs to this value
+            prepareEpoch@SymphonyProtocol(obj);
             
-            %obj.recordResponse('test-device');                              % record the response associated with the 'test-device'
-
+            [stimulus, freqScale] = obj.stimulusForEpoch(obj.epochNum);     % for this epoch
+            obj.addParameter('freqScale', freqScale);                        % grab and save the freqScale parameter defined above   
+            obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus, 'V');  % grab the stimulus (also defined above), give it a name, and add it to the defined device; only works properly in voltage clamp
+            
+            %obj.addStimulus('LED',     'LED stimulus',     [0 0 0 0 1 1 1 1]);
+            %obj.addStimulus('Shutter', 'Shutter stimulus', [0 0 1 1 0 0 1 1]);
+            %obj.addStimulus('Lock',    'Lock stimulus',    [0 1 0 1 0 1 0 1]);
         end
         
         
         function keepGoing = continueRun(obj)
-            keepGoing = obj.epochNum < obj.epochMax;                        % keep going as long as the epochNum is less than the epochMax
             % First check the base class method to make sure the user hasn't paused or stopped the protocol.
             keepGoing = continueRun@SymphonyProtocol(obj);
             
             if keepGoing
-                keepGoing = obj.epochNum < obj.epochMax;
+                keepGoing = obj.epochNum < obj.epochMax;                        % keep going as long as the epochNum is less than the epochMax
             end
         end
 

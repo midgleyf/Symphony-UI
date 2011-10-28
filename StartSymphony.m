@@ -8,6 +8,7 @@ end
 symphonyPath = mfilename('fullpath');
 parentDir = fileparts(symphonyPath);
 addpath(fullfile(parentDir, 'Utility'));
+addpath(fullfile(parentDir, 'Rig Configurations'));
 addpath(fullfile(parentDir, 'Figure Handlers'));
 addpath(fullfile(parentDir, 'StimGL'));
 clear symphonyPath parentDir

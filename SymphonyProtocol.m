@@ -22,10 +22,10 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     
     properties (Hidden)
         state                       % The state the protocol is in: 'stopped', 'running', 'paused', etc.
-        controller                  % A Symphony.Core.Controller instance.
+        rigConfig                   % A RigConfiguration instance.
+        rigPrepared = false         % A flag indicating whether the rig is ready to run this protocol.
         epoch = []                  % A Symphony.Core.Epoch instance.
         epochNum = 0                % The number of epochs that have been run.
-        parametersEdited = false    % A flag indicating whether the user has edited the parameters.
         responses                   % A structure for caching converted responses.
         figureHandlerClasses
         figureHandlers = {}
@@ -33,6 +33,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         allowSavingEpochs = true    % An indication if this protocol allows it's data to be persisted.
         persistor = []              % The persistor to use with each epoch.
         epochKeywords = {}          % A cell array of string containing keywords to be applied to any upcoming epochs.
+    end
+    
+    
+    properties (Dependent = true, SetAccess = private)
+        multiClampMode = 'VClamp'
     end
     
     
@@ -54,6 +59,19 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         function setState(obj, state)
             obj.state = state;
             notify(obj, 'StateChanged');
+        end
+        
+        
+        function dn = requiredDeviceNames(obj) %#ok<MANU>
+            % Override this method to indicate the names of devices that are required for this protocol.
+            dn = {};
+        end
+        
+        
+        function prepareRig(obj) %#ok<MANU>
+            % Override this method to perform any actions to get the rig ready for running the protocol, e.g. setting device backgrounds, etc.
+            
+            % TODO: set the DAQ sample rate based on a new "sample interval" property
         end
         
         
@@ -115,7 +133,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             end
             
             % Set the default background value and record any input streams for each device.
-            devices = listValues(obj.controller.Devices);
+            devices = obj.rigConfig.devices();
             for i = 1:length(devices)
                 device = devices{i};
                 
@@ -131,6 +149,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     end
                 end
             end
+            
+            % Clear out the cache of responses.
+            obj.responses = containers.Map();
         end
         
         
@@ -156,12 +177,13 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         function r = deviceSampleRate(obj, device, inOrOut)
             % Return the output sample rate for the given device based on any bound stream.
+            % TODO: this should move to the RigConfiguration.m if it's still even needed...
             
             import Symphony.Core.*;
             
             if ischar(device)
                 deviceName = device;
-                device = obj.controller.GetDevice(deviceName);
+                device = obj.rigConfig.deviceWithName(deviceName);
                 
                 if isempty(device)
                     error('There is no device named ''%s''.', deviceName);
@@ -186,32 +208,53 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             import Symphony.Core.*;
             
-            device = obj.controller.GetDevice(deviceName);
+            [device, digitalChannel] = obj.rigConfig.deviceWithName(deviceName);
             if isempty(device)
                 error('There is no device named ''%s''.', deviceName);
             end
             
-            stimDataList = Measurement.FromArray(stimulusData, units);
-
-            outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
-
-            stim = RenderedStimulus(stimulusID, units, structToDictionary(struct()), outputData);
-
-            obj.epoch.Stimuli.Add(device, stim);
+            if isempty(digitalChannel)
+                if nargin == 4
+                    % Default to the the device's background units if none specified
+                    units = device.Background.Unit;
+                end
+                
+                stimDataList = Measurement.FromArray(stimulusData, units);
+            else
+                % Digital outputs to the Heka ITC have to be merged together.
+                
+                if any(stimulusData ~= 0 & stimulusData ~= 1)
+                    error('Symphony:BadDigitalStimulus', 'Stimuli for digital outputs must contain only 0 or 1 values.');
+                end
+                
+                if obj.epoch.Stimuli.ContainsKey(device)
+                    stim = obj.epoch.Stimuli.Item(device);
+                    existingData = Measurement.ToQuantityArray(stim.Data.Data);
+                else
+                    existingData = zeros(1, length(stimulusData));
+                end
+                
+                % TODO: pad with zeros if different lengths
+                
+                stimulusData = existingData + (stimulusData .* 2 ^ digitalChannel);
+                units = 'V';
+                stimDataList = Measurement.FromArray(stimulusData, units);
+            end
             
-            % Clear out the cache of responses now that we're starting a new epoch.
-            % TODO: this would be cleaner to do in prepareEpoch() but that would require all protocols to call the super method...
-            obj.responses = containers.Map();
+            outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
+            
+            stim = RenderedStimulus(stimulusID, units, structToDictionary(struct()), outputData);
+            
+            obj.epoch.Stimuli.Add(device, stim);
         end
         
         
         function setDeviceBackground(obj, deviceName, background, units)
             % Set a constant stimulus value to be sent to the device.
-            % TODO: totally untested
             
             import Symphony.Core.*;
             
-            device = obj.controller.GetDevice(deviceName);
+            device = obj.rigConfig.deviceWithName(deviceName);
             if isempty(device)
                 error('There is no device named ''%s''.', deviceName);
             end
@@ -220,6 +263,8 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 background = Measurement(background, units);
             elseif isnumeric(background)
                 background = Measurement(background, 'V');
+            elseif ~isa(background, 'Symphony.Core.Measurement')
+                error('Symphony:InvalidBackground', 'The background value for a device must be a number or a Symphony.Core.Measurement');
             end
             
             device.Background = background;
@@ -234,7 +279,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             import Symphony.Core.*;
             
-            device = obj.controller.GetDevice(deviceName);
+            device = obj.rigConfig.deviceWithName(deviceName);
             % TODO: what happens when there is no device with that name?
             
             obj.epoch.Responses.Add(device, Response());
@@ -254,7 +299,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 end
                 device = devices{1};
             else
-                device = obj.controller.GetDevice(deviceName);
+                device = obj.rigConfig.deviceWithName(deviceName);
                 % TODO: what happens when there is no device with that name?
             end
             
@@ -338,7 +383,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     
                     try
                         % Tell the Symphony framework to run the epoch.
-                        obj.controller.RunEpoch(obj.epoch, obj.persistor);
+                        obj.rigConfig.controller.RunEpoch(obj.epoch, obj.persistor);
                     catch e
                         % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
                         message = ['An error occurred while running the protocol.' char(10) char(10)];
@@ -381,6 +426,15 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             else
                 % Set a flag that will be checked after the current epoch completes.
                 obj.setState('stopping');
+            end
+        end
+        
+        
+        function m = get.multiClampMode(obj)
+            try
+                m = obj.rigConfig.multiClampMode();
+            catch ME
+                m = ['unknown (' ME.message ')'];
             end
         end
     end

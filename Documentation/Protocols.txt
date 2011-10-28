@@ -40,6 +40,7 @@ automatically generated for editing the parameters based on their default values
         numberOfEpochs = uint8(4)           % integer type enables stepper controls in addition to the text box
         foo = 'bar'                         % string values are editable via a text box
         shapes = {'Ball', 'Box', 'Cone'}    % a cell array of strings appears as a pop-up menu
+        steps = [1, 2, 3]                   % a vector of numeric values, editable as a comma-separated list in a text box
     end
 
 Numeric properties are converted to a string representation for editing.  When converting back to a number the class 
@@ -70,6 +71,25 @@ therefore should not be editable.  This is done using MATLAB's concept of "depen
     end
 
 
+Compatibility with rig configurations
+-------------------------------------
+
+If a protocol requires that devices with specific names are available then it can indicate these by overriding the 
+requiredDeviceNames method.  For example, to indicate that a device named 'Device1' and another named 'Device2' are 
+required:
+
+    function rdn = requiredDeviceNames(obj)
+        rdn = {'Device1', 'Device2'};
+    end
+
+If the rig configuration currently chosen by the user does not have devices with any of the given names then the "Start" 
+button will be disabled.  The status message will then indicate the name of the missing device.
+
+Whenever a protocol's parameters are changed the prepareRig() method will be called.
+
+See Rig Configurations.txt for more information.
+
+
 Overriding methods
 ------------------
 
@@ -86,6 +106,9 @@ Each time a protocol is run its methods are called in the following order:
 
 The points where you can customize behavior are:
 
+    prepareRig():
+        override this method to prepare the rig for running protocols, e.g. set device background values
+        default behavior: set the DAQ sample rate
     prepareRun():
         override this method to do any setup before any epochs have been run, e.g. open a figure
         default behavior: clear all figures
@@ -122,9 +145,9 @@ The SymphonyProtocol class provides some convenience methods that you can call f
 If the convenience methods provided by the base class are not sufficient to implement the protocol then you can access 
 the Symphony framework objects directly:
 
-    obj.controller: the Symphony.Core.Controller
-    obj.controller.GetDevice(): access to any of the Symphony.Core.ExternalDevice instances
-    obj.controller.DAQController: the Symphony.Core.IDAQController
+    obj.rigConfig.controller: the Symphony.Core.Controller
+    obj.rigConfig.controller.GetDevice(): access to any of the Symphony.Core.ExternalDevice instances
+    obj.rigConfig.controller.DAQController: the Symphony.Core.IDAQController
     obj.epoch: the current Symphony.Core.Epoch instance, only available after prepareEpoch() has run
 
 
@@ -159,7 +182,7 @@ class SimpleProtocol < SymphonyProtocol
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
             
-            % Add a 10,000 sample stimulus to the test device.
+            % Add a 10,000 sample stimulus to a test device.
             obj.addStimulus('test-device', 'test-stimulus', zeros(1, 10000));
         end
         

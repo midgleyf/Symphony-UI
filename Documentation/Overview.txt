@@ -56,6 +56,10 @@ editParameters.m:
     Dynamic GUI for editing the parameters of a protocol.
 
 
+RigConfiguration.m:
+    Base class that provides simple mechanism for specifying which devices are connected to a rig.
+
+
 SymphonyProtocol.m:
     Base class that provides default behaviors for experimental protocols.  All protocols must be sub-classes of this class.
     See the Protocols.txt file for details on implementing a new protocol.

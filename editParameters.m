@@ -381,7 +381,14 @@ function saveEditParameters(~, ~, handles)
         end
     end
     
-    handles.protocol.parametersEdited = true;
+    try
+        % Allow the protocol to apply any of the new settings to the rig.
+        handles.protocol.prepareRig();
+        handles.protocol.rigPrepared = true;
+    catch ME
+        % TODO: What should be done if the rig can't be prepared?
+        throw(ME);
+    end
     
     % Remember these parameters for the next time the protocol is used.
     setpref('Symphony', [class(handles.protocol) '_Defaults'], handles.protocol.parameters());

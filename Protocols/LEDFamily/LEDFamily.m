@@ -47,30 +47,40 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
+        function prepareRig(obj)
+            % Call the base class method to set the DAQ sample rate.
+            prepareRig@SymphonyProtocol(obj);
+            
+            % TODO: remove this once the base class is handling the sample rate
+            obj.rigConfig.sampleRate = 10000;
+            
+            obj.setDeviceBackground('LED', obj.lightMean, 'V');
+            
+            if strcmp(obj.rigConfig.multiClampMode('Amplifier_Ch1'), 'IClamp')
+                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
+            else
+                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
+            end
+        end
+        
+        
         function prepareRun(obj)
-            import Symphony.Core.*;             % import this so this method knows what a 'Measurement' - see below - is...
-
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
 
             obj.openFigure('Response');
             obj.openFigure('Mean Response', 'GroupByParams', {'lightAmplitude'});
             obj.openFigure('Response Statistics', 'StatsCallback', @responseStatistics);
-            obj.controller.DAQController.SampleRate = Measurement(10000, 'Hz');
         end
         
         
         function prepareEpoch(obj)
-            % TODO: set the sample rate of the device based on obj.sampleInterval
-            
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
             
             [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('lightAmplitude', lightAmplitude);
-            obj.addStimulus('DAC1', 'test-stimulus', stimulus, 'V');    %
-            obj.setDeviceBackground('DAC1', obj.lightMean, 'V');
-            obj.setDeviceBackground('test-device', double(obj.preSynapticHold) * 1e-3, 'V');
+            obj.addStimulus('LED', 'LED stimulus', stimulus, 'V');    %
         end
         
         
@@ -102,7 +112,7 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function interval = get.sampleInterval(obj)   % Should be read-out from device settings (e.g., sampleRate = obj.deviceSampleRate('test-device', 'OUT'));
+        function interval = get.sampleInterval(obj)   % Should be read-out from device settings (e.g., sampleRate = obj.deviceSampleRate('Amplifier_Ch1', 'OUT'));
             interval = uint16(100);
         end
         

@@ -59,10 +59,11 @@ classdef StimGLProtocol < SymphonyProtocol
             prepareEpoch@SymphonyProtocol(obj);
             
             % Create a dummy output signal so the epoch runs for the desired length.
-            sampleRate = obj.deviceSampleRate('test-device', 'OUT');
+            % TODO: use any device with an output stream, don't need to require a specific one.
+            sampleRate = obj.deviceSampleRate('Amplifier_Ch1', 'OUT');
             animationDuration = 1;
             stimulus = zeros(1, floor(double(animationDuration) * System.Decimal.ToDouble(sampleRate.Quantity)));
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus);
             
             % Start the StimGL plug-in.
             SetParams(obj.stimGL, obj.plugInName, obj.pluginParameters());
