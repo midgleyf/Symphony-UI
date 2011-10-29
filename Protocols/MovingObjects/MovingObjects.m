@@ -16,9 +16,12 @@ classdef MovingObjects < StimGLProtocol
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
+        plotData
     end
 
     properties
+        spikePolThrLimRet = [Inf,0,100,0];
+        samplingRate = 50000;
         preTime = 1;
         postTime = 2;
         intertrialIntervalMin = 1;
@@ -36,6 +39,14 @@ classdef MovingObjects < StimGLProtocol
     
     
     methods
+        
+        function prepareRig(obj)
+            % Call the base class method to set the DAQ sample rate.
+            prepareRig@SymphonyProtocol(obj);
+            
+            % TODO: remove this once the base class is handling the sample rate
+            obj.rigConfig.sampleRate = obj.samplingRate;
+        end
         
         function prepareRun(obj)
             % Call the base class method which clears all figures.
@@ -267,8 +278,8 @@ classdef MovingObjects < StimGLProtocol
             YsizeVectorPix = topEdgesPix-bottomEdgesPix;
             XposVectorPix = leftEdgesPix+0.5*XsizeVectorPix;
             YposVectorPix = bottomEdgesPix+0.5*YsizeVectorPix;
-            XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+1)*frameRate)];
-            YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+1)*frameRate)];
+            XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
+            YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
@@ -300,16 +311,15 @@ classdef MovingObjects < StimGLProtocol
             stimTime = nStimFrames/frameRate;
             
             % Add epoch-specific parameters for ovation
-            obj.addParameter('epochObjectDir', epochObjectDir);
-            obj.addParameter('epochObjectSpeed', epochObjectSpeed);
-            obj.addParameter('epochObjectSize', epochObjectSize);
-            obj.addParameter('stimFrames', nStimFrames);
-            obj.addParameter('stimTime', stimTime);
+            obj.addParameter('epochObjectDir',epochObjectDir);
+            obj.addParameter('epochObjectSpeed',epochObjectSpeed);
+            obj.addParameter('epochObjectSize',epochObjectSize);
+            obj.addParameter('stimFrames',nStimFrames);
+            obj.addParameter('stimTime',stimTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = 1000;
-            stimulus = zeros(1, floor(sampleRate*(obj.preTime+stimTime+obj.postTime)));
-            obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus);
+            stimulus = zeros(1,floor(obj.samplingRate*(obj.preTime+stimTime+obj.postTime)));
+            obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);

@@ -16,9 +16,12 @@ classdef LoomingObjects < StimGLProtocol
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
+        plotData
     end
 
     properties
+        spikePolThrLimRet = [Inf,0,100,0];
+        samplingRate = 50000;
         preTime = 0.5;
         postTime = 0.5;
         intertrialIntervalMin = 1;
@@ -42,6 +45,13 @@ classdef LoomingObjects < StimGLProtocol
     
     methods
         
+        function prepareRig(obj)
+            % Call the base class method to set the DAQ sample rate.
+            prepareRig@SymphonyProtocol(obj);
+            
+            % TODO: remove this once the base class is handling the sample rate
+            obj.rigConfig.sampleRate = obj.samplingRate;
+        end
         
         %function set.numObjects(obj,numObjects)
         %   obj.numObjects = str2double(numObjects);
@@ -118,8 +128,8 @@ classdef LoomingObjects < StimGLProtocol
             YsizeVectorPix = topEdgesPix-bottomEdgesPix;
             XposVectorPix = leftEdgesPix+0.5*XsizeVectorPix;
             YposVectorPix = bottomEdgesPix+0.5*YsizeVectorPix;
-            XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+1)*frameRate)];
-            YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+1)*frameRate)];
+            XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
+            YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             if obj.numObjects==2
                 leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.object2PositionX-0.5*theta2);
                 rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.object2PositionX+0.5*theta2);
@@ -129,8 +139,8 @@ classdef LoomingObjects < StimGLProtocol
                 YsizeVectorPix2 = topEdgesPix-bottomEdgesPix;
                 XposVectorPix2 = leftEdgesPix+0.5*XsizeVectorPix2;
                 YposVectorPix2 = bottomEdgesPix+0.5*YsizeVectorPix2;
-                XsizeVectorPix2 =[XsizeVectorPix2,zeros(1,(obj.postTime+1)*frameRate)];
-                YsizeVectorPix2 =[YsizeVectorPix2,zeros(1,(obj.postTime+1)*frameRate)];
+                XsizeVectorPix2 =[XsizeVectorPix2,zeros(1,(obj.postTime+10)*frameRate)];
+                YsizeVectorPix2 =[YsizeVectorPix2,zeros(1,(obj.postTime+10)*frameRate)];
             end
             
             % Specify frame parameters in frame_vars.txt file
@@ -187,13 +197,12 @@ classdef LoomingObjects < StimGLProtocol
             if obj.numObjects==2
                 obj.addParameter('epochRelCollisionTime',epochRelCollisionTime);
             end
-            obj.addParameter('stimFrames', nStimFrames);
-            obj.addParameter('stimTime', stimTime);
+            obj.addParameter('stimFrames',nStimFrames);
+            obj.addParameter('stimTime',stimTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = 1000;
-            stimulus = zeros(1, floor(sampleRate*(obj.preTime+stimTime+obj.postTime)));
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            stimulus = zeros(1,floor(obj.samplingRate*(obj.preTime+stimTime+obj.postTime)));
+            obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);

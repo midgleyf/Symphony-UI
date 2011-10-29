@@ -16,9 +16,12 @@ classdef Circle < StimGLProtocol
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
+        plotData
     end
 
     properties
+        spikePolThrLimRet = [Inf,0,100,0];
+        samplingRate = 50000;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -34,6 +37,14 @@ classdef Circle < StimGLProtocol
     end
     
     methods
+        
+        function prepareRig(obj)
+            % Call the base class method to set the DAQ sample rate.
+            prepareRig@SymphonyProtocol(obj);
+            
+            % TODO: remove this once the base class is handling the sample rate
+            obj.rigConfig.sampleRate = obj.samplingRate;
+        end
         
         function prepareRun(obj)
             % Call the base class method which clears all figures.
@@ -91,17 +102,16 @@ classdef Circle < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
-            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
+            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
+            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectColor', epochObjectColor);
             obj.addParameter('epochObjectSize', epochObjectSize);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = 1000;
-            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            stimulus = zeros(1,floor(obj.samplingRate*(obj.preTime+obj.stimTime+obj.postTime)));
+            obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);

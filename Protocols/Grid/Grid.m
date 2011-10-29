@@ -21,6 +21,7 @@ classdef Grid < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,0,100,0];
+        samplingRate = 50000;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -36,11 +37,19 @@ classdef Grid < StimGLProtocol
     end
     
     properties (Dependent = true, SetAccess = private)
-        Xcoords;
-        Ycoords;
+        Xcoords = [NaN,NaN];
+        Ycoords = [NaN,NaN];
     end
     
     methods
+        
+        function prepareRig(obj)
+            % Call the base class method to set the DAQ sample rate.
+            prepareRig@SymphonyProtocol(obj);
+            
+            % TODO: remove this once the base class is handling the sample rate
+            obj.rigConfig.sampleRate = obj.samplingRate;
+        end
         
         function Xcoords = get.Xcoords(obj)
             nPts = floor(obj.gridWidth/obj.objectSize);
@@ -64,6 +73,8 @@ classdef Grid < StimGLProtocol
             obj.notCompletedCoords = 1:size(obj.allCoords,1);
             
             % Prepare figures
+            sampInt = 1/obj.samplingRate;
+            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.plotData.meanOnResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.plotData.meanOffResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
@@ -72,16 +83,14 @@ classdef Grid < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
-            %sampInt=1/10000*1000;
-            %t=sampInt:sampInt:sampInt*double(obj.prePts+obj.stimPts+obj.postPts);
-            data = obj.response;
-            plot(axesHandle,data,'k');
+            data = obj.response('Amplifier_Ch1');
+            plot(axesHandle,obj.plotData.time,data,'k');
             hold on;
-            plot(axesHandle,obj.plotData.spikePts,data(obj.plotData.spikePts),'go');
+            plot(axesHandle,obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'go');
             hold off;
-            xlabel(axesHandle,'ms');
+            xlabel(axesHandle,'s');
             ylabel(axesHandle,'mV');
-            set(axesHandle,'TickDir','out','Box','off');
+            set(axesHandle,'Box','off','TickDir','out');
             if obj.epochNum==1
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.18 0.96 0.075 0.03],'String','polarity');
                 obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.265 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
@@ -95,13 +104,19 @@ classdef Grid < StimGLProtocol
         end
         
         function updateMeanOnRespFig(obj,axesHandle)
-            imagesc(obj.plotData.meanOnResp,'Parent',axesHandle); colorbar;
-            set(axesHandle,'TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',obj.Ycoords);
+            imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colorbar; axis image;
+            set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
+            xlabel('azimuth (degrees)');
+            ylabel('elevation (degrees)');
+            title('On response (spike count)');
         end
         
         function updateMeanOffRespFig(obj,axesHandle)
-            imagesc(obj.plotData.meanOffResp,'Parent',axesHandle); colorbar;
-            set(axesHandle,'TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',obj.Ycoords);
+            imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colorbar; axis image;
+            set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
+            xlabel('azimuth (degrees)');
+            ylabel('elevation (degrees)');
+            title('Off response (spike count)');
         end
         
         function prepareEpoch(obj)
@@ -117,8 +132,11 @@ classdef Grid < StimGLProtocol
             % Pick a random grid point; complete all grid points before repeating any
             rng('shuffle');
             randIndex = randi(numel(obj.notCompletedCoords),1);
-            epochCoord = obj.allCoords(obj.notCompletedCoords(randIndex),:);
+            stimPosX = obj.allCoords(obj.notCompletedCoords(randIndex),1);
+            stimPosY = obj.allCoords(obj.notCompletedCoords(randIndex),2);
             obj.notCompletedCoords(randIndex) = [];
+            obj.plotData.stimPosX = stimPosX;
+            obj.plotData.stimPosY = stimPosY;
             
             % Set object properties
             params.numObj = 1;
@@ -127,8 +145,8 @@ classdef Grid < StimGLProtocol
             % get object position and size in pixels
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            objectEdgesXPix = obj.xMonPix/2+screenDistPix*tand([epochCoord(1)-obj.objectSize/2,epochCoord(1)+obj.objectSize/2]);
-            objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([epochCoord(2)-obj.objectSize/2,epochCoord(2)+obj.objectSize/2]); 
+            objectEdgesXPix = obj.xMonPix/2+screenDistPix*tand([stimPosX-obj.objectSize/2,stimPosX+obj.objectSize/2]);
+            objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([stimPosY-obj.objectSize/2,stimPosY+obj.objectSize/2]); 
             objectSizeXPix = diff(objectEdgesXPix);
             objectSizeYPix = diff(objectEdgesYPix);
             params.objXinit = objectEdgesXPix(1)+objectSizeXPix/2;
@@ -142,18 +160,17 @@ classdef Grid < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
-            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+1)/obj.stimTime))];
+            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
+            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
             % convert stimCoords back to degrees
-            obj.addParameter('stimPosX', epochCoord(1));
-            obj.addParameter('stimPosY', epochCoord(2));
+            obj.addParameter('stimPosX',stimPosX);
+            obj.addParameter('stimPosY',stimPosY);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            sampleRate = 1000;
-            stimulus = zeros(1, floor(sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
-            obj.addStimulus('test-device', 'test-stimulus', stimulus);
+            stimulus = zeros(1,floor(obj.samplingRate*(obj.preTime+obj.stimTime+obj.postTime)));
+            obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);
@@ -164,7 +181,7 @@ classdef Grid < StimGLProtocol
             Stop(obj.stimGL);
             
             % Find spikes
-            data=obj.response;
+            data=obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 polarity = obj.spikePolThrLimRet(1);
                 threshold = obj.spikePolThrLimRet(2);
@@ -192,10 +209,22 @@ classdef Grid < StimGLProtocol
                     break;
                 end
                 [peak peakIndex]=max(data(posThreshCross:negThreshCross));
-                if isnan(limitThresh) || peak<limitThresh
+                if peak<limitThresh
                     obj.plotData.spikePts(end+1)=posThreshCross-1+peakIndex;
                 end
                 posThreshCross=negThreshCross+find(data(negThreshCross+1:end)>=threshold,1);
+            end
+            
+            % Update mean responses (spike count)
+            spikeTimes = obj.plotData.time(obj.plotData.spikePts);
+            onResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
+            offResp = numel(find(spikeTimes>obj.preTime+obj.stimTime & spikeTimes<obj.preTime+2*obj.stimTime));
+            if obj.loopCount==1
+                obj.plotData.meanOnResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = onResp;
+                obj.plotData.meanOffResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = offResp;
+            else
+                obj.plotData.meanOnResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = mean([repmat(obj.plotData.meanOnResp,1,obj.loopCount-1),onResp]);
+                obj.plotData.meanOffResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = mean([repmat(obj.plotData.meanOnResp,1,obj.loopCount-1),offResp]);
             end
             
             % Call the base class method which updates the figures.
