@@ -80,6 +80,13 @@ classdef LEDFamily < SymphonyProtocol
             
             [stimulus, lightAmplitude] = obj.stimulusForEpoch(obj.epochNum);
             obj.addParameter('lightAmplitude', lightAmplitude);
+            %obj.addStimulus('LED', 'test-stimulus', stimulus, 'V');    %
+            obj.setDeviceBackground('LED', obj.lightMean, 'V');
+            if strcmp(obj.multiClampMode, 'VClamp')
+                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
+            else
+                obj.setDeviceBackground('Amplifier_Chl', double(obj.preSynapticHold) * 1e-12, 'A');
+            end 
             obj.addStimulus('LED', 'LED stimulus', stimulus, 'V');    %
         end
         
