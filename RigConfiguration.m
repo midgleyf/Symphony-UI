@@ -123,11 +123,13 @@ classdef RigConfiguration < handle
             end
             
             % Update the rate of all device streams.
-            % TODO: is this needed?
-%             devices = obj.devices();
-%             for i = 1:length(devices)
-%                 devices(i).SampleRate = Measurement(rate, 'Hz');
-%             end
+            devices = obj.devices();
+            for i = 1:length(devices)
+                 [~, streams] = dictionaryKeysAndValues(devices{i}.Streams);
+                 for j = 1:length(streams)
+                     streams{j}.SampleRate = Measurement(rate, 'Hz');
+                 end
+            end
         end
         
         
