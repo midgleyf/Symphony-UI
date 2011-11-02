@@ -20,7 +20,7 @@ classdef ExpandingObjects < StimGLProtocol
     end
 
     properties
-        spikePolThrLimRet = [Inf,0,100,0];
+        spikePolThrLimRet = [Inf,1,100,1];
         samplingRate = 50000;
         preTime = 0.5;
         stimTime = 0.5;
@@ -28,7 +28,6 @@ classdef ExpandingObjects < StimGLProtocol
         intertrialIntervalMin = 1;
         intertrialIntervalMax = 2;
         backgroundColor = 0;
-        %numObjects = {'1','2'};
         numObjects = 1;
         objectColor = 1;
         objectPositionX = 20;
@@ -51,27 +50,102 @@ classdef ExpandingObjects < StimGLProtocol
             obj.rigConfig.sampleRate = obj.samplingRate;
         end
         
-        %function set.numObjects(obj,numObjects)
-        %    obj.numObjects = str2double(numObjects);
-        %end
-        
         function prepareRun(obj)
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
             
             obj.loopCount = 1;
             
-            % Prepare figures
-            %obj.openFigure('Response');
-            
-            % Get all combinations of trial types based on object expansion speed if numObjects is one
-            % or object expansion speeds and object2 position if numObjects is two
+            % Get all combinations of trial types based on object expansion rate if numObjects is one
+            % or object expansion rates and object2 position if numObjects is two
             if obj.numObjects==1
                 obj.trialTypes = obj.objectExpansionRate';
             elseif obj.numObjects==2
                 obj.trialTypes=allcombs(obj.objectExpansionRate,obj.object2PositionX,obj.object2PositionY,obj.object2ExpansionRate);
             end
             obj.notCompletedTrialTypes=1:size(obj.trialTypes,1);
+            
+            % Prepare figures
+            sampInt = 1/obj.samplingRate;
+            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.stimTime+obj.postTime;
+            obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
+            if numel(obj.objectExpansionRate)>1
+                obj.plotData.meanExpansionRateResp = NaN(1,numel(obj.objectExpansionRate));
+                obj.openFigure('Custom','Name','MeanExpansionRateRespFig','UpdateCallback',@updateMeanExpansionRateRespFig);
+            end
+            if obj.numObjects==2
+                if numel(obj.object2PositionX)>1 || numel(obj.object2PositionY)>1
+                    obj.plotData.meanObj2PositionResp = NaN(numel(obj.object2PositionY),numel(obj.object2PositionX));
+                    obj.openFigure('Custom','Name','MeanObj2PositionRespFig','UpdateCallback',@updateMeanObj2PositionRespFig);
+                end
+                if numel(obj.object2ExpansionRate)>1
+                    obj.plotData.meanObj2ExpansionRateResp = NaN(1,numel(obj.object2ExpansionRate));
+                    obj.openFigure('Custom','Name','MeanObj2ExpansionRateRespFig','UpdateCallback',@updateMeanObj2ExpansionRateRespFig);
+                end
+            end 
+        end
+        
+        function updateResponseFig(obj,axesHandle)
+            data = obj.response('Amplifier_Ch1');
+            if obj.epochNum==1
+                obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
+                obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o');
+                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.stimTime,obj.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                xlabel(axesHandle,'s');
+                ylabel(axesHandle,'mV');
+                set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
+                obj.plotData.epochCountHandle = uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.25 0.96 0.5 0.03],'FontWeight','bold');
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.17 0.915 0.075 0.03],'String','polarity');
+                obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.255 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.35 0.915 0.075 0.03],'String','thresh');
+                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.435 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(2)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.53 0.915 0.075 0.03],'String','limit');
+                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.615 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(3)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
+                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
+            else
+                set(obj.plotData.responseLineHandle,'Ydata',data);
+                set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+            end
+            set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
+            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+        end
+        
+        function updateMeanExpansionRateRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanExpansionRateRespHandle = line(obj.objectExpansionRate,obj.plotData.meanExpansionRateResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectExpansionRate)-1,max(obj.objectExpansionRate)+1],'Xtick',obj.objectExpansionRate);
+                xlabel(axesHandle,'object expansion rate (degrees/s)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanExpansionRateRespHandle,'Ydata',obj.plotData.meanExpansionRateResp);
+            end
+            line(obj.plotData.epochObjectExpansionRate,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+        end
+        
+        function updateMeanObj2PositionRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanObj2PositionImageHandle = imagesc(flipud(obj.plotData.meanObj2PositionResp),'Parent',axesHandle); colorbar; axis image;
+                set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.object2PositionX),'XTickLabel',obj.object2PositionX,'YTick',1:numel(obj.object2PositionY),'YTickLabel',fliplr(obj.object2PositionY));
+                xlabel(axesHandle,'azimuth (degrees)');
+                ylabel(axesHandle,'elevation (degrees)');
+                title(axesHandle,'Mean response versus object2 position (spike count)');
+            else
+                set(obj.plotData.meanObj2PositionImageHandle,'Cdata',flipud(obj.plotData.meanObj2PositionResp));
+            end
+        end
+        
+        function updateMeanObj2ExpansionRateRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanObj2ExpansionRateRespHandle = line(obj.object2ExpansionRate,obj.plotData.meanObj2ExpansionRateResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.object2ExpansionRate)-1,max(obj.object2ExpansionRate)+1],'Xtick',obj.object2ExpansionRate);
+                xlabel(axesHandle,'object2 expansion rate (degrees/s)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanObj2ExpansionRateRespHandle,'Ydata',obj.plotData.meanObj2ExpansionRateResp);
+            end
+            line(obj.plotData.epochObject2ExpansionRate,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
         function prepareEpoch(obj)
@@ -85,17 +159,21 @@ classdef ExpandingObjects < StimGLProtocol
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.numObj = obj.numObjects;
             
-            % Pick a combination of object speeds and object2 position from the trialTypes list
+            % Pick a combination of object expansion rates and object2 position from the trialTypes list
             % complete all combinations before repeating any particular combination
             rng('shuffle');
             randIndex = randi(numel(obj.notCompletedTrialTypes),1);
             epochTrialType = obj.notCompletedTrialTypes(randIndex);
             obj.notCompletedTrialTypes(randIndex) = [];
             epochObjectExpansionRate = obj.trialTypes(epochTrialType,1);
+            obj.plotData.epochObjectExpansionRate = epochObjectExpansionRate;
             if obj.numObjects==2
                 epochObject2PositionX = obj.trialTypes(epochTrialType,2);
                 epochObject2PositionY = obj.trialTypes(epochTrialType,3);
                 epochObject2ExpansionRate = obj.trialTypes(epochTrialType,4);
+                obj.plotData.epochObject2PositionX = epochObject2PositionX;
+                obj.plotData.epochObject2PositionY = epochObject2PositionY;
+                obj.plotData.epochObject2ExpansionRate = epochObject2ExpansionRate;
             end
             
             % Determine object size in degrees as a function of time
@@ -122,10 +200,10 @@ classdef ExpandingObjects < StimGLProtocol
             XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             if obj.numObjects==2
-                leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.object2PositionX-0.5*sizeVectorDeg2);
-                rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.object2PositionX+0.5*sizeVectorDeg2);
-                bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.object2PositionY-0.5*sizeVectorDeg2);
-                topEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.object2PositionY+0.5*sizeVectorDeg2);
+                leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(epochObject2PositionX-0.5*sizeVectorDeg2);
+                rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(epochObject2PositionX+0.5*sizeVectorDeg2);
+                bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(epochObject2PositionY-0.5*sizeVectorDeg2);
+                topEdgesPix = screenHeightBelowPix+screenDistPix*tand(epochObject2PositionY+0.5*sizeVectorDeg2);
                 XsizeVectorPix2 = rightEdgesPix-leftEdgesPix;
                 YsizeVectorPix2 = topEdgesPix-bottomEdgesPix;
                 XposVectorPix2 = leftEdgesPix+0.5*XsizeVectorPix2;
@@ -200,6 +278,72 @@ classdef ExpandingObjects < StimGLProtocol
         
         function completeEpoch(obj)
             Stop(obj.stimGL);
+            
+            % Find spikes
+            data=obj.response('Amplifier_Ch1');
+            if obj.epochNum==1
+                polarity = obj.spikePolThrLimRet(1);
+                threshold = obj.spikePolThrLimRet(2);
+                limitThresh = obj.spikePolThrLimRet(3);
+                returnThresh = obj.spikePolThrLimRet(4);
+            else
+                polarity = str2double(get(obj.plotData.polarityEditHandle,'String'));
+                threshold = str2double(get(obj.plotData.threshEditHandle,'String'));
+                limitThresh = str2double(get(obj.plotData.limitEditHandle,'String'));
+                returnThresh = str2double(get(obj.plotData.returnEditHandle,'String'));
+            end
+            % flip data and threshold if negative-going spike peaks
+            if polarity<0
+                data=-data; 
+                threshold=-threshold;
+                limitThresh=-limitThresh;
+                returnThresh=-returnThresh;
+            end
+            % find sample number of spike peaks
+            obj.plotData.spikePts=[];
+            posThreshCross=find(data>=threshold,1);
+            while ~isempty(posThreshCross)
+                negThreshCross=posThreshCross+find(data(posThreshCross+1:end)<=returnThresh,1);
+                if isempty(negThreshCross)
+                    break;
+                end
+                [peak peakIndex]=max(data(posThreshCross:negThreshCross));
+                if peak<limitThresh
+                    obj.plotData.spikePts(end+1)=posThreshCross-1+peakIndex;
+                end
+                posThreshCross=negThreshCross+find(data(negThreshCross+1:end)>=threshold,1);
+            end
+            
+            % Update epoch and mean response (spike count) versus object expansion rate and/or object2 expansion rate or position
+            spikeTimes = obj.plotData.time(obj.plotData.spikePts);
+            obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.stimTime));
+            if numel(obj.objectExpansionRate)>1
+                objectExpansionRateIndex = find(obj.objectExpansionRate==obj.plotData.epochObjectExpansionRate,1);
+                if isnan(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex))
+                    obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = mean([repmat(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
+            if obj.numObjects==2
+                if numel(obj.object2PositionX)>1 || numel(obj.object2PositionY)>1
+                    object2PositionXIndex = find(obj.object2PositionX==obj.plotData.epochObject2PositionX,1);
+                    object2PositionYIndex = find(obj.object2PositionY==obj.plotData.epochObject2PositionY,1);
+                    if isnan(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex))
+                        obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = mean([repmat(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
+                end
+                if numel(obj.object2ExpansionRate)>1
+                    object2ExpansionRateIndex = find(obj.object2ExpansionRate==obj.plotData.epochObject2ExpansionRate,1);
+                    if isnan(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex))
+                        obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = mean([repmat(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
+                end
+            end
             
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);

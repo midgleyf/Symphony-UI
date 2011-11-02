@@ -3,7 +3,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
     properties (Constant)
         identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
         version = 1
-        displayName = 'Moving Objects'
+        displayName = 'Moving Objects Protocol'
         plugInName = 'MovingObjects'
     end
 

@@ -20,7 +20,7 @@ classdef Grid < StimGLProtocol
     end
 
     properties
-        spikePolThrLimRet = [Inf,0,100,0];
+        spikePolThrLimRet = [Inf,1,100,1];
         samplingRate = 50000;
         preTime = 0.5;
         stimTime = 0.5;
@@ -68,55 +68,70 @@ classdef Grid < StimGLProtocol
             prepareRun@SymphonyProtocol(obj);
             
             obj.loopCount = 1;
+            
+            % Get all grid coordinates
             obj.allCoords = allcombs(obj.Xcoords,obj.Ycoords);
-            allcombs(obj.Xcoords,obj.Ycoords);
             obj.notCompletedCoords = 1:size(obj.allCoords,1);
             
             % Prepare figures
             sampInt = 1/obj.samplingRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
-            obj.plotData.meanOnResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
-            obj.plotData.meanOffResp = zeros(numel(obj.Ycoords),numel(obj.Xcoords));
+            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
+            obj.plotData.meanOnResp = NaN(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.openFigure('Custom','Name','MeanOnRespFig','UpdateCallback',@updateMeanOnRespFig);
+            obj.plotData.meanOffResp = NaN(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.openFigure('Custom','Name','MeanOffRespFig','UpdateCallback',@updateMeanOffRespFig);
         end
         
         function updateResponseFig(obj,axesHandle)
             data = obj.response('Amplifier_Ch1');
-            plot(axesHandle,obj.plotData.time,data,'k');
-            hold on;
-            plot(axesHandle,obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'go');
-            hold off;
-            xlabel(axesHandle,'s');
-            ylabel(axesHandle,'mV');
-            set(axesHandle,'Box','off','TickDir','out');
             if obj.epochNum==1
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.18 0.96 0.075 0.03],'String','polarity');
-                obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.265 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.36 0.96 0.075 0.03],'String','thresh');
-                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.445 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(2)));
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.54 0.96 0.075 0.03],'String','limit');
-                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.625 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(3)));
-                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.72 0.96 0.075 0.03],'String','return');
-                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.805 0.95 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
+                obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
+                obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o');
+                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.stimTime,obj.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                xlabel(axesHandle,'s');
+                ylabel(axesHandle,'mV');
+                set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
+                obj.plotData.epochCountHandle = uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.25 0.96 0.5 0.03],'FontWeight','bold');
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.17 0.915 0.075 0.03],'String','polarity');
+                obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.255 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.35 0.915 0.075 0.03],'String','thresh');
+                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.435 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(2)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.53 0.915 0.075 0.03],'String','limit');
+                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.615 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(3)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
+                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
+            else
+                set(obj.plotData.responseLineHandle,'Ydata',data);
+                set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
             end
+            set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
+            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.allCoords,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.allCoords,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
         function updateMeanOnRespFig(obj,axesHandle)
-            imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colorbar; axis image;
-            set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
-            xlabel('azimuth (degrees)');
-            ylabel('elevation (degrees)');
-            title('On response (spike count)');
+            if obj.epochNum==1
+                obj.plotData.onRespImageHandle = imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colorbar; axis image;
+                set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
+                xlabel(axesHandle,'azimuth (degrees)');
+                ylabel(axesHandle,'elevation (degrees)');
+                title(axesHandle,'On response (spike count)');
+            else
+                set(obj.plotData.onRespImageHandle,'Cdata',flipud(obj.plotData.meanOnResp));
+            end
         end
         
         function updateMeanOffRespFig(obj,axesHandle)
-            imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colorbar; axis image;
-            set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
-            xlabel('azimuth (degrees)');
-            ylabel('elevation (degrees)');
-            title('Off response (spike count)');
+            if obj.epochNum==1
+                obj.plotData.offRespImageHandle = imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colorbar; axis image;
+                set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
+                xlabel(axesHandle,'azimuth (degrees)');
+                ylabel(axesHandle,'elevation (degrees)');
+                title(axesHandle,'Off response (spike count)');
+            else
+                set(obj.plotData.offRespImageHandle,'Cdata',flipud(obj.plotData.meanOffResp));
+            end
         end
         
         function prepareEpoch(obj)
@@ -154,7 +169,7 @@ classdef Grid < StimGLProtocol
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
-            params.delay = obj.preTime*frameRate;
+            params.delay = round(obj.preTime*frameRate);
             params.nFrames = round(obj.stimTime*frameRate);
             params.tFrames = params.nFrames;
             
@@ -217,14 +232,16 @@ classdef Grid < StimGLProtocol
             
             % Update mean responses (spike count)
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            onResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
-            offResp = numel(find(spikeTimes>obj.preTime+obj.stimTime & spikeTimes<obj.preTime+2*obj.stimTime));
+            onResp = numel(find(spikeTimes>0 & spikeTimes<obj.stimTime));
+            offResp = numel(find(spikeTimes>obj.stimTime & spikeTimes<2*obj.stimTime));
+            Yindex = find(obj.Ycoords==obj.plotData.stimPosY,1);
+            Xindex = find(obj.Xcoords==obj.plotData.stimPosX,1);
             if obj.loopCount==1
-                obj.plotData.meanOnResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = onResp;
-                obj.plotData.meanOffResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = offResp;
+                obj.plotData.meanOnResp(Yindex,Xindex) = onResp;
+                obj.plotData.meanOffResp(Yindex,Xindex) = offResp;
             else
-                obj.plotData.meanOnResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = mean([repmat(obj.plotData.meanOnResp,1,obj.loopCount-1),onResp]);
-                obj.plotData.meanOffResp(obj.Ycoords==obj.plotData.stimPosY,obj.Xcoords==obj.plotData.stimPosX) = mean([repmat(obj.plotData.meanOnResp,1,obj.loopCount-1),offResp]);
+                obj.plotData.meanOnResp(Yindex,Xindex) = mean([repmat(obj.plotData.meanOnResp(Yindex,Xindex),1,obj.loopCount-1),onResp]);
+                obj.plotData.meanOffResp(Yindex,Xindex) = mean([repmat(obj.plotData.meanOffResp(Yindex,Xindex),1,obj.loopCount-1),offResp]);
             end
             
             % Call the base class method which updates the figures.
@@ -232,7 +249,7 @@ classdef Grid < StimGLProtocol
             
             % if all grid coordinates completed, reset completedCoords and start a new loop
             if isempty(obj.notCompletedCoords)
-                obj.notCompletedCoords = obj.allCoords;
+                obj.notCompletedCoords = 1:size(obj.allCoords,1);
                 obj.loopCount = obj.loopCount+1;
             end
         end

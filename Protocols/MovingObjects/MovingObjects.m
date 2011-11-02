@@ -20,7 +20,7 @@ classdef MovingObjects < StimGLProtocol
     end
 
     properties
-        spikePolThrLimRet = [Inf,0,100,0];
+        spikePolThrLimRet = [Inf,1,100,1];
         samplingRate = 50000;
         preTime = 1;
         postTime = 2;
@@ -54,12 +54,73 @@ classdef MovingObjects < StimGLProtocol
             
             obj.loopCount = 1;
             
-            % Prepare figures
-            %obj.openFigure('Response');
-            
-            % Get all combinations of trial types based on object direction, speed, and size
+            % Get all combinations of trial types based on object size, speed, and direction
             obj.trialTypes = allcombs(obj.objectSize,obj.objectSpeed,obj.objectDir);
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
+            
+            % Prepare figures
+            obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
+            if numel(obj.objectSpeed)>1
+                obj.plotData.meanSpeedResp = NaN(1,numel(obj.objectSpeed));
+                obj.openFigure('Custom','Name','MeanSpeedRespFig','UpdateCallback',@updateMeanSpeedRespFig);
+            end
+            if numel(obj.objectDir)>1
+                obj.plotData.meanDirResp = NaN(1,numel(obj.objectDir));
+                obj.openFigure('Custom','Name','MeanDirRespFig','UpdateCallback',@updateMeanDirRespFig);
+            end
+        end
+        
+        function updateResponseFig(obj,axesHandle)
+            data=obj.response('Amplifier_Ch1');
+            if obj.epochNum==1
+                obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
+                obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o');
+                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimTime,obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                xlabel(axesHandle,'s');
+                ylabel(axesHandle,'mV');
+                set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
+                obj.plotData.epochCountHandle = uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.25 0.96 0.5 0.03],'FontWeight','bold');
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.17 0.915 0.075 0.03],'String','polarity');
+                obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.255 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.35 0.915 0.075 0.03],'String','thresh');
+                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.435 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(2)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.53 0.915 0.075 0.03],'String','limit');
+                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.615 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(3)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
+                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
+            else
+                set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
+                set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+            end
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimTime,obj.plotData.stimTime]);
+            set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
+            xlim(axesHandle,[-obj.preTime,max(obj.plotData.time)]);
+            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+        end
+        
+        function updateMeanSpeedRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanSpeedRespHandle = line(obj.objectSpeed,obj.plotData.meanSpeedResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSpeed)-1,max(obj.objectSpeed)+1],'Xtick',obj.objectSpeed);
+                xlabel(axesHandle,'object speed (degrees/s)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanSpeedRespHandle,'Ydata',obj.plotData.meanSpeedResp);
+            end
+            line(obj.plotData.epochObjectSpeed,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+        end
+        
+        function updateMeanDirRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanDirRespHandle = line(obj.objectDir,obj.plotData.meanDirResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectDir)-10,max(obj.objectDir)+10],'Xtick',obj.objectDir);
+                xlabel(axesHandle,'object direction (degrees relative to vertical)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanDirRespHandle,'Ydata',obj.plotData.meanDirResp);
+            end
+            line(obj.plotData.epochObjectDir,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
         function prepareEpoch(obj)
@@ -81,6 +142,8 @@ classdef MovingObjects < StimGLProtocol
             epochObjectSize = obj.trialTypes(epochTrialType,1);
             epochObjectSpeed = obj.trialTypes(epochTrialType,2);
             epochObjectDir = obj.trialTypes(epochTrialType,3);
+            obj.plotData.epochObjectSpeed = epochObjectSpeed;
+            obj.plotData.epochObjectDir = epochObjectDir;
             
             % Determine object path (get start and end postions in pixels)
             % (add offset so objects start and end just off the screen)
@@ -309,6 +372,7 @@ classdef MovingObjects < StimGLProtocol
             % Set number of delay frames for preTime and determine stimTime
             params.delay = round(obj.preTime*frameRate);
             stimTime = nStimFrames/frameRate;
+            obj.plotData.stimTime = stimTime;
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectDir',epochObjectDir);
@@ -328,6 +392,63 @@ classdef MovingObjects < StimGLProtocol
         
         function completeEpoch(obj)
             Stop(obj.stimGL);
+            
+            % Find spikes
+            data=obj.response('Amplifier_Ch1');
+            if obj.epochNum==1
+                polarity = obj.spikePolThrLimRet(1);
+                threshold = obj.spikePolThrLimRet(2);
+                limitThresh = obj.spikePolThrLimRet(3);
+                returnThresh = obj.spikePolThrLimRet(4);
+            else
+                polarity = str2double(get(obj.plotData.polarityEditHandle,'String'));
+                threshold = str2double(get(obj.plotData.threshEditHandle,'String'));
+                limitThresh = str2double(get(obj.plotData.limitEditHandle,'String'));
+                returnThresh = str2double(get(obj.plotData.returnEditHandle,'String'));
+            end
+            % flip data and threshold if negative-going spike peaks
+            if polarity<0
+                data=-data; 
+                threshold=-threshold;
+                limitThresh=-limitThresh;
+                returnThresh=-returnThresh;
+            end
+            % find sample number of spike peaks
+            obj.plotData.spikePts=[];
+            posThreshCross=find(data>=threshold,1);
+            while ~isempty(posThreshCross)
+                negThreshCross=posThreshCross+find(data(posThreshCross+1:end)<=returnThresh,1);
+                if isempty(negThreshCross)
+                    break;
+                end
+                [peak peakIndex]=max(data(posThreshCross:negThreshCross));
+                if peak<limitThresh
+                    obj.plotData.spikePts(end+1)=posThreshCross-1+peakIndex;
+                end
+                posThreshCross=negThreshCross+find(data(negThreshCross+1:end)>=threshold,1);
+            end
+            
+            % Update epoch and mean response (spike count) versus object speed and/or direction
+            sampInt = 1/obj.samplingRate;
+            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.plotData.stimTime+obj.postTime;
+            spikeTimes = obj.plotData.time(obj.plotData.spikePts);
+            obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.plotData.stimTime));
+            if numel(obj.objectSpeed)>1
+                objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
+                if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
+            if numel(obj.objectDir)>1
+                objectDirIndex = find(obj.objectDir==obj.plotData.epochObjectDir,1);
+                if isnan(obj.plotData.meanDirResp(objectDirIndex))
+                    obj.plotData.meanDirResp(objectDirIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanDirResp(objectDirIndex) = mean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
             
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);

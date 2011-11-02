@@ -20,26 +20,25 @@ classdef LoomingObjects < StimGLProtocol
     end
 
     properties
-        spikePolThrLimRet = [Inf,0,100,0];
+        spikePolThrLimRet = [Inf,1,100,1];
         samplingRate = 50000;
         preTime = 0.5;
         postTime = 0.5;
         intertrialIntervalMin = 1;
         intertrialIntervalMax = 2;
         backgroundColor = 0;
-        %numObjects = {'1','2'};
         numObjects = 1;
         objectColor = 1;
         objectPositionX = 20;
         objectPositionY = 0;
         objectSize = 5;
-        objectSpeed = [0.1,0.5,1];
+        objectSpeed = 25:25:150;
         thetaMin = 0.5;
         thetaMax = 20;
         holdTime = 0.1;
         object2PositionX = -20;
         object2PositionY = 0;
-        relCollisionTime = -0.1:0.1:0.1;
+        relCollisionTime = [-Inf,-0.1:0.1:0.1,Inf];
     end
     
     
@@ -53,18 +52,11 @@ classdef LoomingObjects < StimGLProtocol
             obj.rigConfig.sampleRate = obj.samplingRate;
         end
         
-        %function set.numObjects(obj,numObjects)
-        %   obj.numObjects = str2double(numObjects);
-        %end
-        
         function prepareRun(obj)
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
             
             obj.loopCount = 1;
-            
-            % Prepare figures
-            %obj.openFigure('Response');
             
             % Get all combinations of trial types based on object speed if numObjects is one
             % or object speed and relative collision time if numObjects is two
@@ -74,6 +66,79 @@ classdef LoomingObjects < StimGLProtocol
                 obj.trialTypes = allcombs(obj.objectSpeed,obj.relCollisionTime);
             end
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
+            
+            % Prepare figures
+            obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
+            if numel(obj.objectSpeed)>1
+                obj.plotData.meanSpeedResp = NaN(1,numel(obj.objectSpeed));
+                obj.openFigure('Custom','Name','MeanSpeedRespFig','UpdateCallback',@updateMeanSpeedRespFig);
+            end
+            if obj.numObjects==2
+                obj.plotData.meanRelCollisionTimeResp = NaN(1,numel(obj.relCollisionTime));
+                obj.openFigure('Custom','Name','MeanRelCollisionTimeRespFig','UpdateCallback',@updateMeanRelCollisionTimeRespFig);
+            end
+        end
+        
+        function updateResponseFig(obj,axesHandle)
+            data=obj.response('Amplifier_Ch1');
+            if obj.epochNum==1
+                obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
+                obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o');
+                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimTime,obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                xlabel(axesHandle,'s');
+                ylabel(axesHandle,'mV');
+                set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
+                obj.plotData.epochCountHandle = uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.25 0.96 0.5 0.03],'FontWeight','bold');
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.17 0.915 0.075 0.03],'String','polarity');
+                obj.plotData.polarityEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.255 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(1)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.35 0.915 0.075 0.03],'String','thresh');
+                obj.plotData.threshEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.435 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(2)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.53 0.915 0.075 0.03],'String','limit');
+                obj.plotData.limitEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.615 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(3)));
+                uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
+                obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
+            else
+                set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
+                set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+            end
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimTime,obj.plotData.stimTime]);
+            set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
+            xlim(axesHandle,[-obj.preTime,max(obj.plotData.time)]);
+            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+        end
+        
+        function updateMeanSpeedRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanSpeedRespHandle = line(obj.objectSpeed,obj.plotData.meanSpeedResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSpeed)-1,max(obj.objectSpeed)+1],'Xtick',obj.objectSpeed);
+                xlabel(axesHandle,'object speed (cm/s)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanSpeedRespHandle,'Ydata',obj.plotData.meanSpeedResp);
+            end
+            line(obj.plotData.epochObjectSpeed,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+        end
+        
+        function updateMeanRelCollisionTimeRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                Xdata = obj.relCollisionTime;
+                Xdata(isinf(Xdata) & Xdata>0) = max(Xdata(isfinite(Xdata)))+0.1;
+                Xdata(isinf(Xdata) & Xdata<0) = min(Xdata(isfinite(Xdata)))-0.1;
+                obj.plotData.meanRelCollisionTimeRespHandle = line(Xdata,obj.plotData.meanRelCollisionTimeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(Xdata)-0.05,max(Xdata)+0.05],'Xtick',obj.relCollisionTime);
+                xlabel(axesHandle,'relative collision time (s)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanRelCollisionTimeRespHandle,'Ydata',obj.plotData.meanRelCollisionTimeResp);
+            end
+            if isfinite(obj.plotData.epochRelCollisionTime)
+                line(obj.plotData.epochRelCollisionTime,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            elseif obj.plotData.epochRelCollisionTime<0
+                line(min(get(obj.plotData.meanRelCollisionTimeRespHandle,'Xdata')),obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            else
+                line(max(get(obj.plotData.meanRelCollisionTimeRespHandle,'Xdata')),obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            end
         end
         
         function prepareEpoch(obj)
@@ -94,24 +159,35 @@ classdef LoomingObjects < StimGLProtocol
             epochTrialType = obj.notCompletedTrialTypes(randIndex);
             obj.notCompletedTrialTypes(randIndex) = [];
             epochObjectSpeed = obj.trialTypes(epochTrialType,1);
+            obj.plotData.epochObjectSpeed = epochObjectSpeed;
             if obj.numObjects==2
                 epochRelCollisionTime = obj.trialTypes(epochTrialType,2);
+                obj.plotData.epochRelCollisionTime = epochRelCollisionTime;
             end
             
             % Calculate visual angle of looming object(s)
             frameRate = double(GetRefreshRate(obj.stimGL));
             objectHalfSize = obj.screenDist*tand(obj.objectSize/2);
-            LoverV = objectHalfSize/(-epochObjectSpeed*obj.screenWidth/obj.xMonPix*frameRate);
-            theta = 2*atand(LoverV./(-frameRate*10:-1));
+            % theta(t) = 2*arctan(halfSize/V*t); halfSize in cm, V in cm/s, t in frame number
+            theta = 2*atand(objectHalfSize./((-epochObjectSpeed/frameRate).*(-frameRate*10:-1)));
             theta = theta(theta>=obj.thetaMin);
             theta(theta>obj.thetaMax) = obj.thetaMax;
             theta = [theta,obj.thetaMax*ones(1,round(obj.holdTime*frameRate))];
             if obj.numObjects==2
-                frameShift = round(abs(epochRelCollisionTime)*frameRate);
-                if epochRelCollisionTime>=0
-                    theta2 = [ones(1,frameShift),theta(1:end-frameShift)];
+                if isinf(epochRelCollisionTime)
+                    if epochRelCollisionTime>0
+                        theta2 = zeros(1,numel(theta));
+                    else
+                        theta2 = theta;
+                        theta = zeros(1,numel(theta));
+                    end
                 else
-                    theta2 = [theta(frameShift+1:end),max(theta)*ones(1,frameShift)];
+                    frameShift = round(abs(epochRelCollisionTime)*frameRate);
+                    if epochRelCollisionTime>=0
+                        theta2 = [ones(1,frameShift),theta(1:end-frameShift)];
+                    else
+                        theta2 = [theta(frameShift+1:end),max(theta)*ones(1,frameShift)];
+                    end
                 end
             end
             
@@ -191,6 +267,7 @@ classdef LoomingObjects < StimGLProtocol
             params.delay = round(obj.preTime*frameRate);
             nStimFrames = numel(XposVectorPix);
             stimTime = nStimFrames/frameRate;
+            obj.plotData.stimTime = stimTime;
                        
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectSpeed',epochObjectSpeed);
@@ -211,6 +288,63 @@ classdef LoomingObjects < StimGLProtocol
         
         function completeEpoch(obj)
             Stop(obj.stimGL);
+            
+            % Find spikes
+            data=obj.response('Amplifier_Ch1');
+            if obj.epochNum==1
+                polarity = obj.spikePolThrLimRet(1);
+                threshold = obj.spikePolThrLimRet(2);
+                limitThresh = obj.spikePolThrLimRet(3);
+                returnThresh = obj.spikePolThrLimRet(4);
+            else
+                polarity = str2double(get(obj.plotData.polarityEditHandle,'String'));
+                threshold = str2double(get(obj.plotData.threshEditHandle,'String'));
+                limitThresh = str2double(get(obj.plotData.limitEditHandle,'String'));
+                returnThresh = str2double(get(obj.plotData.returnEditHandle,'String'));
+            end
+            % flip data and threshold if negative-going spike peaks
+            if polarity<0
+                data=-data; 
+                threshold=-threshold;
+                limitThresh=-limitThresh;
+                returnThresh=-returnThresh;
+            end
+            % find sample number of spike peaks
+            obj.plotData.spikePts=[];
+            posThreshCross=find(data>=threshold,1);
+            while ~isempty(posThreshCross)
+                negThreshCross=posThreshCross+find(data(posThreshCross+1:end)<=returnThresh,1);
+                if isempty(negThreshCross)
+                    break;
+                end
+                [peak peakIndex]=max(data(posThreshCross:negThreshCross));
+                if peak<limitThresh
+                    obj.plotData.spikePts(end+1)=posThreshCross-1+peakIndex;
+                end
+                posThreshCross=negThreshCross+find(data(negThreshCross+1:end)>=threshold,1);
+            end
+            
+            % Update epoch and mean response (spike count) versus object speed and/or relative collision time
+            sampInt = 1/obj.samplingRate;
+            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.plotData.stimTime+obj.postTime;
+            spikeTimes = obj.plotData.time(obj.plotData.spikePts);
+            obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.plotData.stimTime));
+            if numel(obj.objectSpeed)>1
+                objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
+                if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
+            if obj.numObjects==2
+                relCollisionTimeIndex = find(obj.relCollisionTime==obj.plotData.epochRelCollisionTime,1);
+                if isnan(obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex))
+                    obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex) = mean([repmat(obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
             
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);
