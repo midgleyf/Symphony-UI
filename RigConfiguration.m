@@ -7,6 +7,7 @@ classdef RigConfiguration < handle
     
     properties
         controller
+        allowMultiClampDevices = true
     end
     
     
@@ -29,7 +30,7 @@ classdef RigConfiguration < handle
     
     methods
         
-        function obj = RigConfiguration()
+        function obj = RigConfiguration(allowMultiClampDevices)
             import Symphony.Core.*;
             
             obj.controller = Controller();
@@ -38,6 +39,10 @@ classdef RigConfiguration < handle
             
             obj.sampleRate = 10000;
             
+            if nargin == 1 && ~allowMultiClampDevices
+                obj.allowMultiClampDevices = false;
+            end
+            
             try
                 obj.createDevices();
                 
@@ -45,7 +50,9 @@ classdef RigConfiguration < handle
                 obj.controller.DAQController.SetStreamsBackground();
             catch ME
                 obj.close();
-                disp(getReport(ME));
+                if ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode')
+                    disp(getReport(ME));
+                end
                 throw(ME);
             end
         end
@@ -254,6 +261,10 @@ classdef RigConfiguration < handle
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
             
+            if ~obj.allowMultiClampDevices
+                error('Symphony:MultiClamp:UnknownMode', 'The MultiClamp mode could not be determined.');
+            end
+            
             if channel ~= 1 && channel ~= 2
                 error('Symphony:MultiClamp:InvalidChannel', 'The MultiClamp channel must be either 1 or 2.');
             end
@@ -299,7 +310,16 @@ classdef RigConfiguration < handle
                 obj.multiClampMode(deviceName);
             catch ME
                 dev.Controller = [];
-                obj.controller.Devices.Remove(dev);
+                if iscell(obj.controller.Devices)
+                    for i = 1:length(obj.controller.Devices)
+                        if obj.controller.Devices{i} == dev
+                            obj.controller.Devices(i) = [];
+                            break;
+                        end
+                    end
+                else
+                    obj.controller.Devices.Remove(dev);
+                end
                 throw(ME);
             end
         end

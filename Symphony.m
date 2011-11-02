@@ -249,16 +249,22 @@ classdef Symphony < handle
                 constructor = str2func(lastChosenRigConfig);
                 try
                     obj.rigConfig = constructor();
-                catch ME %#ok<NASGU>
+                catch ME
                     % Cannot create a rig config the same as the last one chosen by the user.
                     % Try to make a default one instead.
-                    % TODO: don't allow the 'toggle multi-clamp' message to appear more than once
+                    disp(['Could not create a ' lastChosenRigConfig]);
+                    allowMultiClampDevices = ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode');
+                    
                     for i = 1:length(obj.rigConfigClassNames)
-                        constructor = str2func(obj.rigConfigClassNames{i});
-                        try
-                            obj.rigConfig = constructor();
-                            break
-                        catch ME %#ok<NASGU>
+                        if ~strcmp(obj.rigConfigClassNames{i}, lastChosenRigConfig)
+                            constructor = str2func(obj.rigConfigClassNames{i});
+                            try
+                                obj.rigConfig = constructor(allowMultiClampDevices);
+                                break
+                            catch ME
+                                disp(['Could not create a ' obj.rigConfigClassNames{i}]);
+                                allowMultiClampDevices = ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode');
+                            end
                         end
                     end
                 end
@@ -269,8 +275,25 @@ classdef Symphony < handle
                 
                 % Create a default protocol plug-in.
                 lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
-                protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
-                obj.protocol = obj.createProtocol(lastChosenProtocol);
+                try
+                    obj.protocol = obj.createProtocol(lastChosenProtocol);
+                    protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
+                catch ME
+                    disp(['Could not create a ' lastChosenProtocol]);
+                    for protocolValue = 1:length(obj.protocolClassNames)
+                        if ~strcmp(obj.protocolClassNames{protocolValue}, lastChosenProtocol)
+                            try
+                                obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
+                                break;
+                            catch ME
+                                disp(['Could not create a ' obj.protocolClassNames{protocolValue}]);
+                            end
+                        end
+                    end
+                end
+                if isempty(obj.protocol)
+                    error('Symphony:NoProtocol', 'Could not create any protocol');
+                end
                 
                 obj.wasSavingEpochs = true;
                 
