@@ -300,40 +300,48 @@ end
 
 
 function saveNewGroup(~, ~, handles)
-    % TODO: validate inputs
-    
-    epochGroup = EpochGroup(handles.parentGroup, handles.clock.Now);
-    epochGroup.outputPath = get(handles.outputPathEdit, 'String');
-    epochGroup.label = get(handles.labelEdit, 'String');
-    epochGroup.keywords = get(handles.keywordsEdit, 'String');
-    if isempty(handles.parentGroup)
-        rigName = handles.rigNames{get(handles.rigPopup, 'Value')};
-        cellID = get(handles.cellIDEdit, 'String');
-        cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
-        selectedSourceNode = handles.sourceTree.getSelectedNodes();
-        cellSource = Source(cellName, selectedSourceNode(1).handle.UserData);
-        
-        epochGroup.source = cellSource;
-        epochGroup.setUserProperty('mouseID', get(handles.mouseIDEdit, 'String'));
-        epochGroup.setUserProperty('cellID', cellID);
-        epochGroup.setUserProperty('rigName', rigName);
+    label = get(handles.labelEdit, 'String');
+    outputPath = get(handles.outputPathEdit, 'String');
+    cellID = get(handles.cellIDEdit, 'String');
+    if isempty(label)
+        waitfor(errordlg('You must specify a label', 'Symphony', 'modal'));
+    elseif exist(outputPath, 'dir') ~= 7
+        waitfor(errordlg('You must specify a valid output path', 'Symphony', 'modal'));
+    elseif isempty(handles.parentGroup) && isempty(cellID)
+        waitfor(errordlg('You must specify a cell ID', 'Symphony', 'modal'));
     else
-        epochGroup.source = [];
+        epochGroup = EpochGroup(handles.parentGroup, handles.clock.Now);
+        epochGroup.outputPath = outputPath;
+        epochGroup.label = label;
+        epochGroup.keywords = get(handles.keywordsEdit, 'String');
+        if isempty(handles.parentGroup)
+            rigName = handles.rigNames{get(handles.rigPopup, 'Value')};
+            cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
+            selectedSourceNode = handles.sourceTree.getSelectedNodes();
+            cellSource = Source(cellName, selectedSourceNode(1).handle.UserData);
+
+            epochGroup.source = cellSource;
+            epochGroup.setUserProperty('mouseID', get(handles.mouseIDEdit, 'String'));
+            epochGroup.setUserProperty('cellID', cellID);
+            epochGroup.setUserProperty('rigName', rigName);
+        else
+            epochGroup.source = [];
+        end
+
+        handles.epochGroup = epochGroup;
+        guidata(handles.figure, handles);
+
+        % Remember these settings for the next time a group is created.
+        setpref('SymphonyEpochGroup', 'LastChosenLabel', handles.epochGroup.label)
+        setpref('SymphonyEpochGroup', 'LastChosenKeywords', handles.epochGroup.keywords)
+        if isempty(handles.parentGroup)
+            setpref('SymphonyEpochGroup', 'LastChosenOutputPath', handles.epochGroup.outputPath)
+            setpref('SymphonyEpochGroup', 'LastChosenSourcePath', handles.epochGroup.source.parentSource.path())    % remember the tissue, not the cell (?)
+            setpref('SymphonyEpochGroup', 'LastChosenMouseID', handles.epochGroup.userProperty('mouseID'))
+            setpref('SymphonyEpochGroup', 'LastChosenCellID', handles.epochGroup.userProperty('cellID'))
+            setpref('SymphonyEpochGroup', 'LastChosenRigName', handles.epochGroup.userProperty('rigName'))
+        end
+
+        uiresume
     end
-    
-    handles.epochGroup = epochGroup;
-    guidata(handles.figure, handles);
-    
-    % Remember these settings for the next time a group is created.
-    setpref('SymphonyEpochGroup', 'LastChosenLabel', handles.epochGroup.label)
-    setpref('SymphonyEpochGroup', 'LastChosenKeywords', handles.epochGroup.keywords)
-    if isempty(handles.parentGroup)
-        setpref('SymphonyEpochGroup', 'LastChosenOutputPath', handles.epochGroup.outputPath)
-        setpref('SymphonyEpochGroup', 'LastChosenSourcePath', handles.epochGroup.source.parentSource.path())    % remember the tissue, not the cell (?)
-        setpref('SymphonyEpochGroup', 'LastChosenMouseID', handles.epochGroup.userProperty('mouseID'))
-        setpref('SymphonyEpochGroup', 'LastChosenCellID', handles.epochGroup.userProperty('cellID'))
-        setpref('SymphonyEpochGroup', 'LastChosenRigName', handles.epochGroup.userProperty('rigName'))
-    end
-    
-    uiresume
 end
