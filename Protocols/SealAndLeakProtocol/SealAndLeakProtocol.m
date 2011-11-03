@@ -31,11 +31,11 @@ classdef SealAndLeakProtocol < SymphonyProtocol
             % Call the base class method to set the DAQ sample rate.
             prepareRig@SymphonyProtocol(obj);
             
-            if strcmp(obj.multiClampMode, 'VClamp')
-                obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-3, 'V');
-            else
-                obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-12, 'A');
-            end
+%             if strcmp(obj.multiClampMode, 'VClamp')
+%                 obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-3, 'V');
+%             else
+%                 obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-12, 'A');
+%             end
         end
         
         
@@ -78,6 +78,12 @@ classdef SealAndLeakProtocol < SymphonyProtocol
             
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
+            
+            if strcmp(obj.multiClampMode, 'VClamp')
+                obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-3, 'V');
+            else
+                obj.setDeviceBackground('Amplifier_Ch1', obj.background * 1e-12, 'A');
+            end
             
             stimulus = obj.stimulusForDevice('Amplifier_Ch1');
             
