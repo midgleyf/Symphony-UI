@@ -7,7 +7,7 @@ classdef Ipulse < SymphonyProtocol
     end
     
     properties (Hidden)
-        loopCount = 1;
+        loopCount
         plotData
     end
     
@@ -25,6 +25,7 @@ classdef Ipulse < SymphonyProtocol
         
         function [stimuli,sampleRate] = sampleStimuli(obj)
             % Return a set of sample stimuli, one for each value in Iamp.
+            obj.loopCount = 1;
             sampleRate = obj.samplingRate;
             stimuli = cell(length(obj.Iamp),1);
             for i = 1:length(obj.Iamp)
