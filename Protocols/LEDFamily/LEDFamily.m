@@ -52,15 +52,15 @@ classdef LEDFamily < SymphonyProtocol
             prepareRig@SymphonyProtocol(obj);
             
             % TODO: remove this once the base class is handling the sample rate
-            obj.rigConfig.sampleRate = 10000;
+            %obj.rigConfig.sampleRate = 10000;
             
-            obj.setDeviceBackground('LED', obj.lightMean, 'V');
+            %obj.setDeviceBackground('LED', obj.lightMean, 'V');
             
-            if strcmp(obj.rigConfig.multiClampMode('Amplifier_Ch1'), 'IClamp')
-                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
-            else
-                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
-            end
+%             if strcmp(obj.rigConfig.multiClampMode('Amplifier_Ch1'), 'IClamp')
+%                 obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
+%             else
+%                 obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
+%             end
         end
         
         
@@ -85,7 +85,7 @@ classdef LEDFamily < SymphonyProtocol
             if strcmp(obj.multiClampMode, 'VClamp')
                 obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
             else
-                obj.setDeviceBackground('Amplifier_Chl', double(obj.preSynapticHold) * 1e-12, 'A');
+                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
             end 
             obj.addStimulus('LED', 'LED stimulus', stimulus, 'V');    %
         end
