@@ -130,13 +130,13 @@ classdef RigConfiguration < handle
             end
             
             % Update the rate of all device streams.
-            devices = obj.devices();
-            for i = 1:length(devices)
-                 [~, streams] = dictionaryKeysAndValues(devices{i}.Streams);
-                 for j = 1:length(streams)
-                     streams{j}.SampleRate = Measurement(rate, 'Hz');
-                 end
-            end
+%             devices = obj.devices();
+%             for i = 1:length(devices)
+%                  [~, streams] = dictionaryKeysAndValues(devices{i}.Streams);
+%                  for j = 1:length(streams)
+%                      streams{j}.SampleRate = Measurement(rate, 'Hz');
+%                  end
+%             end
         end
         
         
@@ -240,7 +240,7 @@ classdef RigConfiguration < handle
             while isempty(mode) || (~strcmp(mode, 'VClamp') && ~strcmp(mode, 'I0') && ~strcmp(mode, 'IClamp'))
                 gotMode = false;
                 try
-                    mode = char(device.DeviceParametersForInput(System.DateTimeOffset.Now).Data.OperatingMode);
+                    mode = char(device.CurrentDeviceOutputParameters.Data.OperatingMode);
                     if strcmp(mode, 'VClamp') || strcmp(mode, 'I0') || strcmp(mode, 'IClamp')
                         gotMode = true;
                     end
