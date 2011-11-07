@@ -27,8 +27,20 @@ classdef MultiClampDevice < Symphony.Core.ExternalDeviceBase
             params.Data.OperatingMode = obj.mode;
         end
         
+        
+        function params = CurrentDeviceInputParameters(obj)
+            params.Data.OperatingMode = obj.mode;
+        end
+        
+        
+        function params = CurrentDeviceOutputParameters(obj)
+            params.Data.OperatingMode = obj.mode;
+        end
+        
+        
         function b = Background(obj)
             b = obj.backgrounds(obj.mode);
         end
+        
     end
 end
