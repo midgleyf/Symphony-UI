@@ -108,27 +108,36 @@ function edited = editParameters(protocol)
                 'String',  paramValue,...
                 'Style', 'edit', ...
                 'Tag', paramTag);
-        elseif iscellstr(defaultValue)
+        elseif iscellstr(defaultValue) || (iscell(defaultValue) && all(cellfun(@isnumeric, defaultValue)))
             % Default to the first item in the pop-up if nothing has been chosen yet.
-            if iscellstr(paramValue)
+            if iscell(paramValue)
                 paramValue = paramValue{1};
             end
             
             % Figure out which item to select.
-            popupValue = find(strcmp(defaultValue, paramValue));
+            if iscellstr(defaultValue)
+                popupValue = find(strcmp(defaultValue, paramValue));
+            else
+                popupValue = find(cell2mat(defaultValue) == paramValue);
+            end
             if isempty(popupValue)
                 popupValue = 1;
             end
             
             % Convert the items to human readable form.
             for i = 1:length(defaultValue)
-                defaultValue{i} = humanReadableParameterName(defaultValue{i});
+                if ischar(defaultValue{i})
+                    defaultValue{i} = humanReadableParameterName(defaultValue{i});
+                else
+                    defaultValue{i} = num2str(defaultValue{i});
+                end
             end
             
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure, ...
                 'Units', 'points', ...
                 'Position', [labelWidth+15 dialogHeight-paramIndex*30-2 200 22], ...
+                'Callback', @(hObject,eventdata)popUpMenuChanged(hObject, eventdata, guidata(hObject)), ...
                 'String', defaultValue, ...
                 'Style', 'popupmenu', ...
                 'Value', popupValue, ...
@@ -229,7 +238,7 @@ function value = getParamValueFromUI(handles, paramName)
         value = convFunc(paramValue);
     elseif islogical(defaultValue)
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
-    elseif iscellstr(defaultValue)
+    elseif iscell(defaultValue)
         values = paramProps.DefaultValue;
         value = values{get(handles.(paramTag), 'Value')};
     elseif ischar(defaultValue)
@@ -246,10 +255,14 @@ function setParamValueInUI(handles, paramName, value)
     else
         defaultValue = [];
     end
-    if iscellstr(defaultValue)
+    if iscell(defaultValue)
         paramProps = findprop(handles.protocol, paramName);
         values = paramProps.DefaultValue;
-        set(handles.(paramTag), 'Value', find(strcmp(values, value)));
+        if ischar(values{1})
+            set(handles.(paramTag), 'Value', find(strcmp(values, value)));
+        else
+            set(handles.(paramTag), 'Value', find(cell2mat(values) == value));
+        end
     elseif islogical(defaultValue)
         set(handles.(paramTag), 'Value', value);
     elseif ischar(defaultValue)
@@ -324,6 +337,12 @@ end
 
 
 function checkboxToggled(~, ~, handles)
+    updateDependentValues(handles);
+    updateStimuli(handles);
+end
+
+
+function popUpMenuChanged(~, ~, handles)
     updateDependentValues(handles);
     updateStimuli(handles);
 end
