@@ -125,18 +125,18 @@ classdef RigConfiguration < handle
             srProp = findprop(obj.controller.DAQController, 'SampleRate');
             if isempty(srProp)
                 obj.proxySampleRate = rate;
-            else
+                
+                % Update the rate of all device streams.
+                devices = obj.devices();
+                for i = 1:length(devices)
+                     [~, streams] = dictionaryKeysAndValues(devices{i}.Streams);
+                     for j = 1:length(streams)
+                         streams{j}.SampleRate = Measurement(rate, 'Hz');
+                     end
+                end
+           else
                 obj.controller.DAQController.SampleRate = Measurement(rate, 'Hz');
             end
-            
-            % Update the rate of all device streams.
-%             devices = obj.devices();
-%             for i = 1:length(devices)
-%                  [~, streams] = dictionaryKeysAndValues(devices{i}.Streams);
-%                  for j = 1:length(streams)
-%                      streams{j}.SampleRate = Measurement(rate, 'Hz');
-%                  end
-%             end
         end
         
         

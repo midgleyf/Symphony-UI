@@ -34,7 +34,7 @@ classdef TestProtocol < SymphonyProtocol
             for i = 1:obj.epochMax                                % for each of the epochs
                 stimuli{i} = obj.stimulusForEpoch(i);               % put the stimulus for that epoch in the appropriate cell
             end
-            sampleRate = 10000;                         % WHY IS THIS HERE? (Isn't sampleRate defined by the value associated with the device)?)
+            sampleRate = obj.sampleRate;                         % WHY IS THIS HERE? (Isn't sampleRate defined by the value associated with the device)?)
         end
         
         

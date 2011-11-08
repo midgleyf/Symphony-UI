@@ -21,7 +21,6 @@ classdef LEDFamily < SymphonyProtocol
     end
     
     properties (Dependent = true, SetAccess = private) % these properties are inherited - i.e., not modifiable
-        sampleInterval;    % in microseconds, dependent until we can alter the device sample rate
         ampOfLastStep;
     end
     
@@ -39,7 +38,7 @@ classdef LEDFamily < SymphonyProtocol
         
         
         function [stimuli, sampleRate] = sampleStimuli(obj)
-            sampleRate = 10000;
+            sampleRate = obj.sampleRate;
             stimuli = cell(obj.stepsInFamily, 1);
             for i = 1:obj.stepsInFamily
                 stimuli{i} = obj.stimulusForEpoch(i);
@@ -50,9 +49,6 @@ classdef LEDFamily < SymphonyProtocol
         function prepareRig(obj)
             % Call the base class method to set the DAQ sample rate.
             prepareRig@SymphonyProtocol(obj);
-            
-            % TODO: remove this once the base class is handling the sample rate
-            %obj.rigConfig.sampleRate = 10000;
             
             %obj.setDeviceBackground('LED', obj.lightMean, 'V');
             
@@ -116,11 +112,6 @@ classdef LEDFamily < SymphonyProtocol
             if keepGoing
                 keepGoing = obj.epochNum < obj.stepsInFamily * obj.numberOfAverages;
             end
-        end
-        
-        
-        function interval = get.sampleInterval(obj)   % Should be read-out from device settings (e.g., sampleRate = obj.deviceSampleRate('Amplifier_Ch1', 'OUT'));
-            interval = uint16(100);
         end
         
         

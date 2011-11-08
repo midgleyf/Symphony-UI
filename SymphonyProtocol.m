@@ -36,6 +36,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     end
     
     
+    properties
+        sampleRate = {10000, 20000, 50000}      % in Hz
+    end
+    
+    
     properties (Dependent = true, SetAccess = private)
         multiClampMode = 'VClamp'
     end
@@ -68,10 +73,10 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function prepareRig(obj) %#ok<MANU>
+        function prepareRig(obj)
             % Override this method to perform any actions to get the rig ready for running the protocol, e.g. setting device backgrounds, etc.
             
-            % TODO: set the DAQ sample rate based on a new "sample interval" property
+            obj.rigConfig.sampleRate = obj.sampleRate;
         end
         
         
@@ -437,6 +442,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 m = ['unknown (' ME.message ')'];
             end
         end
+        
     end
     
     

@@ -21,7 +21,6 @@ classdef Circle < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
-        samplingRate = 50000;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -38,14 +37,6 @@ classdef Circle < StimGLProtocol
     
     methods
         
-        function prepareRig(obj)
-            % Call the base class method to set the DAQ sample rate.
-            prepareRig@SymphonyProtocol(obj);
-            
-            % TODO: remove this once the base class is handling the sample rate
-            obj.rigConfig.sampleRate = obj.samplingRate;
-        end
-        
         function prepareRun(obj)
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
@@ -57,7 +48,7 @@ classdef Circle < StimGLProtocol
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
             
             % Prepare figures
-            sampInt = 1/obj.samplingRate;
+            sampInt = 1/obj.rigConfig.sampleRate;
             obj.plotData.time = sampInt-obj.preTime:sampInt:obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectColor)>1
@@ -173,7 +164,7 @@ classdef Circle < StimGLProtocol
             obj.addParameter('epochObjectSize', epochObjectSize);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            stimulus = zeros(1,floor(obj.samplingRate*(obj.preTime+obj.stimTime+obj.postTime)));
+            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
@@ -262,13 +253,6 @@ classdef Circle < StimGLProtocol
                 pause on;
                 pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
             end
-        end
-       
-        function completeRun(obj)
-            Stop(obj.stimGL);
-            
-            % Call the base class method.
-            completeRun@SymphonyProtocol(obj);
         end
         
     end

@@ -21,7 +21,6 @@ classdef LoomingObjects < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
-        samplingRate = 50000;
         preTime = 0.5;
         postTime = 0.5;
         intertrialIntervalMin = 1;
@@ -43,14 +42,6 @@ classdef LoomingObjects < StimGLProtocol
     
     
     methods
-        
-        function prepareRig(obj)
-            % Call the base class method to set the DAQ sample rate.
-            prepareRig@SymphonyProtocol(obj);
-            
-            % TODO: remove this once the base class is handling the sample rate
-            obj.rigConfig.sampleRate = obj.samplingRate;
-        end
         
         function prepareRun(obj)
             % Call the base class method which clears all figures.
@@ -278,7 +269,7 @@ classdef LoomingObjects < StimGLProtocol
             obj.addParameter('stimTime',stimTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            stimulus = zeros(1,floor(obj.samplingRate*(obj.preTime+stimTime+obj.postTime)));
+            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+stimTime+obj.postTime)));
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
@@ -325,7 +316,7 @@ classdef LoomingObjects < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object speed and/or relative collision time
-            sampInt = 1/obj.samplingRate;
+            sampInt = 1/obj.rigConfig.sampleRate;
             obj.plotData.time = sampInt-obj.preTime:sampInt:obj.plotData.stimTime+obj.postTime;
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
             obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.plotData.stimTime));

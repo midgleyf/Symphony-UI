@@ -12,7 +12,6 @@ classdef Ipulse < SymphonyProtocol
     end
     
     properties
-        samplingRate = 50000;
         preTime = 0.2;
         stimTime = 0.5;
         postTime = 0.3;
@@ -26,19 +25,11 @@ classdef Ipulse < SymphonyProtocol
         function [stimuli,sampleRate] = sampleStimuli(obj)
             % Return a set of sample stimuli, one for each value in Iamp.
             obj.loopCount = 1;
-            sampleRate = obj.samplingRate;
+            sampleRate = obj.sampleRate;
             stimuli = cell(length(obj.Iamp),1);
             for i = 1:length(obj.Iamp)
                 stimuli{i} = obj.stimulusForEpoch(i);
             end
-        end
-        
-        function prepareRig(obj)
-            % Call the base class method to set the DAQ sample rate.
-            prepareRig@SymphonyProtocol(obj);
-            
-            % TODO: remove this once the base class is handling the sample rate
-            obj.rigConfig.sampleRate = obj.samplingRate;
         end
         
         function prepareRun(obj)
@@ -48,7 +39,7 @@ classdef Ipulse < SymphonyProtocol
             obj.loopCount = 1;
             
             % Prepare figure
-            sampInt=1/obj.samplingRate;
+            sampInt=1/obj.rigConfig.sampleRate;
             obj.plotData.time=sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','Responses','UpdateCallback',@updateResponsesFig);
         end
@@ -76,8 +67,8 @@ classdef Ipulse < SymphonyProtocol
         
         function [stimulus,epochIamp] = stimulusForEpoch(obj,epochNum)
             epochIamp = obj.Iamp(epochNum-numel(obj.Iamp)*(obj.loopCount-1));
-            stimulus=zeros(1,obj.samplingRate*(obj.preTime+obj.stimTime+obj.postTime));
-            stimulus(obj.samplingRate*obj.preTime+1:obj.samplingRate*(obj.preTime+obj.stimTime)) = epochIamp*1e-12;
+            stimulus=zeros(1,obj.sampleRate*(obj.preTime+obj.stimTime+obj.postTime));
+            stimulus(obj.samplingRate*obj.preTime+1:obj.sampleRate*(obj.preTime+obj.stimTime)) = epochIamp*1e-12;
         end
         
         function completeEpoch(obj)
