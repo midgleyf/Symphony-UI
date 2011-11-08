@@ -7,17 +7,20 @@ function dims = centerWindowOnScreen(width, height, screen)
     
     dpi = get(0, 'ScreenPixelsPerInch');
     
-%     prevUnits = get(0, 'Units');
-%     set(0, 'Units', 'pixels');
-%     mps = get(0, 'MonitorPositions');
-%     set(0, 'Units', prevUnits);
-    mps = zeros(System.Windows.Forms.Screen.AllScreens.Length, 4);
-    for i = 1:System.Windows.Forms.Screen.AllScreens.Length
-        bounds = System.Windows.Forms.Screen.AllScreens(i).Bounds;
-        mps(i, 1) = bounds.X + 1;
-        mps(i, 2) = bounds.Y + 1;
-        mps(i, 3) = bounds.Width;
-        mps(i, 4) = bounds.Height;
+    if ismac
+        prevUnits = get(0, 'Units');
+        set(0, 'Units', 'pixels');
+        mps = get(0, 'MonitorPositions');
+        set(0, 'Units', prevUnits);
+    else
+        mps = zeros(System.Windows.Forms.Screen.AllScreens.Length, 4);
+        for i = 1:System.Windows.Forms.Screen.AllScreens.Length
+            bounds = System.Windows.Forms.Screen.AllScreens(i).Bounds;
+            mps(i, 1) = bounds.X + 1;
+            mps(i, 2) = bounds.Y + 1;
+            mps(i, 3) = bounds.Width;
+            mps(i, 4) = bounds.Height;
+        end
     end
     mps = mps / dpi * 72;
     
@@ -27,6 +30,10 @@ function dims = centerWindowOnScreen(width, height, screen)
     
     sz = mps(screen, :);
     x = sz(1) + sz(3) / 2 - width / 2;
-    y = (mps(1,2) + mps(1,4) - (sz(2) + sz(4))) + sz(4) / 2 - height / 2;
+    if ismac
+        y = height + sz(4) / 2 - height / 2;
+    else
+        y = (mps(1,2) + mps(1,4) - (sz(2) + sz(4))) + sz(4) / 2 - height / 2;
+    end
     dims = uint16([x y width height]);
 end
