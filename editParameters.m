@@ -6,19 +6,24 @@ function edited = editParameters(protocol)
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     
-    % TODO: determine the width from the actual labels.
+    % TODO: determine the width from the actual labels using textwrap.
     labelWidth = 120;
     
     paramsHeight = paramCount * 30;
     axesHeight = max([paramsHeight 300]);
     dialogHeight = axesHeight + 50;
     
+    % Place this dialog on the same screen that the main window is on.
     s = windowScreen(gcf);
+    
+    % Size the dialog so that the sample axes is square but don't let it be wider than the screen.
+    bounds = screenBounds(s);
+    dialogWidth = min([labelWidth + 225 + 30 + axesHeight + 10, bounds(3) - 20]);
     
     handles.figure = dialog(...
         'Units', 'points', ...
         'Name', [class(protocol) ' Parameters'], ...
-        'Position', centerWindowOnScreen(labelWidth + 225 + 30 + axesHeight + 10, dialogHeight, s), ...
+        'Position', centerWindowOnScreen(dialogWidth, dialogHeight, s), ...
         'WindowKeyPressFcn', @(hObject, eventdata)editParametersKeyPress(hObject, eventdata, guidata(hObject)), ...
         'Tag', 'figure');
     
@@ -189,7 +194,7 @@ function updateStimuli(handles)
         stimulusCount = length(stimuli);
         for i = 1:stimulusCount
             stimulus = stimuli{i};
-            plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / sampleRate, stimulus);
+            plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / double(sampleRate), stimulus);
             hold on
         end
         hold off
