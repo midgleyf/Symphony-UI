@@ -149,7 +149,7 @@ classdef RigConfiguration < handle
                 if ~strcmp(char(m.Unit), 'Hz')
                     error('Symphony:SampleRateNotInHz', 'The sample rate is not in Hz.');
                 end
-                rate = m.QuantityInBaseUnit;
+                rate = System.Decimal.ToDouble(m.QuantityInBaseUnit);
             end
         end
         
