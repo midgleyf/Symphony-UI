@@ -112,6 +112,8 @@ function edited = editParameters(protocol)
             % Default to the first item in the pop-up if nothing has been chosen yet.
             if iscell(paramValue)
                 paramValue = paramValue{1};
+                params.(paramName) = paramValue;
+                handles.protocolCopy.(paramName) = paramValue;
             end
             
             % Figure out which item to select.
