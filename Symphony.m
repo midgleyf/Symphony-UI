@@ -440,6 +440,20 @@ classdef Symphony < handle
                     'Style', 'checkbox', ...
                     'Tag', 'saveEpochsCheckbox');
                 
+                obj.controls.notSavingEpochsText = uicontrol(...
+                    'Parent', obj.mainWindow, ...
+                    'Units', 'points', ...
+                    'FontSize', 18, ...
+                    'HorizontalAlignment', 'right', ...
+                    'Position', [85 110 270 20], ...
+                    'BackgroundColor', bgColor, ...
+                    'ForegroundColor', 'red', ...
+                    'Visible', 'off', ...
+                    'String', 'Epoch data is not being saved', ...
+                    'Style', 'text', ...
+                    'Tag', 'notSavingEpochsText');
+                addlistener(obj.controls.saveEpochsCheckbox, 'Value', 'PostSet', @obj.updateUIState);
+                
                 % Create the epoch group controls
                 
                 obj.controls.epochPanel = uipanel(...
@@ -685,6 +699,11 @@ classdef Symphony < handle
             saveEpochsPos = get(obj.controls.saveEpochsCheckbox, 'Position');
             saveEpochsPos(2) = protocolPanelPos(2) - 10 - saveEpochsPos(4);
             set(obj.controls.saveEpochsCheckbox, 'Position', saveEpochsPos);
+            notSavingEpochsPos = get(obj.controls.notSavingEpochsText, 'Position');
+            notSavingEpochsPos(1) = saveEpochsPos(1) + saveEpochsPos(3) + 10;
+            notSavingEpochsPos(3) = figWidth - 10 - notSavingEpochsPos(1);
+            notSavingEpochsPos(2) = saveEpochsPos(2);
+            set(obj.controls.notSavingEpochsText, 'Position', notSavingEpochsPos);
             
             % Expand the epoch group panel to the full width and remaining height.
             epochPanelPos = get(obj.controls.epochPanel, 'Position');
@@ -716,7 +735,7 @@ classdef Symphony < handle
         end
         
         
-        function updateUIState(obj)
+        function updateUIState(obj, varargin)
             % Update the state of the UI based on the state of the protocol.
             set(obj.controls.statusLabel, 'String', ['Status: ' obj.protocol.state]);
             
@@ -773,6 +792,13 @@ classdef Symphony < handle
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'on');
                     set(obj.controls.addNoteButton, 'Enable', 'on');
                 end
+            end
+            
+            saveEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
+            if ~isempty(obj.epochGroup) && obj.protocol.allowSavingEpochs && ~saveEpochs
+                set(obj.controls.notSavingEpochsText, 'Visible', 'on');
+            else
+                set(obj.controls.notSavingEpochsText, 'Visible', 'off');
             end
             
             % Update the epoch group settings.
