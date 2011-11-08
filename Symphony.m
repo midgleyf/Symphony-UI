@@ -21,6 +21,7 @@ classdef Symphony < handle
         persistPath
         persistor                   % The Symphony.EpochPersistor instance.
         epochGroup                  % A structure containing the current epoch group's properties.
+        prevEpochGroup
         wasSavingEpochs
         metadataDoc
         metadataNode
@@ -849,7 +850,7 @@ classdef Symphony < handle
         function createNewEpochGroup(obj, ~, ~)
             import Symphony.Core.*;
             
-            group = newEpochGroup(obj.epochGroup, obj.sources, obj.rigConfig.controller.Clock);
+            group = newEpochGroup(obj.epochGroup, obj.sources, obj.prevEpochGroup, obj.rigConfig.controller.Clock);
             if ~isempty(group)
                 if isempty(obj.persistor)
                     % Create the persistor and metadata XML.
@@ -898,13 +899,16 @@ classdef Symphony < handle
                 obj.epochGroup.endPersistence(obj.persistor);
                 
                 if isempty(obj.epochGroup.parentGroup)
-                    % Break the reference loop on the group hierarchy so they all get deleted.
-                    delete(obj.epochGroup);
+                    obj.prevEpochGroup = obj.epochGroup;
                     obj.epochGroup = [];
                 else
                     obj.epochGroup = obj.epochGroup.parentGroup;
                 end
             else
+                % Break the reference loop on the group hierarchy so they all get deleted.
+                delete(obj.prevEpochGroup);
+                obj.prevEpochGroup = [];
+                
                 obj.persistor.CloseDocument();
                 obj.persistor = [];
                 

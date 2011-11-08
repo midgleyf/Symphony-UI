@@ -1,12 +1,31 @@
-function epochGroup = newEpochGroup(parentGroup, sources, clock)
+function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
     handles.epochGroup = [];
     
     handles.parentGroup = parentGroup;
     handles.sourceRoot = sources;
+    handles.prevEpochGroup = prevEpochGroup;
     handles.clock = clock;
     
     handles.rigNames = {'A', 'B', 'C', 'D'};
-    lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
+    if isempty(prevEpochGroup)
+        lastChosenPath = getpref('SymphonyEpochGroup', 'LastChosenOutputPath', '');
+        lastChosenLabel = getpref('SymphonyEpochGroup', 'LastChosenLabel', '');
+        lastChosenKeywords = getpref('SymphonyEpochGroup', 'LastChosenKeywords', '');
+        sourcePath = getpref('SymphonyEpochGroup', 'LastChosenSourcePath', '');
+        lastChosenMouseID = getpref('SymphonyEpochGroup', 'LastChosenMouseID', '');
+        lastChosenCellID = getpref('SymphonyEpochGroup', 'LastChosenCellID', '');
+        lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
+    else
+        lastChosenPath = prevEpochGroup.outputPath;
+        lastChosenLabel = prevEpochGroup.label;
+        lastChosenKeywords = prevEpochGroup.keywords;
+        sourcePath = prevEpochGroup.source.parentSource.path();
+        lastChosenMouseID = prevEpochGroup.userProperty('mouseID');
+        lastChosenCellID = prevEpochGroup.userProperty('cellID');
+        lastChosenRig = prevEpochGroup.userProperty('rigName');
+    end
+    index = find([sourcePath ':'] == ':', 1, 'first');
+    sourcePath = sourcePath(index + 1:end);
     rigValue = find(strcmp(handles.rigNames, lastChosenRig));
     if isempty(rigValue)
         rigValue = 1;
@@ -53,7 +72,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
         'FontSize', 12,...
         'HorizontalAlignment', 'left', ...
         'Position', [115 330 295 26], ...
-        'String',  getpref('SymphonyEpochGroup', 'LastChosenOutputPath', ''),...
+        'String',  lastChosenPath,...
         'Style', 'edit', ...
         'Tag', 'outputPathEdit');
     handles.outputPathButton = uicontrol(...
@@ -79,7 +98,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
         'FontSize', 12,...
         'HorizontalAlignment', 'left', ...
         'Position', [115 300 325 26], ...
-        'String',  getpref('SymphonyEpochGroup', 'LastChosenLabel', ''),...
+        'String',  lastChosenLabel,...
         'Style', 'edit', ...
         'Tag', 'labelEdit');
     
@@ -98,7 +117,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
         'FontSize', 12,...
         'HorizontalAlignment', 'left', ...
         'Position', [115 270 325 26], ...
-        'String',  getpref('SymphonyEpochGroup', 'LastChosenKeywords', ''),...
+        'String',  lastChosenKeywords,...
         'Style', 'edit', ...
         'Tag', 'keywordsEdit');
     
@@ -138,7 +157,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
         'FontSize', 12, ...
         'HorizontalAlignment', 'left', ...
         'Position', [115 70 125 22], ...
-        'String', getpref('SymphonyEpochGroup', 'LastChosenMouseID', ''), ...
+        'String', lastChosenMouseID, ...
         'Style', 'edit', ...
         'Tag', 'mouseIDEdit');
     
@@ -158,7 +177,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
         'FontSize', 12, ...
         'HorizontalAlignment', 'left', ...
         'Position', [315 70 125 22], ...
-        'String', getpref('SymphonyEpochGroup', 'LastChosenCellID', ''), ...
+        'String', lastChosenCellID, ...
         'Style', 'edit', ...
         'Tag', 'cellIDEdit');
     
@@ -200,25 +219,24 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
     guidata(handles.figure, handles);
     
     % Restore the last chosen source if it's still available.
-    sourcePath = getpref('SymphonyEpochGroup', 'LastChosenSourcePath', '');
     if isempty(sourcePath)
         lastChosenSource = handles.sourceRoot;
     else
-        index = find([sourcePath ':'] == ':', 1, 'first');
-        lastChosenSource = handles.sourceRoot.descendantAtPath(sourcePath(index + 1:end));
+        lastChosenSource = handles.sourceRoot.descendantAtPath(sourcePath);
     end
     
     % Pre-expand all of the sources in the tree.
     % TODO: remember which ones the user closes?
     tree = handles.sourceTree.getTree;
     row = 0;
+    selectRow = [];
     while row < tree.getRowCount()
         tree.expandRow(row);
         
         % Select this row if it was the last one chosen.
         rowSource = tree.getPathForRow(row).getLastPathComponent.handle.UserData;
         if isequal(rowSource, lastChosenSource)
-            tree.setSelectionRow(row);
+            selectRow = row;
         end
         
         row = row + 1;
@@ -229,13 +247,20 @@ function epochGroup = newEpochGroup(parentGroup, sources, clock)
         set(handles.parentGroupText, 'String', '(None)');
     else
         set(handles.parentGroupText, 'String', parentGroup.label);
-        
+    end
+    
+    if ~isempty(parentGroup) || ~isempty(prevEpochGroup)
         % A child group can only define a label and keywords.
         set(handles.outputPathEdit, 'Enable', 'off');
         set(handles.outputPathButton, 'Enable', 'off');
+        tree.setEnabled(false);
         set(handles.mouseIDEdit, 'Enable', 'off');
         set(handles.cellIDEdit, 'Enable', 'off');
         set(handles.rigPopup, 'Enable', 'off');
+    end
+    
+    if ~isempty(selectRow)
+        tree.setSelectionRow(selectRow);
     end
     
     % Wait until the user clicks the cancel or save button.
