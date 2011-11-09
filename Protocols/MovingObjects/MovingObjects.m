@@ -119,10 +119,13 @@ classdef MovingObjects < StimGLProtocol
             prepareEpoch@SymphonyProtocol(obj);
             
             % Set constant parameters
+            params.fps_mode = 'single';
             params.x_mon_pix = obj.xMonPix;
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.ftrackbox_w = 0;
+            params.numObj = 2;
             
             % Pick a combination of object size/speed/direction from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -337,17 +340,26 @@ classdef MovingObjects < StimGLProtocol
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
+            frameTrackBoxSize = 20;
             params.nFrames = numel(XsizeVectorPix);
-            frameVars = zeros(params.nFrames,12);
-            frameVars(:,1) = 0:params.nFrames-1; % frame number
-            frameVars(:,4) = 1; % objType (1=ellipse)
-            frameVars(1:numel(XposVectorPix),5) = XposVectorPix;
-            frameVars(numel(XposVectorPix)+1:end,5) = XposVectorPix(end);
-            frameVars(1:numel(YposVectorPix),6) = YposVectorPix;
-            frameVars(numel(YposVectorPix)+1:end,6) = YposVectorPix(end);
-            frameVars(:,7) = XsizeVectorPix;
-            frameVars(:,8) = YsizeVectorPix;
-            frameVars(:,10) = obj.objectColor;
+            frameVars = zeros(2*params.nFrames,12);
+            frameVars(1:2:end,1) = 0:params.nFrames-1;
+            frameVars(2:2:end,1) = 0:params.nFrames-1;
+            frameVars(2:2:end,2) = 1; % objNum (obj1=0, obj2=1)
+            frameVars(1:2:end,4) = 1; % objType (1=ellipse)
+            frameVars(2:2:end,4) = 1; % objType (0=box)
+            frameVars(1:2:2*nStimFrames,5) = XposVectorPix;
+            frameVars(2*nStimFrames+1:end,5) = XposVectorPix(end);
+            frameVars(2:2:end,5) = frameTrackBoxSize/2;
+            frameVars(1:2:2*nStimFrames,6) = YposVectorPix;
+            frameVars(2*nStimFrames+1:end,6) = YposVectorPix(end);
+            frameVars(2:2:end,6) = frameTrackBoxSize/2;
+            frameVars(1:2:end,7) = XsizeVectorPix;
+            frameVars(2:2:2*nStimFrames+1,7) = frameTrackBoxSize;
+            frameVars(1:2:end,8) = YsizeVectorPix;
+            frameVars(2:2:2*nStimFrames+1,8) = frameTrackBoxSize;
+            frameVars(1:2:end,10) = obj.objectColor;
+            frameVars(2:4:2*nStimFrames+1,10) = 1;
             frameVars(:,12) = 1; % zScaled needs to be 1
             % write to file
             currentDir = cd;
