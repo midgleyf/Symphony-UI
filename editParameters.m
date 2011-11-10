@@ -6,6 +6,9 @@ function edited = editParameters(protocol)
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     
+    [stimuli, ~] = handles.protocolCopy.sampleStimuli();
+    handles.showStimuli = ~isempty(stimuli);
+    
     % TODO: determine the width from the actual labels using textwrap.
     labelWidth = 120;
     
@@ -17,8 +20,12 @@ function edited = editParameters(protocol)
     s = windowScreen(gcf);
     
     % Size the dialog so that the sample axes is square but don't let it be wider than the screen.
-    bounds = screenBounds(s);
-    dialogWidth = min([labelWidth + 225 + 30 + axesHeight + 10, bounds(3) - 20]);
+    if handles.showStimuli
+        bounds = screenBounds(s);
+        dialogWidth = min([labelWidth + 225 + 30 + axesHeight + 10, bounds(3) - 20]);
+    else
+        dialogWidth = labelWidth + 225;
+    end
     
     handles.figure = dialog(...
         'Units', 'points', ...
@@ -156,16 +163,18 @@ function edited = editParameters(protocol)
     % TODO: add "Reset to Defaults" button.
     % TODO: add save/load settings functionality
     
-    % Create axes for displaying sample stimuli.
-    figure(handles.figure);
-    handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight - 10]);
-    updateStimuli(handles);
+    if handles.showStimuli
+        % Create axes for displaying sample stimuli.
+        figure(handles.figure);
+        handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight - 10]);
+        updateStimuli(handles);
+    end
     
     handles.cancelButton = uicontrol(...
         'Parent', handles.figure,...
         'Units', 'points', ...
         'Callback', @(hObject,eventdata)cancelEditParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [10 10 56 20], ...
+        'Position', [labelWidth + 225 - 56 - 10 - 56 - 10 10 56 20], ...
         'String', 'Cancel', ...
         'Tag', 'cancelButton');
     
@@ -173,7 +182,7 @@ function edited = editParameters(protocol)
         'Parent', handles.figure,...
         'Units', 'points', ...
         'Callback', @(hObject,eventdata)saveEditParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [80 10 56 20], ...
+        'Position', [labelWidth + 225 - 10 - 56 10 56 20], ...
         'String', 'Save', ...
         'Tag', 'saveButton');
     
@@ -193,31 +202,33 @@ end
 
 
 function updateStimuli(handles)
-    set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
-    cla;
-    [stimuli, sampleRate] = handles.protocolCopy.sampleStimuli();
-    if isempty(stimuli)
-        plot3(0, 0, 0);
-        set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
-        grid on;
-        text('Units', 'normalized', 'Position', [0.5 0.5], 'String', 'No samples available', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle');
-    else
-        stimulusCount = length(stimuli);
-        for i = 1:stimulusCount
-            stimulus = stimuli{i};
-            plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / double(sampleRate), stimulus);
-            hold on
+    if handles.showStimuli
+        set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
+        cla;
+        [stimuli, sampleRate] = handles.protocolCopy.sampleStimuli();
+        if isempty(stimuli)
+            plot3(0, 0, 0);
+            set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
+            grid on;
+            text('Units', 'normalized', 'Position', [0.5 0.5], 'String', 'No samples available', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle');
+        else
+            stimulusCount = length(stimuli);
+            for i = 1:stimulusCount
+                stimulus = stimuli{i};
+                plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / double(sampleRate), stimulus);
+                hold on
+            end
+            hold off
+            set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
+            xlabel('Sample #');
+            ylabel('Time (s)');
+            set(gca,'YDir','reverse');
+            zlabel('Stimulus');
+            grid on;
         end
-        hold off
-        set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
-        xlabel('Sample #');
-        ylabel('Time (s)');
-        set(gca,'YDir','reverse');
-        zlabel('Stimulus');
-        grid on;
+        axis square;
+        title(handles.stimuliAxes, 'Sample Stimuli');
     end
-    axis square;
-    title(handles.stimuliAxes, 'Sample Stimuli');
 end
 
 
