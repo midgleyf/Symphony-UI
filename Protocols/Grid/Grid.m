@@ -66,7 +66,7 @@ classdef Grid < StimGLProtocol
             
             % Prepare figures
             sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.stimTime+obj.postTime;
+            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             obj.plotData.meanOnResp = NaN(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.openFigure('Custom','Name','MeanOnRespFig','UpdateCallback',@updateMeanOnRespFig);
@@ -79,8 +79,9 @@ classdef Grid < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.stimTime,obj.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -96,9 +97,10 @@ classdef Grid < StimGLProtocol
             else
                 set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
-            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.allCoords,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.allCoords,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
         function updateMeanOnRespFig(obj,axesHandle)
@@ -134,6 +136,7 @@ classdef Grid < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.ftrack_change = 0;
             
             % Pick a random grid point; complete all grid points before repeating any
             rng('shuffle');
@@ -223,8 +226,8 @@ classdef Grid < StimGLProtocol
             
             % Update mean responses (spike count)
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            onResp = numel(find(spikeTimes>0 & spikeTimes<obj.stimTime));
-            offResp = numel(find(spikeTimes>obj.stimTime & spikeTimes<2*obj.stimTime));
+            onResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
+            offResp = numel(find(spikeTimes>obj.preTime+obj.stimTime & spikeTimes<obj.preTime+2*obj.stimTime));
             Yindex = find(obj.Ycoords==obj.plotData.stimPosY,1);
             Xindex = find(obj.Xcoords==obj.plotData.stimPosX,1);
             if obj.loopCount==1

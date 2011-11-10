@@ -49,7 +49,7 @@ classdef Circle < StimGLProtocol
             
             % Prepare figures
             sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.stimTime+obj.postTime;
+            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectColor)>1
                 obj.plotData.meanColorResp = NaN(1,numel(obj.objectColor));
@@ -66,8 +66,9 @@ classdef Circle < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.stimTime,obj.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -83,6 +84,7 @@ classdef Circle < StimGLProtocol
             else
                 set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
@@ -121,6 +123,7 @@ classdef Circle < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.ftrack_change = 0;
             
             % Pick a combination of object color and size from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -212,7 +215,7 @@ classdef Circle < StimGLProtocol
             
             % Update epoch and mean response (spike count) versus object color and/or size
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
             if numel(obj.objectColor)>1
                 objectColorIndex = find(obj.objectColor==obj.plotData.epochObjectColor,1);
                 if isnan(obj.plotData.meanColorResp(objectColorIndex))

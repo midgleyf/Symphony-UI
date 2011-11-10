@@ -58,7 +58,7 @@ classdef ExpandingObjects < StimGLProtocol
             
             % Prepare figures
             sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.stimTime+obj.postTime;
+            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectExpansionRate)>1
                 obj.plotData.meanExpansionRateResp = NaN(1,numel(obj.objectExpansionRate));
@@ -77,12 +77,14 @@ classdef ExpandingObjects < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
+        function updateResponseFig(obj,axesHandle)
             data = obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.stimTime,obj.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -98,6 +100,7 @@ classdef ExpandingObjects < StimGLProtocol
             else
                 set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
@@ -148,6 +151,7 @@ classdef ExpandingObjects < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.ftrack_change = 0;
             params.numObj = obj.numObjects;
             
             % Pick a combination of object expansion rates and object2 position from the trialTypes list
@@ -307,7 +311,7 @@ classdef ExpandingObjects < StimGLProtocol
             
             % Update epoch and mean response (spike count) versus object expansion rate and/or object2 expansion rate or position
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
             if numel(obj.objectExpansionRate)>1
                 objectExpansionRateIndex = find(obj.objectExpansionRate==obj.plotData.epochObjectExpansionRate,1);
                 if isnan(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex))

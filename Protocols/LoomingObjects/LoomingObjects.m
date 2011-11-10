@@ -71,12 +71,13 @@ classdef LoomingObjects < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
-            data=obj.response('Amplifier_Ch1');
+            data = obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([0,0],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimTime,obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -90,12 +91,11 @@ classdef LoomingObjects < StimGLProtocol
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
                 obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             else
-                set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
+                set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
-            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimTime,obj.plotData.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
-            xlim(axesHandle,[-obj.preTime,max(obj.plotData.time)]);
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
@@ -141,6 +141,7 @@ classdef LoomingObjects < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.ftrack_change = 0;
             params.numObj = obj.numObjects;
             
             % Pick a combination of object speed and relative collision time from the trialTypes list
@@ -317,9 +318,9 @@ classdef LoomingObjects < StimGLProtocol
             
             % Update epoch and mean response (spike count) versus object speed and/or relative collision time
             sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt-obj.preTime:sampInt:obj.plotData.stimTime+obj.postTime;
+            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.plotData.stimTime+obj.postTime;
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>0 & spikeTimes<obj.plotData.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.plotData.stimTime));
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
                 if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
