@@ -77,7 +77,6 @@ classdef ExpandingObjects < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
-        function updateResponseFig(obj,axesHandle)
             data = obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');

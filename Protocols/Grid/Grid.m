@@ -100,7 +100,7 @@ classdef Grid < StimGLProtocol
                 set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
-            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+            set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.allCoords,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.allCoords,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
         function updateMeanOnRespFig(obj,axesHandle)
@@ -136,7 +136,7 @@ classdef Grid < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
-            params.ftrack_change = 0;
+            %params.ftrack_change = 0;
             
             % Pick a random grid point; complete all grid points before repeating any
             rng('shuffle');
@@ -173,7 +173,6 @@ classdef Grid < StimGLProtocol
             params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
-            % convert stimCoords back to degrees
             obj.addParameter('stimPosX',stimPosX);
             obj.addParameter('stimPosY',stimPosY);
             
