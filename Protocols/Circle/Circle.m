@@ -69,6 +69,7 @@ classdef Circle < StimGLProtocol
                 obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
                 obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);

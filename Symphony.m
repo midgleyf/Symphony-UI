@@ -38,7 +38,10 @@ classdef Symphony < handle
             
             symphonyDir = fileparts(mfilename('fullpath'));
             symphonyParentDir = fileparts(symphonyDir);
-            Logging.ConfigureLogging(fullfile(symphonyDir, 'debug_log.xml'), symphonyParentDir);
+            if ~exist([symphonyParentDir '/debug_logs'],'dir')
+                mkdir(symphonyParentDir,'debug_logs');
+            end
+            Logging.ConfigureLogging(fullfile(symphonyDir, 'debug_log.xml'), [symphonyParentDir '/debug_logs']);
             
             % See what protocols, figure handlers and sources are available.
             obj.discoverRigConfigurations();
