@@ -6,15 +6,15 @@ function dims = centerWindowOnScreen(width, height, screen)
     end
     
     dpi = get(0, 'ScreenPixelsPerInch');
-    sz = screenBounds(screen) / dpi * 72;
-    sz1 = screenBounds(1) / dpi * 72;
+    sz = int16(screenBounds(screen) / dpi * 72);
+    sz1 = int16(screenBounds('primary') / dpi * 72);
     
     x = sz(1) + sz(3) / 2 - width / 2;
     if ismac
         y = sz(2) + sz(4) / 2 - height / 2;
     else
-        y = (sz1(2) + sz1(4) - (sz(2) + sz(4))) + sz(4) / 2 - height / 2;
+        y = sz1(2) + sz1(4) - (sz(2) + sz(4) / 2 + height / 2);
     end
     
-    dims = uint16([x y width height]);
+    dims = int16([x y width height]);
 end

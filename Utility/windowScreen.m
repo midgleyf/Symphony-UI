@@ -8,9 +8,10 @@ function s = windowScreen(fh)
     set(fh, 'Units', prevFigureUnits);
     
     mps = screenBounds();
+    p = screenBounds('primary');
     
     % Convert figure coordinates (origin at lower-left) to screen coordinates (origin at upper-left).
-    figPos(2) = mps(1, 4) - (figPos(2) + figPos(4));
+    figPos(2) = p(4) - (figPos(2) + figPos(4));
     
     % Calculate the intersection of the figure with each screen.
     s = [];
