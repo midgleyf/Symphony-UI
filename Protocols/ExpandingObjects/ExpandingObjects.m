@@ -11,6 +11,7 @@ classdef ExpandingObjects < StimGLProtocol
         screenWidth = 22.4;
         screenHeight = 12.6;
         screenHeightBelow = 3.3;
+        photodiodeThreshold = 0.3;
     end
     
     properties (Hidden)
@@ -21,6 +22,7 @@ classdef ExpandingObjects < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
+        testPulseAmp = -20;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -77,13 +79,13 @@ classdef ExpandingObjects < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
-            data = obj.response('Amplifier_Ch1');
+            data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
-                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -98,10 +100,12 @@ classdef ExpandingObjects < StimGLProtocol
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
                 obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             else
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
                 set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
-                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
+            set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -264,6 +268,7 @@ classdef ExpandingObjects < StimGLProtocol
             
             % Create a dummy stimulus so the epoch runs for the desired length
             stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
+            stimulus(0.1*obj.rigConfig.sampleRate+1:0.2*obj.rigConfig.sampleRate) = 1e-12*obj.testPulseAmp;
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
@@ -275,7 +280,7 @@ classdef ExpandingObjects < StimGLProtocol
             Stop(obj.stimGL);
             
             % Find spikes
-            data=obj.response('Amplifier_Ch1');
+            data=1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 polarity = obj.spikePolThrLimRet(1);
                 threshold = obj.spikePolThrLimRet(2);
@@ -310,8 +315,12 @@ classdef ExpandingObjects < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object expansion rate and/or object2 expansion rate or position
+            obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
+            if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
+                obj.plotData.stimStart = obj.preTime;
+            end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.stimTime));
             if numel(obj.objectExpansionRate)>1
                 objectExpansionRateIndex = find(obj.objectExpansionRate==obj.plotData.epochObjectExpansionRate,1);
                 if isnan(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex))

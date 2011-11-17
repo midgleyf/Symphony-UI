@@ -52,7 +52,7 @@ classdef Ipulse < SymphonyProtocol
             else
                 set(obj.plotData.prevLineHandle,'Color',[0.8 0.8 0.8]);
             end
-            obj.plotData.prevLineHandle = line(obj.plotData.time,obj.response('Amplifier_Ch1'),'Parent',axesHandle,'Color','k');
+            obj.plotData.prevLineHandle = line(obj.plotData.time,1000*obj.response('Amplifier_Ch1'),'Parent',axesHandle,'Color','k');
             title(axesHandle,['Epoch ' num2str(obj.epochNum-numel(obj.Iamp)*(obj.loopCount-1)) ' of ' num2str(numel(obj.Iamp)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         

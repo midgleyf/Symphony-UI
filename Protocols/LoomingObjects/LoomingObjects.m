@@ -11,6 +11,7 @@ classdef LoomingObjects < StimGLProtocol
         screenWidth = 22.4;
         screenHeight = 12.6;
         screenHeightBelow = 3.3;
+        photodiodeThreshold = 0.3;
     end
     
     properties (Hidden)
@@ -21,6 +22,7 @@ classdef LoomingObjects < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
+        testPulseAmp = -20;
         preTime = 0.5;
         postTime = 0.5;
         intertrialIntervalMin = 1;
@@ -71,13 +73,14 @@ classdef LoomingObjects < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
-            data = obj.response('Amplifier_Ch1');
+            data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
-                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -91,12 +94,13 @@ classdef LoomingObjects < StimGLProtocol
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
                 obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             else
+                set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
                 set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
-                set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
             end
             xlim(axesHandle,[0 max(obj.plotData.time)]);
-            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime]);
+            set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -273,6 +277,7 @@ classdef LoomingObjects < StimGLProtocol
             
             % Create a dummy stimulus so the epoch runs for the desired length
             stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+stimTime+obj.postTime)));
+            stimulus(0.1*obj.rigConfig.sampleRate+1:0.2*obj.rigConfig.sampleRate) = 1e-12*obj.testPulseAmp;
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
@@ -284,7 +289,7 @@ classdef LoomingObjects < StimGLProtocol
             Stop(obj.stimGL);
             
             % Find spikes
-            data=obj.response('Amplifier_Ch1');
+            data=1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 polarity = obj.spikePolThrLimRet(1);
                 threshold = obj.spikePolThrLimRet(2);
@@ -321,8 +326,12 @@ classdef LoomingObjects < StimGLProtocol
             % Update epoch and mean response (spike count) versus object speed and/or relative collision time
             sampInt = 1/obj.rigConfig.sampleRate;
             obj.plotData.time = sampInt:sampInt:obj.preTime+obj.plotData.stimTime+obj.postTime;
+            obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
+            if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
+                obj.plotData.stimStart = obj.preTime;
+            end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.plotData.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
                 if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
