@@ -7,17 +7,19 @@ classdef LoomingObjects < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 12.8;
-        screenWidth = 22.4;
+        screenDist = 13.8;
+        screenWidth = 22.7;
+        screenWidthLeft = 10.1;
         screenHeight = 12.6;
         screenHeightBelow = 3.3;
-        photodiodeThreshold = 0.3;
+        screenOriginHorzOffsetDeg = 54.4;
     end
     
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
         plotData
+        photodiodeThreshold = 0.3;
     end
 
     properties
@@ -193,9 +195,10 @@ classdef LoomingObjects < StimGLProtocol
             % Pad object size vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.objectPositionX-0.5*theta);
-            rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.objectPositionX+0.5*theta);
+            leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.objectPositionX-obj.screenOriginHorzOffsetDeg-0.5*theta);
+            rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.objectPositionX-obj.screenOriginHorzOffsetDeg+0.5*theta);
             bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.objectPositionY-0.5*theta);
             topEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.objectPositionY+0.5*theta);
             XsizeVectorPix = rightEdgesPix-leftEdgesPix;
@@ -205,8 +208,8 @@ classdef LoomingObjects < StimGLProtocol
             XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             if obj.numObjects==2
-                leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.object2PositionX-0.5*theta2);
-                rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(obj.object2PositionX+0.5*theta2);
+                leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.object2PositionX-obj.screenOriginHorzOffsetDeg-0.5*theta2);
+                rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.object2PositionX-obj.screenOriginHorzOffsetDeg+0.5*theta2);
                 bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.object2PositionY-0.5*theta2);
                 topEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.object2PositionY+0.5*theta2);
                 XsizeVectorPix2 = rightEdgesPix-leftEdgesPix;

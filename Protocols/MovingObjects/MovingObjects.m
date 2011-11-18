@@ -7,17 +7,19 @@ classdef MovingObjects < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 12.8;
-        screenWidth = 22.4;
+        screenDist = 13.8;
+        screenWidth = 22.7;
+        screenWidthLeft = 10.1;
         screenHeight = 12.6;
         screenHeightBelow = 3.3;
-        photodiodeThreshold = 0.3;
+        screenOriginHorzOffsetDeg = 54.4;
     end
     
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
         plotData
+        photodiodeThreshold = 0.3;
     end
 
     properties
@@ -146,10 +148,11 @@ classdef MovingObjects < StimGLProtocol
             % Determine object path (get start and end postions in pixels)
             % (add offset so objects start and end just off the screen)
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            XcenterDeg=obj.RFcenterX+obj.Xoffset;
+            XcenterDeg=obj.RFcenterX+obj.Xoffset-obj.screenOriginHorzOffsetDeg;
             YcenterDeg=obj.RFcenterY+obj.Yoffset;
-            XcenterPix = 0.5*obj.xMonPix+screenDistPix*tand(XcenterDeg);
+            XcenterPix = screenWidthLeftPix+screenDistPix*tand(XcenterDeg);
             YcenterPix = screenHeightBelowPix+screenDistPix*tand(YcenterDeg);
             if epochObjectDir==0
                 XstartPix = XcenterPix;
@@ -331,8 +334,8 @@ classdef MovingObjects < StimGLProtocol
             % Determine object size and position at each frame in pixels
             % Pad object size vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            leftEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(XposVectorDeg-0.5*epochObjectSize);
-            rightEdgesPix = 0.5*obj.xMonPix+screenDistPix*tand(XposVectorDeg+0.5*epochObjectSize);
+            leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(XposVectorDeg-0.5*epochObjectSize);
+            rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(XposVectorDeg+0.5*epochObjectSize);
             bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg-0.5*epochObjectSize);
             topEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg+0.5*epochObjectSize);
             XsizeVectorPix = rightEdgesPix-leftEdgesPix;

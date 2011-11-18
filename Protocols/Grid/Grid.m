@@ -7,17 +7,19 @@ classdef Grid < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 12.8;
-        screenWidth = 22.4;
+        screenDist = 13.8;
+        screenWidth = 22.7;
+        screenWidthLeft = 10.1;
         screenHeight = 12.6;
         screenHeightBelow = 3.3;
-        photodiodeThreshold = 0.3;
+        screenOriginHorzOffsetDeg = 54.4;
     end
     
     properties (Hidden)
         allCoords
         notCompletedCoords
         plotData
+        photodiodeThreshold = 0.3;
     end
 
     properties
@@ -30,11 +32,11 @@ classdef Grid < StimGLProtocol
         intertrialIntervalMax = 2;
         backgroundColor = 0;
         objectColor = 1;
-        objectSize = 10;
-        gridOriginX = -40.5;
-        gridOriginY = -14;
-        gridWidth = 81;
-        gridHeight = 49.5;
+        objectSize = 15;
+        gridOriginX = 20;
+        gridOriginY = -12;
+        gridWidth = 75;
+        gridHeight = 45;
     end
     
     properties (Dependent = true, SetAccess = private)
@@ -158,8 +160,9 @@ classdef Grid < StimGLProtocol
             params.objType = 'box';
             % get object position and size in pixels
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            objectEdgesXPix = obj.xMonPix/2+screenDistPix*tand([stimPosX-obj.objectSize/2,stimPosX+obj.objectSize/2]);
+            objectEdgesXPix = screenWidthLeftPix+screenDistPix*tand([stimPosX-obj.screenOriginHorzOffsetDeg-obj.objectSize/2,stimPosX-obj.screenOriginHorzOffsetDeg+obj.objectSize/2]);
             objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([stimPosY-obj.objectSize/2,stimPosY+obj.objectSize/2]); 
             objectSizeXPix = diff(objectEdgesXPix);
             objectSizeYPix = diff(objectEdgesYPix);

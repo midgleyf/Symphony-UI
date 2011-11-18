@@ -7,17 +7,19 @@ classdef Circle < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 12.8;
-        screenWidth = 22.4;
+        screenDist = 13.8;
+        screenWidth = 22.7;
+        screenWidthLeft = 10.1;
         screenHeight = 12.6;
         screenHeightBelow = 3.3;
-        photodiodeThreshold = 0.3;
+        screenOriginHorzOffsetDeg = 54.4;
     end
     
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
         plotData
+        photodiodeThreshold = 0.3;
     end
 
     properties
@@ -31,8 +33,8 @@ classdef Circle < StimGLProtocol
         backgroundColor = 0;
         objectColor = [0.5,1];
         objectSize = [1,5,10,20];
-        RFcenterX = 0;
-        RFcenterY = 0;
+        RFcenterX = 60;
+        RFcenterY = 10;
         Xoffset = 0;
         Yoffset = 0;
     end
@@ -146,10 +148,11 @@ classdef Circle < StimGLProtocol
             params.objColor = epochObjectColor;
             params.objType = 'ellipse';
             % get object position and size in pixels
-            objectPosDeg = [obj.RFcenterX+obj.Xoffset,obj.RFcenterY+obj.Yoffset];
+            objectPosDeg = [obj.RFcenterX+obj.Xoffset-obj.screenOriginHorzOffsetDeg,obj.RFcenterY+obj.Yoffset];
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
+            screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            objectEdgesXPix = obj.xMonPix/2+screenDistPix*tand([objectPosDeg(1)-epochObjectSize/2,objectPosDeg(1)+epochObjectSize/2]);
+            objectEdgesXPix = screenWidthLeftPix+screenDistPix*tand([objectPosDeg(1)-epochObjectSize/2,objectPosDeg(1)+epochObjectSize/2]);
             objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([objectPosDeg(2)-epochObjectSize/2,objectPosDeg(2)+epochObjectSize/2]);
             objectSizeXPix = diff(objectEdgesXPix);
             objectSizeYPix = diff(objectEdgesYPix);
