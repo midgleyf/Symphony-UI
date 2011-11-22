@@ -242,6 +242,8 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
         row = row + 1;
         drawnow;
     end
+    tree.setRootVisible(false);
+    tree.setShowsRootHandles(true);
     
     if isempty(parentGroup)
         set(handles.parentGroupText, 'String', '(None)');
@@ -278,7 +280,7 @@ function nodes = sourceHierarchyExpandFcn(~, sourcePath, handles)
     node = handles.sourceRoot.descendantAtPath(sourcePath(index + 1:end));
     for i = 1:length(node.childSources)
         child = node.childSources(i);
-        if isempty(node.parentSource)% || isempty(node.parentSource.parentSource)
+        if isempty(node.parentSource) || isempty(node.parentSource.parentSource)
             nodes(i) = uitreenode('v0', child.path(), child.name, [], isempty(child.childSources)); %#ok<AGROW>
         else
             nodes(i) = uitreenode('v0', child.path(), ['<html><font color="gray">' child.name '</font></html>'], [], isempty(child.childSources)); %#ok<AGROW>
@@ -290,9 +292,8 @@ end
 
 function sourceHierarchySelectFcn(tree, ~, ~)
     selectedNodes = tree.getSelectedNodes;
-    if ~isempty(selectedNodes)
-        if selectedNodes(1).getLevel == 2
-            beep
+    if ~isempty(selectedNodes) && tree.getTree().isEnabled()
+        if selectedNodes(1).getLevel == 3
             tree.setSelectedNode(selectedNodes(1).getParent());
         end
     end

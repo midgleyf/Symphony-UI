@@ -214,10 +214,10 @@ classdef Symphony < handle
             
             sourceLines = regexp(sourceText', '\n', 'split')';
             
-            obj.sources = Source(sourceLines{1});
+            obj.sources = Source('Sources');
             curPath = obj.sources;
             
-            for i = 2:length(sourceLines)
+            for i = 1:length(sourceLines)
                 line = sourceLines{i};
                 if ~isempty(line)
                     indent = 0;
@@ -225,7 +225,7 @@ classdef Symphony < handle
                         line = line(2:end);
                         indent = indent + 1;
                     end
-                    curPath = curPath(1:indent);
+                    curPath = curPath(1:indent+1);
                     source = Source(line, curPath(end));
                     curPath(end + 1) = source; %#ok<AGROW>
                 end

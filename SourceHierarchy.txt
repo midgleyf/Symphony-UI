@@ -2,3 +2,5 @@ Mouse
 	Brainstem
 	Retina
 	Superior colliculus
+jamB mouse
+	SC slice

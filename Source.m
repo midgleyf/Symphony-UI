@@ -22,9 +22,11 @@ classdef Source < handle
                     existingSource = parent.childWithName(name);
                 end
                 if isempty(existingSource)
+                    % Keep this new source and link it to the parent.
                     obj.parentSource = parent;
                     obj.parentSource.childSources(end + 1) = obj;
                 else
+                    % Use the existing source instead.
                     obj = existingSource;
                     return;
                 end
@@ -53,7 +55,7 @@ classdef Source < handle
                 a = [];
             else
                 parentAncestors = obj.parentSource.ancestors();
-                a = [parentAncestors(:) obj.parentSource];
+                a = [parentAncestors obj.parentSource];
             end
         end
         
@@ -63,6 +65,7 @@ classdef Source < handle
             for i = 1:length(obj.childSources)
                 if strcmp(obj.childSources(i).name, name)
                     c = obj.childSources(i);
+                    break;
                 end
             end
         end
@@ -94,7 +97,7 @@ classdef Source < handle
             
             % Persist all ancestor sources.
             ancestors = obj.ancestors();
-            for i = 1:length(ancestors)
+            for i = 2:length(ancestors)
                 sourceNode = parentNode.appendChild(docNode.createElement('source'));
                 sourceNode.setAttribute('label', ancestors(i).name);
                 sourceNode.setAttribute('identifier', char(ancestors(i).identifier.ToString()));
