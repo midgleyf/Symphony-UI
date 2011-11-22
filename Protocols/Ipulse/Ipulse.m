@@ -25,7 +25,7 @@ classdef Ipulse < SymphonyProtocol
         function [stimuli,sampleRate] = sampleStimuli(obj)
             % Return a set of sample stimuli, one for each value in Iamp.
             obj.loopCount = 1;
-            sampleRate = obj.sampleRate;
+            sampleRate = obj.rigConfig.sampleRate;
             stimuli = cell(length(obj.Iamp),1);
             for i = 1:length(obj.Iamp)
                 stimuli{i} = obj.stimulusForEpoch(i);
@@ -67,8 +67,8 @@ classdef Ipulse < SymphonyProtocol
         
         function [stimulus,epochIamp] = stimulusForEpoch(obj,epochNum)
             epochIamp = obj.Iamp(epochNum-numel(obj.Iamp)*(obj.loopCount-1));
-            stimulus=zeros(1,obj.sampleRate*(obj.preTime+obj.stimTime+obj.postTime));
-            stimulus(obj.samplingRate*obj.preTime+1:obj.sampleRate*(obj.preTime+obj.stimTime)) = epochIamp*1e-12;
+            stimulus=zeros(1,obj.rigConfig.sampleRate*(obj.preTime+obj.stimTime+obj.postTime));
+            stimulus(obj.rigConfig.sampleRate*obj.preTime+1:obj.rigConfig.sampleRate*(obj.preTime+obj.stimTime)) = 1e-12*epochIamp;
         end
         
         function completeEpoch(obj)

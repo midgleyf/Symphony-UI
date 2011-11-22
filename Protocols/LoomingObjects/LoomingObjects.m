@@ -19,7 +19,7 @@ classdef LoomingObjects < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 0.3;
+        photodiodeThreshold = 0.2;
     end
 
     properties
@@ -149,7 +149,9 @@ classdef LoomingObjects < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.fps_mode = 'single';
             params.ftrack_change = 0;
+            params.ftrackbox_w = 10;
             params.numObj = obj.numObjects;
             
             % Pick a combination of object speed and relative collision time from the trialTypes list

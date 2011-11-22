@@ -19,7 +19,7 @@ classdef Circle < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 0.3;
+        photodiodeThreshold = 0.2;
     end
 
     properties
@@ -130,7 +130,9 @@ classdef Circle < StimGLProtocol
             params.y_mon_pix = obj.yMonPix;
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
+            params.fps_mode = 'single';
             params.ftrack_change = 0;
+            params.ftrackbox_w = 10;
             
             % Pick a combination of object color and size from the trialTypes list
             % complete all combinations before repeating any particular combination
