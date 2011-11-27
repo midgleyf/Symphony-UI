@@ -7,12 +7,12 @@ classdef LoomingObjects < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 13.8;
-        screenWidth = 22.7;
-        screenWidthLeft = 10.1;
-        screenHeight = 12.6;
-        screenHeightBelow = 3.3;
-        screenOriginHorzOffsetDeg = 54.4;
+        screenDist = 12.1;
+        screenWidth = 22.2;
+        screenWidthLeft = 10.7;
+        screenHeight = 12.5;
+        screenHeightBelow = 2.2;
+        screenOriginHorzOffsetDeg = 58.6;
     end
     
     properties (Hidden)
@@ -199,8 +199,8 @@ classdef LoomingObjects < StimGLProtocol
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.objectPositionX-obj.screenOriginHorzOffsetDeg-0.5*theta);
-            rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.objectPositionX-obj.screenOriginHorzOffsetDeg+0.5*theta);
+            leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.screenOriginHorzOffsetDeg-obj.objectPositionX-0.5*theta);
+            rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.screenOriginHorzOffsetDeg-obj.objectPositionX+0.5*theta);
             bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.objectPositionY-0.5*theta);
             topEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.objectPositionY+0.5*theta);
             XsizeVectorPix = rightEdgesPix-leftEdgesPix;
@@ -210,8 +210,8 @@ classdef LoomingObjects < StimGLProtocol
             XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             if obj.numObjects==2
-                leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.object2PositionX-obj.screenOriginHorzOffsetDeg-0.5*theta2);
-                rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.object2PositionX-obj.screenOriginHorzOffsetDeg+0.5*theta2);
+                leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.screenOriginHorzOffsetDeg-obj.object2PositionX-0.5*theta2);
+                rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(obj.screenOriginHorzOffsetDeg-obj.object2PositionX+0.5*theta2);
                 bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.object2PositionY-0.5*theta2);
                 topEdgesPix = screenHeightBelowPix+screenDistPix*tand(obj.object2PositionY+0.5*theta2);
                 XsizeVectorPix2 = rightEdgesPix-leftEdgesPix;

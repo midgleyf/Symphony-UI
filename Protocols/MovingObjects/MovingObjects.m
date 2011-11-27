@@ -7,12 +7,12 @@ classdef MovingObjects < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 13.8;
-        screenWidth = 22.7;
-        screenWidthLeft = 10.1;
-        screenHeight = 12.6;
-        screenHeightBelow = 3.3;
-        screenOriginHorzOffsetDeg = 54.4;
+        screenDist = 12.1;
+        screenWidth = 22.2;
+        screenWidthLeft = 10.7;
+        screenHeight = 12.5;
+        screenHeightBelow = 2.2;
+        screenOriginHorzOffsetDeg = 58.6;
     end
     
     properties (Hidden)
@@ -152,7 +152,7 @@ classdef MovingObjects < StimGLProtocol
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            XcenterDeg=obj.RFcenterX+obj.Xoffset-obj.screenOriginHorzOffsetDeg;
+            XcenterDeg=obj.screenOriginHorzOffsetDeg-obj.RFcenterX+obj.Xoffset;
             YcenterDeg=obj.RFcenterY+obj.Yoffset;
             XcenterPix = screenWidthLeftPix+screenDistPix*tand(XcenterDeg);
             YcenterPix = screenHeightBelowPix+screenDistPix*tand(YcenterDeg);

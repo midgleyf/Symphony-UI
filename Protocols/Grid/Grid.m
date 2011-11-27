@@ -7,12 +7,12 @@ classdef Grid < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        screenDist = 13.8;
-        screenWidth = 22.7;
-        screenWidthLeft = 10.1;
-        screenHeight = 12.6;
-        screenHeightBelow = 3.3;
-        screenOriginHorzOffsetDeg = 54.4;
+        screenDist = 12.1;
+        screenWidth = 22.2;
+        screenWidthLeft = 10.7;
+        screenHeight = 12.5;
+        screenHeightBelow = 2.2;
+        screenOriginHorzOffsetDeg = 58.6;
     end
     
     properties (Hidden)
@@ -33,10 +33,10 @@ classdef Grid < StimGLProtocol
         backgroundColor = 0;
         objectColor = 1;
         objectSize = 15;
-        gridOriginX = 20;
-        gridOriginY = -12;
-        gridWidth = 75;
-        gridHeight = 45;
+        gridOriginX = 97.5;
+        gridOriginY = -10;
+        gridWidth = 80;
+        gridHeight = 50;
     end
     
     properties (Dependent = true, SetAccess = private)
@@ -49,7 +49,7 @@ classdef Grid < StimGLProtocol
         function Xcoords = get.Xcoords(obj)
             nPts = floor(obj.gridWidth/obj.objectSize);
             centerShift = 0.5*(obj.gridWidth-nPts*obj.objectSize);
-            Xcoords = centerShift+obj.gridOriginX+(obj.objectSize/2:obj.objectSize:nPts*obj.objectSize-obj.objectSize/2);
+            Xcoords = centerShift+obj.gridOriginX-(obj.objectSize/2:obj.objectSize:nPts*obj.objectSize-obj.objectSize/2);
         end
         
         function Ycoords = get.Ycoords(obj)
@@ -164,7 +164,7 @@ classdef Grid < StimGLProtocol
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            objectEdgesXPix = screenWidthLeftPix+screenDistPix*tand([stimPosX-obj.screenOriginHorzOffsetDeg-obj.objectSize/2,stimPosX-obj.screenOriginHorzOffsetDeg+obj.objectSize/2]);
+            objectEdgesXPix = screenWidthLeftPix+screenDistPix*tand([obj.screenOriginHorzOffsetDeg-stimPosX-obj.objectSize/2,obj.screenOriginHorzOffsetDeg-stimPosX+obj.objectSize/2]);
             objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([stimPosY-obj.objectSize/2,stimPosY+obj.objectSize/2]); 
             objectSizeXPix = diff(objectEdgesXPix);
             objectSizeYPix = diff(objectEdgesYPix);
