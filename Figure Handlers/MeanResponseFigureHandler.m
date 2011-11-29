@@ -14,8 +14,8 @@ classdef MeanResponseFigureHandler < FigureHandler
         function obj = MeanResponseFigureHandler(protocolPlugin, varargin)
             obj = obj@FigureHandler(protocolPlugin);
             
-            xlabel(obj.axesHandle, 'sec');
-            set(obj.axesHandle, 'XTickMode', 'auto');
+            xlabel(obj.axesHandle(), 'sec');
+            set(obj.axesHandle(), 'XTickMode', 'auto');
             
             obj.resetPlots();
             
@@ -63,8 +63,8 @@ classdef MeanResponseFigureHandler < FigureHandler
                 meanPlot.sampleRate = sampleRate;
                 meanPlot.units = units;
                 meanPlot.count = 1;
-                hold(obj.axesHandle, 'on');
-                meanPlot.plotHandle = plot(obj.axesHandle, (1:length(meanPlot.data)) / sampleRate, meanPlot.data);
+                hold(obj.axesHandle(), 'on');
+                meanPlot.plotHandle = plot(obj.axesHandle(), (1:length(meanPlot.data)) / sampleRate, meanPlot.data);
                 obj.meanPlots(end + 1) = meanPlot;
             else
                 % This class of epoch has been seen before, add the current response to the mean.
@@ -78,7 +78,7 @@ classdef MeanResponseFigureHandler < FigureHandler
             end
             
             % Update the y axis with the units of the response.
-            ylabel(obj.axesHandle, units);
+            ylabel(obj.axesHandle(), units);
             
             if isempty(epochParams)
                 titleString = 'All epochs grouped together.';
@@ -92,7 +92,7 @@ classdef MeanResponseFigureHandler < FigureHandler
                     titleString = [titleString ' and ' humanReadableParameterName(paramNames{end})];
                 end
             end
-            title(obj.axesHandle, titleString);
+            title(obj.axesHandle(), titleString);
         end
         
         

@@ -26,8 +26,8 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
             
             obj.statsCallback = ip.Results.StatsCallback;
             
-            xlabel(obj.axesHandle, 'epoch');
-            hold(obj.axesHandle, 'on');
+            xlabel(obj.axesHandle(), 'epoch');
+            hold(obj.axesHandle(), 'on');
             
             obj.statPlots = struct;
         end
@@ -52,14 +52,14 @@ classdef ResponseStatisticsFigureHandler < FigureHandler
                     statPlot.xData = obj.protocolPlugin.epochNum;
                     statPlot.yData = stat;
                     plotColor = ResponseStatisticsFigureHandler.plotColors(numel(fieldnames(obj.statPlots)) + 1);
-                    statPlot.plotHandle = plot(obj.axesHandle, statPlot.xData, statPlot.yData, 'o', ...
+                    statPlot.plotHandle = plot(obj.axesHandle(), statPlot.xData, statPlot.yData, 'o', ...
                                                'MarkerEdgeColor', plotColor, ...
                                                'MarkerFaceColor', plotColor);
                     obj.statPlots.(statName) = statPlot;
                 end
                 
-                set(obj.axesHandle, 'XTick', 1:obj.protocolPlugin.epochNum, ...
-                                    'XLim', [0.5 obj.protocolPlugin.epochNum + 0.5]);
+                set(obj.axesHandle(), 'XTick', 1:obj.protocolPlugin.epochNum, ...
+                                      'XLim', [0.5 obj.protocolPlugin.epochNum + 0.5]);
             end
         end
         

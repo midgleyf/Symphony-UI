@@ -13,9 +13,9 @@ classdef ResponseFigureHandler < FigureHandler
         function obj = ResponseFigureHandler(protocolPlugin)
             obj = obj@FigureHandler(protocolPlugin);
             
-            obj.plotHandle = plot(obj.axesHandle, 1:100, zeros(1, 100));
-            xlabel(obj.axesHandle, 'sec');
-            set(obj.axesHandle, 'XTickMode', 'auto');
+            obj.plotHandle = plot(obj.axesHandle(), 1:100, zeros(1, 100));
+            xlabel(obj.axesHandle(), 'sec');
+            set(obj.axesHandle(), 'XTickMode', 'auto');
         end
 
 
@@ -38,21 +38,24 @@ classdef ResponseFigureHandler < FigureHandler
                     paramsText = [paramsText ', ' humanReadableParameterName(field{1}) ' = ' paramValue]; %#ok<AGROW>
                 end
             end
-            set(get(obj.axesHandle, 'Title'), 'String', ['Epoch #' num2str(obj.protocolPlugin.epochNum) paramsText]);
+            set(get(obj.axesHandle(), 'Title'), 'String', ['Epoch #' num2str(obj.protocolPlugin.epochNum) paramsText]);
 
             % Plot the response
             [responseData, sampleRate, units] = obj.protocolPlugin.response();
-            set(obj.plotHandle, 'XData', (1:numel(responseData))/sampleRate, ...
-                                'YData', responseData);
-            ylabel(obj.axesHandle, units);
-            %axis 'auto x'
+            if isempty(responseData)
+                set(obj.plotHandle, 'XData', (1:numel(responseData))/sampleRate, ...
+                                    'YData', responseData);
+                ylabel(obj.axesHandle(), units);
+            else
+                text(0.5, 0.5, 'no response data available', 'FontSize', 12, 'HorizontalAlignment', 'center');
+            end
         end
         
         
         function clearFigure(obj)
             clearFigure@FigureHandler(obj);
             
-            obj.plotHandle = plot(obj.axesHandle, 1:100, zeros(1, 100));
+            obj.plotHandle = plot(obj.axesHandle(), 1:100, zeros(1, 100));
         end
         
     end

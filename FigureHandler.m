@@ -7,7 +7,6 @@ classdef FigureHandler < handle
     properties
         protocolPlugin
         figureHandle
-        axesHandle
     end
     
     events
@@ -34,7 +33,7 @@ classdef FigureHandler < handle
                                 'Toolbar', 'none', ...
                                 'CloseRequestFcn', @(source, event)closeRequestFcn(obj, source, event), ...
                                 addlProps{:});
-            obj.axesHandle = axes('Position', [0.1 0.1 0.85 0.85]);
+            axes('Position', [0.1 0.1 0.85 0.85]);
         end
         
         
@@ -43,9 +42,34 @@ classdef FigureHandler < handle
         end
         
         
+        function a = axes(obj)
+            children = get(obj.figureHandle, 'Children');
+            a = [];
+            for i = 1:length(children)
+                child = children(i);
+                if strcmp(get(child, 'Type'), 'axes')
+                    a(end+1) = child; %#ok<AGROW>
+                end
+            end
+        end
+        
+        
+        function a = axesHandle(obj)
+            axesList = obj.axes();
+            if isempty(axesList)
+                a = [];
+            else
+                a = axesList(1);
+            end
+        end
+        
+        
         function clearFigure(obj)
-            set(get(obj.axesHandle, 'Title'), 'String', '');
-            cla(obj.axesHandle);
+            axes = obj.axes();
+            for i = 1:length(axes)
+                set(get(axes(i), 'Title'), 'String', '');
+                cla(axes(i));
+            end
         end
         
         
