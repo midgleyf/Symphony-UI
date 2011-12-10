@@ -19,7 +19,7 @@ classdef Circle < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 0.2;
+        photodiodeThreshold = 0.1;
     end
 
     properties
@@ -52,8 +52,6 @@ classdef Circle < StimGLProtocol
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
             
             % Prepare figures
-            sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectColor)>1
                 obj.plotData.meanColorResp = NaN(1,numel(obj.objectColor));
@@ -225,6 +223,7 @@ classdef Circle < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object color and/or size
+            obj.plotData.time = 1/obj.rigConfig.sampleRate*(1:numel(data));
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
             if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
                 obj.plotData.stimStart = obj.preTime;

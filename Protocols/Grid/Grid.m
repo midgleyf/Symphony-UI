@@ -19,7 +19,7 @@ classdef Grid < StimGLProtocol
         allCoords
         notCompletedCoords
         plotData
-        photodiodeThreshold = 0.2;
+        photodiodeThreshold = 0.1;
     end
 
     properties
@@ -69,8 +69,6 @@ classdef Grid < StimGLProtocol
             obj.notCompletedCoords = 1:size(obj.allCoords,1);
             
             % Prepare figures
-            sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             obj.plotData.meanOnResp = NaN(numel(obj.Ycoords),numel(obj.Xcoords));
             obj.openFigure('Custom','Name','MeanOnRespFig','UpdateCallback',@updateMeanOnRespFig);
@@ -235,6 +233,7 @@ classdef Grid < StimGLProtocol
             end
             
             % Update mean responses (spike count)
+            obj.plotData.time = 1/obj.rigConfig.sampleRate*(1:numel(data));
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
             if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
                 obj.plotData.stimStart = obj.preTime;

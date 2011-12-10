@@ -19,7 +19,7 @@ classdef MovingObjects < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 0.2;
+        photodiodeThreshold = 0.1;
     end
 
     properties
@@ -433,8 +433,7 @@ classdef MovingObjects < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object speed and/or direction
-            sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.plotData.stimTime+obj.postTime;
+            obj.plotData.time = 1/obj.rigConfig.sampleRate*(1:numel(data));
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
             if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
                 obj.plotData.stimStart = obj.preTime;
