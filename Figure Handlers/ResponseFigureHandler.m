@@ -43,11 +43,11 @@ classdef ResponseFigureHandler < FigureHandler
             % Plot the response
             [responseData, sampleRate, units] = obj.protocolPlugin.response();
             if isempty(responseData)
+                text(0.5, 0.5, 'no response data available', 'FontSize', 12, 'HorizontalAlignment', 'center');
+            else
                 set(obj.plotHandle, 'XData', (1:numel(responseData))/sampleRate, ...
                                     'YData', responseData);
                 ylabel(obj.axesHandle(), units);
-            else
-                text(0.5, 0.5, 'no response data available', 'FontSize', 12, 'HorizontalAlignment', 'center');
             end
         end
         
