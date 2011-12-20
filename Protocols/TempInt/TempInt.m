@@ -78,7 +78,7 @@ classdef TempInt < SymphonyProtocol
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Color','g','Marker','o','LineStyle','none');
                 % plot Spike Points
                 xlabel('s');
-                ylabel('pA');
+               % ylabel('pA');  % make it dependant on recording modde
                 set(0, 'CurrentFigure', obj.figureHandle);
                 set(obj.figureHandle, 'CurrentAxes', obj.axesHandle);
                 set(obj.axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.9 0.8]);
@@ -174,7 +174,7 @@ classdef TempInt < SymphonyProtocol
             if strcmp(obj.multiClampMode, 'VClamp')
                 obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
             else
-                obj.setDeviceBackground('Amplifier_Chl', double(obj.preSynapticHold) * 1e-12, 'A');
+                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
             end 
             obj.addStimulus('LED', 'LED stimulus', stimulus, 'V');    %
         end
