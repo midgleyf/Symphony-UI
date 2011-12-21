@@ -22,6 +22,8 @@ function edited = editParameters(protocol)
     % Size the dialog so that the sample axes is square but don't let it be wider than the screen.
     if handles.showStimuli
         bounds = screenBounds(s);
+        dpi = get(0, 'ScreenPixelsPerInch');
+        bounds = bounds / dpi * 72;
         dialogWidth = min([labelWidth + 225 + 30 + axesHeight + 10, bounds(3) - 20]);
     else
         dialogWidth = labelWidth + 225;
