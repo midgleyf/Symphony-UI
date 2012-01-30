@@ -248,10 +248,7 @@ classdef RigConfiguration < handle
                 end
 
                 if ~gotMode
-                    answer = questdlg('Please toggle the MultiClamp commander mode.', 'Symphony', 'OK', 'Cancel', 'OK');
-                    if strcmp(answer, 'Cancel')
-                        error('Symphony:MultiClamp:UnknownMode', 'The MultiClamp mode could not be determined.');
-                    end
+                    input('Please toggle the MultiClamp commander mode then press enter (or Ctrl-C to cancel)...', 's');
                 end
             end
         end
