@@ -88,16 +88,20 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function pn = parameterNames(obj)
+        function pn = parameterNames(obj, includeConstant)
             % Return a cell array of strings containing the names of the user-defined parameters.
             % By default any parameters defined by a protocol that are not constant or hidden are included.
+            
+            if nargin == 1
+                includeConstant = false;
+            end
             
             names = properties(obj);
             pn = {};
             for nameIndex = 1:numel(names)
                 name = names{nameIndex};
                 metaProp = findprop(obj, name);
-                if ~metaProp.Constant && ~metaProp.Hidden
+                if ~metaProp.Hidden && (includeConstant || ~metaProp.Constant)
                     pn{end + 1} = name; %#ok<AGROW>
                 end
             end
@@ -105,11 +109,15 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
-        function p = parameters(obj)
+        function p = parameters(obj, includeConstant)
             % Return a struct containing the user-defined parameters.
             % By default any parameters defined by a protocol are included.
             
-            names = obj.parameterNames();
+            if nargin == 1
+                includeConstant = false;
+            end
+            
+            names = obj.parameterNames(includeConstant);
             for nameIndex = 1:numel(names)
                 name = names{nameIndex};
                 p.(name) = obj.(name);
@@ -209,7 +217,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         function addStimulus(obj, deviceName, stimulusID, stimulusData, units)
             % Queue data to send to the named device when the epoch is run.
-            % TODO: need to specify data units?
             
             import Symphony.Core.*;
             
@@ -318,10 +325,15 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 u = response.units;
             else
                 % Extract the raw data.
-                response = obj.epoch.Responses.Item(device);
-                data = response.Data;
-                r = double(Measurement.ToQuantityArray(data));
-                u = char(Measurement.HomogenousUnits(data));
+                try
+                    response = obj.epoch.Responses.Item(device);
+                    data = response.Data;
+                    r = double(Measurement.ToQuantityArray(data));
+                    u = char(Measurement.HomogenousUnits(data));
+                catch ME %#ok<NASGU>
+                    r = [];
+                    u = '';
+                end
                 
                 s = System.Decimal.ToDouble(response.SampleRate.QuantityInBaseUnit);
                 % TODO: do we care about the units of the SampleRate measurement?
@@ -372,7 +384,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     obj.prepareEpoch();
                     
                     % Persist the params now that the sub-class has had a chance to tweak them.
-                    pluginParams = obj.parameters();
+                    pluginParams = obj.parameters(true);
                     fields = fieldnames(pluginParams);
                     for fieldName = fields'
                         fieldValue = pluginParams.(fieldName{1});
