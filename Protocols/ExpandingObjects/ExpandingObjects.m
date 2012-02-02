@@ -1,7 +1,7 @@
 classdef ExpandingObjects < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
+        identifier = 'org.janelia.research.murphy.symphony.stimgl.expandingobjects'
         version = 1
         displayName = 'Expanding Objects'
         plugInName = 'MovingObjects'
@@ -28,8 +28,8 @@ classdef ExpandingObjects < StimGLProtocol
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        intertrialIntervalMin = 1;
-        intertrialIntervalMax = 2;
+        interTrialIntMin = 1;
+        interTrialIntMax = 2;
         backgroundColor = 0;
         numObjects = 1;
         objectColor = 1;
@@ -81,11 +81,11 @@ classdef ExpandingObjects < StimGLProtocol
         function updateResponseFig(obj,axesHandle)
             data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -214,7 +214,7 @@ classdef ExpandingObjects < StimGLProtocol
                 YsizeVectorPix2 =[YsizeVectorPix2,zeros(1,(obj.postTime+10)*frameRate)];
             end
             
-             % Specify frame parameters in frame_vars.txt file
+            % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
             params.nFrames = numel(XsizeVectorPix);
             if obj.numObjects==1
@@ -327,29 +327,17 @@ classdef ExpandingObjects < StimGLProtocol
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.stimTime));
             if numel(obj.objectExpansionRate)>1
                 objectExpansionRateIndex = find(obj.objectExpansionRate==obj.plotData.epochObjectExpansionRate,1);
-                if isnan(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex))
-                    obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = obj.plotData.epochResp;
-                else
-                    obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = mean([repmat(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                end
+                obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = nanmean([repmat(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
             end
             if obj.numObjects==2
                 if numel(obj.object2PositionX)>1 || numel(obj.object2PositionY)>1
                     object2PositionXIndex = find(obj.object2PositionX==obj.plotData.epochObject2PositionX,1);
                     object2PositionYIndex = find(obj.object2PositionY==obj.plotData.epochObject2PositionY,1);
-                    if isnan(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex))
-                        obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = obj.plotData.epochResp;
-                    else
-                        obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = mean([repmat(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                    end
+                    obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = nanmean([repmat(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
                 if numel(obj.object2ExpansionRate)>1
                     object2ExpansionRateIndex = find(obj.object2ExpansionRate==obj.plotData.epochObject2ExpansionRate,1);
-                    if isnan(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex))
-                        obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = obj.plotData.epochResp;
-                    else
-                        obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = mean([repmat(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                    end
+                    obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = nanmean([repmat(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
             end
             
@@ -374,7 +362,7 @@ classdef ExpandingObjects < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on;
-                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
+                pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);
             end
         end
        

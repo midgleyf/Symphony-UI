@@ -1,7 +1,7 @@
 classdef MovingObjects < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
+        identifier = 'org.janelia.research.murphy.symphony.stimgl.movingobjects'
         version = 1
         displayName = 'Moving Objects'
         plugInName = 'MovingObjects'
@@ -27,8 +27,8 @@ classdef MovingObjects < StimGLProtocol
         testPulseAmp = -20;
         preTime = 1;
         postTime = 2;
-        intertrialIntervalMin = 1;
-        intertrialIntervalMax = 2;
+        interTrialIntMin = 1;
+        interTrialIntMax = 2;
         backgroundColor = 0;
         objectColor = 1;
         objectSize = [5,20];
@@ -68,11 +68,12 @@ classdef MovingObjects < StimGLProtocol
         function updateResponseFig(obj,axesHandle)
             data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.targetTimeLineHandle = line([obj.plotData.stimStart+obj.plotData.targetTime,obj.plotData.stimStart+obj.plotData.targetTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -94,7 +95,8 @@ classdef MovingObjects < StimGLProtocol
             xlim(axesHandle,[0 max(obj.plotData.time)]);
             set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
             set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime]);
-            set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
+            set(obj.plotData.targetTimeLineHandle,'Xdata',[obj.plotData.stimStart+obj.plotData.targetTime,obj.plotData.stimStart+obj.plotData.targetTime]);
+            set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle,obj.plotData.targetTimeLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
@@ -152,14 +154,14 @@ classdef MovingObjects < StimGLProtocol
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            XcenterDeg=obj.screenOriginHorzOffsetDeg-obj.RFcenterX+obj.Xoffset;
-            YcenterDeg=obj.RFcenterY+obj.Yoffset;
-            XcenterPix = screenWidthLeftPix+screenDistPix*tand(XcenterDeg);
-            YcenterPix = screenHeightBelowPix+screenDistPix*tand(YcenterDeg);
+            XtargetDeg=obj.screenOriginHorzOffsetDeg-obj.RFcenterX+obj.Xoffset;
+            YtargetDeg=obj.RFcenterY+obj.Yoffset;
+            XtargetPix = screenWidthLeftPix+screenDistPix*tand(XtargetDeg);
+            YtargetPix = screenHeightBelowPix+screenDistPix*tand(YtargetDeg);
             if epochObjectDir==0
-                XstartPix = XcenterPix;
+                XstartPix = XtargetPix;
                 YstartPix = 0;
-                XendPix = XcenterPix;
+                XendPix = XtargetPix;
                 YendPix = obj.yMonPix;
                 XstartOffsetDeg = 0;
                 YstartOffsetDeg = -0.5*epochObjectSize;
@@ -167,7 +169,7 @@ classdef MovingObjects < StimGLProtocol
                 YendOffsetDeg = 0.5*epochObjectSize;
             elseif epochObjectDir>0 && epochObjectDir<90
                 m = tand(90-epochObjectDir);
-                xintercept = XcenterPix-YcenterPix/m;
+                xintercept = XtargetPix-YtargetPix/m;
                 yintercept = -m*xintercept;
                 if xintercept<0
                     XstartPix = 0;
@@ -196,16 +198,16 @@ classdef MovingObjects < StimGLProtocol
                 end
             elseif epochObjectDir==90
                 XstartPix = 0;
-                YstartPix = YcenterPix;
+                YstartPix = YtargetPix;
                 XendPix = obj.xMonPix;
-                YendPix = YcenterPix;
+                YendPix = YtargetPix;
                 XstartOffsetDeg = -0.5*epochObjectSize;
                 YstartOffsetDeg = 0;
                 XendOffsetDeg = 0.5*epochObjectSize;
                 YendOffsetDeg = 0;
             elseif epochObjectDir>90 && epochObjectDir<180
                 m = -tand(epochObjectDir-90);
-                xintercept = XcenterPix-(obj.yMonPix-YcenterPix)/-m;
+                xintercept = XtargetPix-(obj.yMonPix-YtargetPix)/-m;
                 yintercept = -m*xintercept;
                 if xintercept<0
                     XstartPix = 0;
@@ -234,9 +236,9 @@ classdef MovingObjects < StimGLProtocol
                     YendOffsetDeg = -0.5*epochObjectSize*(-m);
                 end
             elseif epochObjectDir==180
-                XstartPix = XcenterPix;
+                XstartPix = XtargetPix;
                 YstartPix = obj.yMonPix;
-                XendPix = XcenterPix;
+                XendPix = XtargetPix;
                 YendPix = 0;
                 XstartOffsetDeg = 0;
                 YstartOffsetDeg = 0.5*epochObjectSize;
@@ -244,7 +246,7 @@ classdef MovingObjects < StimGLProtocol
                 YendOffsetDeg = -0.5*epochObjectSize;
             elseif epochObjectDir>180 && epochObjectDir<270
                 m = tand(270-epochObjectDir);
-                xintercept = -obj.xMonPix+XcenterPix+(obj.yMonPix-YcenterPix)/m;
+                xintercept = -obj.xMonPix+XtargetPix+(obj.yMonPix-YtargetPix)/m;
                 yintercept = -m*xintercept;
                 if xintercept>0
                     XstartPix = obj.xMonPix;
@@ -275,16 +277,16 @@ classdef MovingObjects < StimGLProtocol
                 end
             elseif epochObjectDir==270
                 XstartPix = obj.xMonPix;
-                YstartPix = YcenterPix;
+                YstartPix = YtargetPix;
                 XendPix = 0;
-                YendPix = YcenterPix;
+                YendPix = YtargetPix;
                 XstartOffsetDeg = 0.5*epochObjectSize;
                 YstartOffsetDeg = 0;
                 XendOffsetDeg = -0.5*epochObjectSize;
                 YendOffsetDeg = 0;
             elseif epochObjectDir>270 && epochObjectDir<360
                 m = -tand(epochObjectDir-270);
-                xintercept = -obj.xMonPix+XcenterPix+YcenterPix/-m;
+                xintercept = -obj.xMonPix+XtargetPix+YtargetPix/-m;
                 yintercept = -m*xintercept;
                 if xintercept>0
                     XstartPix = obj.xMonPix;
@@ -320,6 +322,8 @@ classdef MovingObjects < StimGLProtocol
             XendDeg = atand((XendPix-0.5*obj.xMonPix)/screenDistPix)+XendOffsetDeg;
             YstartDeg = atand((YstartPix-screenHeightBelowPix)/screenDistPix)+YstartOffsetDeg;
             YendDeg = atand((YendPix-screenHeightBelowPix)/screenDistPix)+YendOffsetDeg;
+            targetDistDeg = sqrt((XtargetDeg-XstartDeg)^2+(YtargetDeg-YstartDeg)^2);
+            targetFrame = round(targetDistDeg/epochObjectSpeed*frameRate)+1;
             pathDistDeg = sqrt((XendDeg-XstartDeg)^2+(YendDeg-YstartDeg)^2);
             nStimFrames = round(pathDistDeg/epochObjectSpeed*frameRate)+1;
             if XendDeg==XstartDeg
@@ -372,10 +376,12 @@ classdef MovingObjects < StimGLProtocol
             cd(currentDir);
             params.frame_vars = [protocolDir '/frame_vars.txt'];
             
-            % Set number of delay frames for preTime and determine stimTime
+            % Set number of delay frames for preTime and determine stimTime and time to target
             params.delay = round(obj.preTime*frameRate);
             stimTime = nStimFrames/frameRate;
             obj.plotData.stimTime = stimTime;
+            targetTime = targetFrame/frameRate;
+            obj.plotData.targetTime = targetTime;
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectDir',epochObjectDir);
@@ -383,6 +389,8 @@ classdef MovingObjects < StimGLProtocol
             obj.addParameter('epochObjectSize',epochObjectSize);
             obj.addParameter('stimFrames',nStimFrames);
             obj.addParameter('stimTime',stimTime);
+            obj.addParameter('targetFrame',targetFrame);
+            obj.addParameter('targetTime',targetTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
             stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+stimTime+obj.postTime)));
@@ -442,19 +450,11 @@ classdef MovingObjects < StimGLProtocol
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
-                if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
-                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
-                else
-                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                end
+                obj.plotData.meanSpeedResp(objectSpeedIndex) = nanmean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
             end
             if numel(obj.objectDir)>1
                 objectDirIndex = find(obj.objectDir==obj.plotData.epochObjectDir,1);
-                if isnan(obj.plotData.meanDirResp(objectDirIndex))
-                    obj.plotData.meanDirResp(objectDirIndex) = obj.plotData.epochResp;
-                else
-                    obj.plotData.meanDirResp(objectDirIndex) = mean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                end
+                obj.plotData.meanDirResp(objectDirIndex) = nanmean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
             end
             
             % Call the base class method which updates the figures.
@@ -478,7 +478,7 @@ classdef MovingObjects < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on;
-                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
+                pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);
             end
         end
        

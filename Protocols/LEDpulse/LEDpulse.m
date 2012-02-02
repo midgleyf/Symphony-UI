@@ -1,7 +1,7 @@
 classdef LEDpulse < SymphonyProtocol
     
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.LEDpulse'
+        identifier = 'org.janelia.research.murphy.symphony.LEDpulse'
         version = 1
         displayName = 'LED pulse'
     end

@@ -1,7 +1,7 @@
 classdef Circle < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
+        identifier = 'org.janelia.research.murphy.symphony.stimgl.circle'
         version = 1
         displayName = 'Circle'
         plugInName = 'MovingObjects'
@@ -26,10 +26,9 @@ classdef Circle < StimGLProtocol
         spikePolThrLimRet = [Inf,1,100,1];
         testPulseAmp = -20;
         preTime = 0.5;
-        stimTime = 0.5;
         postTime = 0.5;
-        intertrialIntervalMin = 1;
-        intertrialIntervalMax = 2;
+        interTrialIntMin = 1;
+        interTrialIntMax = 2;
         backgroundColor = 0;
         objectColor = [0.5,1];
         objectSize = [1,5,10,20];
@@ -37,6 +36,9 @@ classdef Circle < StimGLProtocol
         RFcenterY = 10;
         Xoffset = 0;
         Yoffset = 0;
+        numFlashes = 1;
+        flashDur = [0.1,0.5];
+        interFlashInt = [0.5,1];
     end
     
     methods
@@ -47,8 +49,8 @@ classdef Circle < StimGLProtocol
             
             obj.loopCount = 1;
             
-            % Get all combinations of trial types based on object color and size
-            obj.trialTypes = allcombs(obj.objectColor,obj.objectSize);
+            % Get all combinations of trial types based on object color, size, and flash duration and inter-flash interval
+            obj.trialTypes = allcombs(obj.objectColor,obj.objectSize,obj.flashDur,obj.interFlashInt);
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
             
             % Prepare figures
@@ -61,16 +63,26 @@ classdef Circle < StimGLProtocol
                 obj.plotData.meanSizeResp = NaN(1,numel(obj.objectSize));
                 obj.openFigure('Custom','Name','MeanSizeRespFig','UpdateCallback',@updateMeanSizeRespFig);
             end
+            if numel(obj.flashDur)>1
+                obj.plotData.meanFlashDurResp = NaN(1,numel(obj.flashDur));
+                obj.openFigure('Custom','Name','MeanFlashDurRespFig','UpdateCallback',@updateMeanFlashDurRespFig);
+            end
+            if obj.numFlashes>1
+                if numel(obj.interFlashInt)>1
+                    obj.plotData.meanInterFlashIntResp = NaN(1,numel(obj.interFlashInt));
+                    obj.openFigure('Custom','Name','MeanInterFlashIntRespFig','UpdateCallback',@updateMeanInterFlashIntRespFig);
+                end
+            end
         end
         
         function updateResponseFig(obj,axesHandle)
             data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -85,12 +97,12 @@ classdef Circle < StimGLProtocol
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
                 obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             else
-                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
-                set(obj.plotData.responseLineHandle,'Ydata',data);
+                set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
+                set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
             end
             set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
-            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.plotData.stimTime,obj.plotData.stimStart+obj.plotData.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -98,7 +110,7 @@ classdef Circle < StimGLProtocol
         function updateMeanColorRespFig(obj,axesHandle)
             if obj.epochNum==1
                 obj.plotData.meanColorRespHandle = line(obj.objectColor,obj.plotData.meanColorResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectColor)-0.1,max(obj.objectColor)+0.1],'Xtick',obj.objectColor);
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectColor)-0.01,max(obj.objectColor)+0.01],'Xtick',obj.objectColor);
                 xlabel(axesHandle,'object brightness (normalized)');
                 ylabel(axesHandle,'response (spike count)');
             else
@@ -119,6 +131,30 @@ classdef Circle < StimGLProtocol
             line(obj.plotData.epochObjectSize,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
+        function updateMeanFlashDurRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanFlashDurRespHandle = line(obj.flashDur,obj.plotData.meanFlashDurResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.flashDur)-1,max(obj.flashDur)+1],'Xtick',obj.flashDur);
+                xlabel(axesHandle,'object diameter (degrees)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanFlashDurRespHandle,'Ydata',obj.plotData.meanFlashDurResp);
+            end
+            line(obj.plotData.epochFlashDur,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+        end
+        
+        function updateMeanInterFlashIntRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanInterFlashIntRespHandle = line(obj.interFlashInt,obj.plotData.meanInterFlashIntResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.interFlashInt)-1,max(obj.interFlashInt)+1],'Xtick',obj.interFlashInt);
+                xlabel(axesHandle,'object diameter (degrees)');
+                ylabel(axesHandle,'response ratio (flash2/flash1)');
+            else
+                set(obj.plotData.meanInterFlashIntRespHandle,'Ydata',obj.plotData.meanInterFlashIntResp);
+            end
+            line(obj.plotData.epochInterFlashInt,obj.plotData.epochFlashRespRatio,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+        end
+        
         function prepareEpoch(obj)
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
@@ -131,6 +167,7 @@ classdef Circle < StimGLProtocol
             params.fps_mode = 'single';
             params.ftrack_change = 0;
             params.ftrackbox_w = 10;
+            params.numObj = 1;
             
             % Pick a combination of object color and size from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -140,14 +177,14 @@ classdef Circle < StimGLProtocol
             obj.notCompletedTrialTypes(randIndex) = [];
             epochObjectColor = obj.trialTypes(epochTrialType,1);
             epochObjectSize = obj.trialTypes(epochTrialType,2);
+            epochFlashDur = obj.trialTypes(epochTrialType,3);
+            epochInterFlashInt = obj.trialTypes(epochTrialType,4);
             obj.plotData.epochObjectColor = epochObjectColor;
             obj.plotData.epochObjectSize = epochObjectSize;
+            obj.plotData.epochFlashDur = epochFlashDur;
+            obj.plotData.epochInterFlashInt = epochInterFlashInt;
             
-            % Set object properties
-            params.numObj = 1;
-            params.objColor = epochObjectColor;
-            params.objType = 'ellipse';
-            % get object position and size in pixels
+            % Determine object size and position in pixels
             objectPosDeg = [obj.screenOriginHorzOffsetDeg-obj.RFcenterX+obj.Xoffset,obj.RFcenterY+obj.Yoffset];
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
@@ -156,26 +193,60 @@ classdef Circle < StimGLProtocol
             objectEdgesYPix = screenHeightBelowPix+screenDistPix*tand([objectPosDeg(2)-epochObjectSize/2,objectPosDeg(2)+epochObjectSize/2]);
             objectSizeXPix = diff(objectEdgesXPix);
             objectSizeYPix = diff(objectEdgesYPix);
-            params.objXinit = objectEdgesXPix(1)+objectSizeXPix/2;
-            params.objYinit = objectEdgesYPix(1)+objectSizeYPix/2;
+            XposPix = objectEdgesXPix(1)+objectSizeXPix/2;
+            YposPix = objectEdgesYPix(1)+objectSizeYPix/2;
             
-            % Set nFrames and the number of delay frames for preTime
-            frameRate = double(GetRefreshRate(obj.stimGL));
-            params.delay = round(obj.preTime*frameRate);
-            params.nFrames = round(obj.stimTime*frameRate);
-            params.tFrames = params.nFrames;
-            
-            % Pad object length vector with zeros to make object disappear
+            % Create object size vector; pad with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
-            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
+            frameRate = double(GetRefreshRate(obj.stimGL));
+            flashFrames = round(epochFlashDur*frameRate);
+            interFlashFrames = round(epochInterFlashInt*frameRate);
+            nStimFrames = obj.numFlashes*flashFrames+((obj.numFlashes-1)*interFlashFrames);
+            XsizeVectorPix = zeros(1,nStimFrames);
+            YsizeVectorPix = zeros(1,nStimFrames);
+            for n=0:obj.numFlashes-1
+                XsizeVectorPix(1+n*(flashFrames+interFlashFrames):flashFrames+n*(flashFrames+interFlashFrames)) = objectSizeXPix;
+                YsizeVectorPix(1+n*(flashFrames+interFlashFrames):flashFrames+n*(flashFrames+interFlashFrames)) = objectSizeYPix;
+            end
+            XsizeVectorPix = [XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
+            YsizeVectorPix = [YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
+            
+            % Specify frame parameters in frame_vars.txt file
+            % create frameVars matrix
+            params.nFrames = numel(XsizeVectorPix);
+            frameVars = zeros(params.nFrames,12);
+            frameVars(:,1) = 0:params.nFrames-1; % frame number
+            frameVars(:,4) = 1; % objType (ellipse=1)
+            frameVars(:,5) = XposPix;
+            frameVars(:,6) = YposPix;
+            frameVars(:,7) = XsizeVectorPix;
+            frameVars(:,8) = YsizeVectorPix;
+            frameVars(:,10) = epochObjectColor;
+            frameVars(:,12) = 1; % zScaled needs to be 1
+            % write to text file in same folder as m file
+            currentDir = cd;
+            protocolDir = fileparts(mfilename('fullpath'));
+            cd(protocolDir);
+            fileID = fopen('frame_vars.txt','w');
+            fprintf(fileID,'"frameNum" "objNum" "subFrameNum" "objType(0=box,1=ellipse,2=sphere)" "x" "y" "r1" "r2" "phi" "color" "z" "zScaled"');
+            fclose(fileID);
+            dlmwrite('frame_vars.txt',frameVars,'delimiter',' ','roffset',1,'-append');
+            cd(currentDir);
+            params.frame_vars = [protocolDir '/frame_vars.txt'];
+            
+            % Set number of delay frames for preTime and determine stimTime
+            params.delay = round(obj.preTime*frameRate);
+            stimTime = nStimFrames/frameRate;
+            obj.plotData.stimTime = stimTime;
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectColor', epochObjectColor);
             obj.addParameter('epochObjectSize', epochObjectSize);
+            obj.addParameter('epochFlashDur', epochFlashDur);
+            obj.addParameter('epochInterFlashInt', epochInterFlashInt);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+obj.stimTime+obj.postTime)));
+            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+stimTime+obj.postTime)));
             stimulus(0.1*obj.rigConfig.sampleRate+1:0.2*obj.rigConfig.sampleRate) = 1e-12*obj.testPulseAmp;
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
@@ -229,21 +300,30 @@ classdef Circle < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.epochFlashDur));
             if numel(obj.objectColor)>1
                 objectColorIndex = find(obj.objectColor==obj.plotData.epochObjectColor,1);
-                if isnan(obj.plotData.meanColorResp(objectColorIndex))
-                    obj.plotData.meanColorResp(objectColorIndex) = obj.plotData.epochResp;
-                else
-                    obj.plotData.meanColorResp(objectColorIndex) = mean([repmat(obj.plotData.meanColorResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                end
+                obj.plotData.meanColorResp(objectColorIndex) = nanmean([repmat(obj.plotData.meanColorResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
             end
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
-                if isnan(obj.plotData.meanSizeResp(objectSizeIndex))
-                    obj.plotData.meanSizeResp(objectSizeIndex) = obj.plotData.epochResp;
-                else
-                    obj.plotData.meanSizeResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                obj.plotData.meanSizeResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+            end
+            if numel(obj.flashDur)>1
+                flashDurIndex = find(obj.flashDur==obj.plotData.epochFlashDur,1);
+                obj.plotData.meanFlashDurResp(flashDurIndex) = nanmean([repmat(obj.plotData.meanFlashDurResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+            end
+            if obj.numFlashes>1
+                if numel(obj.interFlashInt)>1
+                    flash1resp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.epochFlashDur));
+                    if flash1resp==0
+                        obj.plotData.epochFlashRespRatio = NaN;
+                    else
+                        flash2resp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.epochFlashDur+obj.plotData.interFlashInt & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur+obj.plotData.interFlashInt));
+                        obj.plotData.epochFlashRespRatio = flash2resp/flash1resp;
+                    end
+                    interFlashIntIndex = find(obj.interFlashInt==obj.plotData.epochInterFlashInt,1);
+                    obj.plotData.meanInterFlashIntResp(interFlashIntIndex) = nanmean([repmat(obj.plotData.meanInterFlashIntResp(interFlashIntIndex),1,obj.loopCount-1),obj.plotData.epochFlashRespRatio]);
                 end
             end
             
@@ -268,7 +348,7 @@ classdef Circle < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on;
-                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
+                pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);
             end
         end
         

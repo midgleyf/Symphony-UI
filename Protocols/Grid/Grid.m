@@ -1,7 +1,7 @@
 classdef Grid < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
+        identifier = 'org.janelia.research.murphy.symphony.stimgl.grid'
         version = 1
         displayName = 'Grid'
         plugInName = 'MovingObjects'
@@ -28,8 +28,8 @@ classdef Grid < StimGLProtocol
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
-        intertrialIntervalMin = 1;
-        intertrialIntervalMax = 2;
+        interTrialIntMin = 1;
+        interTrialIntMax = 2;
         backgroundColor = 0;
         objectColor = 1;
         objectSize = 15;
@@ -79,11 +79,11 @@ classdef Grid < StimGLProtocol
         function updateResponseFig(obj,axesHandle)
             data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -272,7 +272,7 @@ classdef Grid < StimGLProtocol
             if keepGoing
                 rng('shuffle');
                 pause on;
-                pause(rand(1)*(obj.intertrialIntervalMax-obj.intertrialIntervalMin)+obj.intertrialIntervalMin);
+                pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);
             end
         end
        
