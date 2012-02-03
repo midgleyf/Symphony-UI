@@ -896,7 +896,7 @@ classdef Symphony < handle
                             errordlg({'A file already exists for that cell and rig.'; 'Please choose different values.'});
                             return
                         end
-                        obj.persistor = EpochHDF5Persistor(obj.persistPath, '');
+                        obj.persistor = EpochHDF5Persistor(obj.persistPath, '', 9);
                     end
                     
                     obj.metadataDoc = com.mathworks.xml.XMLUtils.createDocument('symphony-metadata');
