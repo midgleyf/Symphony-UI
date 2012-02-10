@@ -222,7 +222,7 @@ classdef Symphony < handle
                 if ~isempty(line)
                     indent = 0;
                     while strcmp(line(1), char(9))
-                        line = line(2:end);
+                        line = line(2:end); % strip leading \t
                         indent = indent + 1;
                     end
                     curPath = curPath(1:indent+1);
@@ -283,14 +283,14 @@ classdef Symphony < handle
                     obj.protocol = obj.createProtocol(lastChosenProtocol);
                     protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
                 catch ME
-                    disp(['Could not create a ' lastChosenProtocol]);
+                    disp(['Could not create a ' lastChosenProtocol '(' ME.message ')']);
                     for protocolValue = 1:length(obj.protocolClassNames)
                         if ~strcmp(obj.protocolClassNames{protocolValue}, lastChosenProtocol)
                             try
                                 obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
                                 break;
                             catch ME
-                                disp(['Could not create a ' obj.protocolClassNames{protocolValue}]);
+                                disp(['Could not create a ' obj.protocolClassNames{protocolValue} '(' ME.message ')']);
                             end
                         end
                     end
@@ -569,7 +569,7 @@ classdef Symphony < handle
                 obj.controls.addNoteButton = uicontrol(...
                     'Parent', obj.controls.epochPanel, ...
                     'Units', 'points', ...
-                    'Callback', @(hObject,eventdata)addNote(obj,hObject,eventdata), ...
+                    'Callback', @(hObject,eventdata)promptForNote(obj,hObject,eventdata), ...
                     'Position', [117.5 10 100 22], ...
                     'BackgroundColor', bgColor, ...
                     'String', 'Add Note...', ...
@@ -885,25 +885,55 @@ classdef Symphony < handle
                     % Create the persistor and metadata XML.
                     if ismac
                         obj.persistPath = fullfile(group.outputPath, [group.source.name '.xml']);
-                        if exist(obj.persistPath, 'file')
-                            errordlg({'A file already exists for that cell and rig.'; 'Please choose different values.'});
-                            return
-                        end
                         obj.persistor = EpochXMLPersistor(obj.persistPath);
                     else
                         obj.persistPath = fullfile(group.outputPath, [group.source.name '.h5']);
-                        if exist(obj.persistPath, 'file')
-                            errordlg({'A file already exists for that cell and rig.'; 'Please choose different values.'});
-                            return
-                        end
                         obj.persistor = EpochHDF5Persistor(obj.persistPath, '', 9);
                     end
                     
-                    obj.metadataDoc = com.mathworks.xml.XMLUtils.createDocument('symphony-metadata');
-                    obj.metadataNode = obj.metadataDoc.getDocumentElement;
+                    if exist(obj.persistPath, 'file')
+                        choice = questdlg(['This will append to an existing file.' char(10) char(10) 'Do you wish to contiue?'], ...
+                                           'Symphony', 'Cancel', 'Continue', 'Continue');
+                        if ~strcmp(choice, 'Continue')
+                            obj.persistor.CloseDocument();
+                            obj.persistor = [];
+                            return
+                        end
+                    end
                     
-                    % Add the source hierarchy to the metadata.
-                    group.source.persistToMetadata(obj.metadataNode);
+                    obj.metadataDoc = com.mathworks.xml.XMLUtils.createDocument('symphony-metadata');
+                    obj.metadataNode = obj.metadataDoc.getDocumentElement();
+                    
+                    if exist(obj.persistPath, 'file')
+                        % Make sure we have the same source UUID's as before.
+                        [pathstr, name, ~] = fileparts(obj.persistPath);
+                        metadataPath = fullfile(pathstr,[name '_metadata.xml']);
+                        xmlDoc = xmlread(metadataPath);
+                        rootNode = xmlDoc.getDocumentElement();
+                        children = rootNode.getChildNodes();
+                        for i = 1:children.getLength()
+                            childNode = children.item(i - 1);
+                            if childNode.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE && ...
+                               strcmp(char(childNode.getNodeName()), 'source')
+                                obj.sources.childSources(1).syncWithMetadata(childNode);
+                                break;
+                            end
+                        end
+                        
+                        % Add the source hierarchy to the metadata.
+                        group.source.persistToMetadata(obj.metadataNode);
+                        
+                        % Re-add any notes.
+                        noteNodes = rootNode.getElementsByTagName('note');
+                        for i = 1:noteNodes.getLength()
+                            noteNode = noteNodes.item(i - 1);
+                            time = char(noteNode.getAttributes().getNamedItem('time').getNodeValue());
+                            obj.addNote(noteNode.getTextContent(), time);
+                        end
+                    else
+                        % Add the source hierarchy to the metadata.
+                        group.source.persistToMetadata(obj.metadataNode);
+                    end
                 end
                 
                 obj.epochGroup = group;
@@ -954,7 +984,7 @@ classdef Symphony < handle
         %% Notes
         
         
-        function addNote(obj, ~, ~)
+        function promptForNote(obj, ~, ~)
             noteText = inputdlg('Enter a note:', 'Symphony Note', 4, {''}, 'on');
             
             if ~isempty(noteText)
@@ -963,17 +993,26 @@ classdef Symphony < handle
                     noteText2 = [noteText2 strtrim(noteText{1}(i, :)) char(10)]; %#ok<AGROW>
                 end
                 noteText2 = noteText2(1:end - 1);   % strip off the last newline
-                        
-                if isempty(obj.notesNode)
-                    obj.notesNode = obj.metadataNode.appendChild(obj.metadataDoc.createElement('notes'));
-                end
-
-                noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
-                noteNode.setAttribute('time', char(obj.rigConfig.controller.Clock.Now().ToString()));
-                noteNode.appendChild(obj.metadataDoc.createTextNode(noteText2));
                 
-                obj.saveMetadata();
+                obj.addNote(noteText2);
             end
+        end
+        
+        
+        function addNote(obj, noteText, time)
+            if nargin == 2
+                time = char(obj.rigConfig.controller.Clock.Now().ToString());
+            end
+            
+            if isempty(obj.notesNode)
+                obj.notesNode = obj.metadataNode.appendChild(obj.metadataDoc.createElement('notes'));
+            end
+
+            noteNode = obj.notesNode.appendChild(obj.metadataDoc.createElement('note'));
+            noteNode.setAttribute('time', time);
+            noteNode.appendChild(obj.metadataDoc.createTextNode(noteText));
+            
+            obj.saveMetadata();
         end
         
         

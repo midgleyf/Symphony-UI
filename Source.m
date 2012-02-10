@@ -111,6 +111,29 @@ classdef Source < handle
         end
         
         
+        function syncWithMetadata(obj, sourceNode)
+            % Update the UUID of this source.
+            attr = sourceNode.getAttributes();
+            obj.identifier = System.Guid(char(attr.getNamedItem('identifier').getNodeValue()));
+            
+            % Sync any child sources.
+            children = sourceNode.getChildNodes();
+            for i = 1:children.getLength()
+                childNode = children.item(i-1);
+                if childNode.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE && ...
+                   strcmp(char(childNode.getNodeName()), 'source')
+                    attr = childNode.getAttributes();
+                    childName = char(attr.getNamedItem('label').getNodeValue());
+                    child = obj.childWithName(childName);
+                    if isempty(child)
+                        child = Source(label, obj);
+                    end
+                    child.syncWithMetadata(childNode);
+                end
+            end
+        end
+        
+        
         function delete(obj)
             for i = 1:length(obj.childSources)
                 delete(obj.childSources(i));
