@@ -329,12 +329,15 @@ function saveNewGroup(~, ~, handles)
     label = get(handles.labelEdit, 'String');
     outputPath = get(handles.outputPathEdit, 'String');
     cellID = get(handles.cellIDEdit, 'String');
+    selectedSourceNode = handles.sourceTree.getSelectedNodes();
     if isempty(label)
         waitfor(errordlg('You must specify a label', 'Symphony', 'modal'));
     elseif exist(outputPath, 'dir') ~= 7
         waitfor(errordlg('You must specify a valid output path', 'Symphony', 'modal'));
     elseif isempty(handles.parentGroup) && isempty(cellID)
         waitfor(errordlg('You must specify a cell ID', 'Symphony', 'modal'));
+    elseif isempty(selectedSourceNode)
+        waitfor(errordlg('You must select a source', 'Symphony', 'modal'));
     else
         epochGroup = EpochGroup(handles.parentGroup, handles.clock.Now);
         epochGroup.outputPath = outputPath;
@@ -343,7 +346,6 @@ function saveNewGroup(~, ~, handles)
         if isempty(handles.parentGroup)
             rigName = handles.rigNames{get(handles.rigPopup, 'Value')};
             cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
-            selectedSourceNode = handles.sourceTree.getSelectedNodes();
             cellSource = Source(cellName, selectedSourceNode(1).handle.UserData);
 
             epochGroup.source = cellSource;
