@@ -885,18 +885,14 @@ classdef Symphony < handle
                     % Create the persistor and metadata XML.
                     if ismac
                         obj.persistPath = fullfile(group.outputPath, [group.source.name '.xml']);
-                        obj.persistor = EpochXMLPersistor(obj.persistPath);
                     else
                         obj.persistPath = fullfile(group.outputPath, [group.source.name '.h5']);
-                        obj.persistor = EpochHDF5Persistor(obj.persistPath, '', 9);
                     end
                     
                     if exist(obj.persistPath, 'file')
                         choice = questdlg(['This will append to an existing file.' char(10) char(10) 'Do you wish to contiue?'], ...
                                            'Symphony', 'Cancel', 'Continue', 'Continue');
                         if ~strcmp(choice, 'Continue')
-                            obj.persistor.CloseDocument();
-                            obj.persistor = [];
                             return
                         end
                     end
@@ -933,6 +929,12 @@ classdef Symphony < handle
                     else
                         % Add the source hierarchy to the metadata.
                         group.source.persistToMetadata(obj.metadataNode);
+                    end
+                    
+                    if ismac
+                        obj.persistor = EpochXMLPersistor(obj.persistPath);
+                    else
+                        obj.persistor = EpochHDF5Persistor(obj.persistPath, '', 9);
                     end
                 end
                 
