@@ -119,7 +119,7 @@ classdef EpochXMLPersistor < Symphony.Core.EpochPersistor
         
         
         function EndEpochGroup(obj)
-            obj.groupNodes{end} = obj.groupNodes{1:end - 1};
+            obj.groupNodes(end) = [];
         end
         
         

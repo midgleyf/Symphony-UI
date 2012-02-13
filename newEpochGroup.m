@@ -11,7 +11,11 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
         lastChosenPath = getpref('SymphonyEpochGroup', 'LastChosenOutputPath', '');
         lastChosenLabel = getpref('SymphonyEpochGroup', 'LastChosenLabel', '');
         lastChosenKeywords = getpref('SymphonyEpochGroup', 'LastChosenKeywords', '');
-        sourcePath = getpref('SymphonyEpochGroup', 'LastChosenSourcePath', '');
+        if isempty(parentGroup)
+            sourcePath = getpref('SymphonyEpochGroup', 'LastChosenSourcePath', '');
+        else
+            sourcePath = parentGroup.rootGroup().source.path();
+        end
         lastChosenMouseID = getpref('SymphonyEpochGroup', 'LastChosenMouseID', '');
         lastChosenCellID = getpref('SymphonyEpochGroup', 'LastChosenCellID', '');
         lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
@@ -235,6 +239,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
     selectRow = [];
     while row < tree.getRowCount()
         tree.expandRow(row);
+        drawnow;
         
         % Select this row if it was the last one chosen.
         rowSource = tree.getPathForRow(row).getLastPathComponent.handle.UserData;
@@ -243,7 +248,6 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
         end
         
         row = row + 1;
-        drawnow;
     end
     tree.setRootVisible(false);
     tree.setShowsRootHandles(true);

@@ -38,6 +38,15 @@ classdef EpochGroup < handle
         end
         
         
+        function g = rootGroup(obj)
+            if isempty(obj.parentGroup)
+                g = obj;
+            else
+                g = obj.parentGroup.rootGroup();
+            end
+        end
+        
+        
         function beginPersistence(obj, persistor)
             % Convert the keywords and properties to .NET equivalents.
             keywordsCA = strtrim(regexp(obj.keywords, ',', 'split'));

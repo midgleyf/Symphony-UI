@@ -964,12 +964,12 @@ classdef Symphony < handle
                     obj.epochGroup = obj.epochGroup.parentGroup;
                 end
             else
+                obj.persistor.CloseDocument();
+                obj.persistor = [];
+                
                 % Break the reference loop on the group hierarchy so they all get deleted.
                 delete(obj.prevEpochGroup);
                 obj.prevEpochGroup = [];
-                
-                obj.persistor.CloseDocument();
-                obj.persistor = [];
                 
                 obj.saveMetadata();
                 obj.metadataDoc = [];
