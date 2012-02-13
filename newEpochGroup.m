@@ -359,7 +359,7 @@ function saveNewGroup(~, ~, handles)
                 cellSource = Source(cellName, selectedSourceNode(1).handle.UserData);
             else
                 % Use the existing source.
-                cellSource = selectedSourceNode(1).handle.UserData;
+                cellSource = handles.prevEpochGroup.source;
             end
             
             epochGroup.source = cellSource;
