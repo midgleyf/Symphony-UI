@@ -1,7 +1,7 @@
 classdef LoomingObjects < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.stimgl.loomingobjects'
+        identifier = 'Symphony.StimGL.LoomingObjects'
         version = 1
         displayName = 'Looming Objects'
         plugInName = 'MovingObjects'

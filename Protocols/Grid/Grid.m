@@ -1,7 +1,7 @@
 classdef Grid < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.stimgl.grid'
+        identifier = 'Symphony.StimGL.Grid'
         version = 1
         displayName = 'Grid'
         plugInName = 'MovingObjects'

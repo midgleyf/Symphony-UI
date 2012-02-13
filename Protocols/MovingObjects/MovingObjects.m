@@ -1,7 +1,7 @@
 classdef MovingObjects < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.stimgl.movingobjects'
+        identifier = 'Symphony.StimGL.MovingObjects'
         version = 1
         displayName = 'Moving Objects'
         plugInName = 'MovingObjects'

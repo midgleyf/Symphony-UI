@@ -1,7 +1,7 @@
 classdef ExpandingObjects < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.stimgl.expandingobjects'
+        identifier = 'Symphony.StimGL.ExpandingObjects'
         version = 1
         displayName = 'Expanding Objects'
         plugInName = 'MovingObjects'

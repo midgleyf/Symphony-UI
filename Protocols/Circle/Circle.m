@@ -1,7 +1,7 @@
 classdef Circle < StimGLProtocol
 
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.stimgl.circle'
+        identifier = 'Symphony.StimGL.Circle'
         version = 1
         displayName = 'Circle'
         plugInName = 'MovingObjects'
