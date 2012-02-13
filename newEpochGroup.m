@@ -19,13 +19,16 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
         lastChosenPath = prevEpochGroup.outputPath;
         lastChosenLabel = prevEpochGroup.label;
         lastChosenKeywords = prevEpochGroup.keywords;
-        sourcePath = prevEpochGroup.source.parentSource.path();
+        sourcePath = prevEpochGroup.source.path();
         lastChosenMouseID = prevEpochGroup.userProperty('mouseID');
         lastChosenCellID = prevEpochGroup.userProperty('cellID');
         lastChosenRig = prevEpochGroup.userProperty('rigName');
     end
+    
+    % Remove the top level "Sources" item from the path.
     index = find([sourcePath ':'] == ':', 1, 'first');
     sourcePath = sourcePath(index + 1:end);
+    
     rigValue = find(strcmp(handles.rigNames, lastChosenRig));
     if isempty(rigValue)
         rigValue = 1;
@@ -199,7 +202,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
         'Style', 'popupmenu', ...
         'Value', rigValue, ...
         'Tag', 'rigPopup');
- 
+    
     handles.cancelButton = uicontrol(...
         'Parent', handles.figure,...
         'Units', 'points', ...
@@ -262,7 +265,7 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
     end
     
     if ~isempty(selectRow)
-        tree.setSelectionRow(selectRow);
+        tree.setSelectionRow(selectRow - 1);
     end
     
     % Wait until the user clicks the cancel or save button.
@@ -345,9 +348,16 @@ function saveNewGroup(~, ~, handles)
         epochGroup.keywords = get(handles.keywordsEdit, 'String');
         if isempty(handles.parentGroup)
             rigName = handles.rigNames{get(handles.rigPopup, 'Value')};
-            cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
-            cellSource = Source(cellName, selectedSourceNode(1).handle.UserData);
-
+            
+            if isempty(handles.prevEpochGroup)
+                % Create a new source under the selected item.
+                cellName = [datestr(now, 'mmddyy') rigName 'c' cellID];
+                cellSource = Source(cellName, selectedSourceNode(1).handle.UserData);
+            else
+                % Use the existing source.
+                cellSource = selectedSourceNode(1).handle.UserData;
+            end
+            
             epochGroup.source = cellSource;
             epochGroup.setUserProperty('mouseID', get(handles.mouseIDEdit, 'String'));
             epochGroup.setUserProperty('cellID', cellID);
@@ -355,10 +365,10 @@ function saveNewGroup(~, ~, handles)
         else
             epochGroup.source = [];
         end
-
+        
         handles.epochGroup = epochGroup;
         guidata(handles.figure, handles);
-
+        
         % Remember these settings for the next time a group is created.
         setpref('SymphonyEpochGroup', 'LastChosenLabel', handles.epochGroup.label)
         setpref('SymphonyEpochGroup', 'LastChosenKeywords', handles.epochGroup.keywords)
@@ -369,7 +379,7 @@ function saveNewGroup(~, ~, handles)
             setpref('SymphonyEpochGroup', 'LastChosenCellID', handles.epochGroup.userProperty('cellID'))
             setpref('SymphonyEpochGroup', 'LastChosenRigName', handles.epochGroup.userProperty('rigName'))
         end
-
+        
         uiresume
     end
 end
