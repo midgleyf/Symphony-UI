@@ -25,6 +25,7 @@ classdef Grid < StimGLProtocol
     properties
         spikePolThrLimRet = [Inf,1,100,1];
         testPulseAmp = -20;
+        stimglDelay = 1.1;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -171,7 +172,7 @@ classdef Grid < StimGLProtocol
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
-            params.delay = round(obj.preTime*frameRate);
+            params.delay = round((obj.stimglDelay+obj.preTime)*frameRate);
             params.nFrames = round(obj.stimTime*frameRate);
             params.tFrames = params.nFrames;
             
@@ -191,10 +192,12 @@ classdef Grid < StimGLProtocol
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);
-            Start(obj.stimGL, obj.plugInName, 1);
+            Start(obj.stimGL, obj.plugInName, 0);
+            Unpause(obj.stimGL);
         end
         
         function completeEpoch(obj)
+            
             Stop(obj.stimGL);
             
             % Find spikes
@@ -235,7 +238,7 @@ classdef Grid < StimGLProtocol
             % Update mean responses (spike count)
             obj.plotData.time = 1/obj.rigConfig.sampleRate*(1:numel(data));
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
-            if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
+            if isempty(obj.plotData.stimStart)
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
