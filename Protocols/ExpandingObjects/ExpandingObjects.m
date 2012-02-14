@@ -25,6 +25,7 @@ classdef ExpandingObjects < StimGLProtocol
     properties
         spikePolThrLimRet = [Inf,1,100,1];
         testPulseAmp = -20;
+        stimglDelay = 1.1;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -259,7 +260,7 @@ classdef ExpandingObjects < StimGLProtocol
             params.frame_vars = [protocolDir '/frame_vars.txt'];
             
             % Set number of delay frames for preTime
-            params.delay = round(obj.preTime*frameRate);
+            params.delay = round((obj.stimglDelay+obj.preTime)*frameRate);
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectExpansionRate',epochObjectExpansionRate);
@@ -276,7 +277,8 @@ classdef ExpandingObjects < StimGLProtocol
             
             % Start the StimGL plug-in
             SetParams(obj.stimGL, obj.plugInName, params);
-            Start(obj.stimGL, obj.plugInName, 1);
+            Start(obj.stimGL, obj.plugInName, 0);
+            Unpause(obj.stimGL);
         end
         
         function completeEpoch(obj)
@@ -320,7 +322,7 @@ classdef ExpandingObjects < StimGLProtocol
             % Update epoch and mean response (spike count) versus object expansion rate and/or object2 expansion rate or position
             obj.plotData.time = 1/obj.rigConfig.sampleRate*(1:numel(data));
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
-            if isempty(obj.plotData.stimStart) || obj.plotData.stimStart<obj.preTime
+            if isempty(obj.plotData.stimStart)
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
