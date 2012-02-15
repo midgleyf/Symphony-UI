@@ -343,7 +343,7 @@ function saveNewGroup(~, ~, handles)
         waitfor(errordlg('You must specify a valid output path', 'Symphony', 'modal'));
     elseif isempty(handles.parentGroup) && isempty(cellID)
         waitfor(errordlg('You must specify a cell ID', 'Symphony', 'modal'));
-    elseif isempty(selectedSourceNode)
+    elseif isempty(handles.parentGroup) && isempty(handles.prevEpochGroup) && isempty(selectedSourceNode)
         waitfor(errordlg('You must select a source', 'Symphony', 'modal'));
     else
         epochGroup = EpochGroup(handles.parentGroup, handles.clock.Now);
