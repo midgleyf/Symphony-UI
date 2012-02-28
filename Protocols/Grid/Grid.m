@@ -113,19 +113,19 @@ classdef Grid < StimGLProtocol
         
         function updateMeanOnRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.onRespImageHandle = imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colorbar; axis image;
+                obj.plotData.onRespImageHandle = imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colormap(gray(256)); colorbar; axis image;
                 obj.plotData.onRFcenterHandle=line(0,0,'Marker','x','Color','g');
                 obj.plotData.onRFareaHandle=rectangle('Position',[0,0,0.01,0.01],'Curvature',[1 1],'EdgeColor','g');
                 set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
                 xlabel(axesHandle,'azimuth (degrees)');
                 ylabel(axesHandle,'elevation (degrees)');
                 title(axesHandle,'On response (spike count)');
-                obj.plotData.fitOnRespCheckboxHandle = uicontrol(get(axesHandle,'Parent'),'Style','checkbox','Units','normalized','Position',[0 0.95 0.15 0.05],'Value',0,'String','update fit');
+                obj.plotData.updateFitCheckboxHandle = uicontrol(get(axesHandle,'Parent'),'Style','checkbox','Units','normalized','Position',[0 0 0.15 0.05],'Value',0,'String','update fit');
             else
                 set(obj.plotData.onRespImageHandle,'Cdata',flipud(obj.plotData.meanOnResp));
                 if obj.plotData.updateOnRespFit
                     set(obj.plotData.onRFcenterHandle,'XData',obj.plotData.muXon,'YData',obj.plotData.muYon);
-                    set(obj.plotData.onRFareaHandle,'Position',[obj.plotData.muXon-obj.plotData.sigmaXon,obj.plotData.muYon-obj.plotData.sigmaYon,2*sigmaXon,2*sigmaYon]);
+                    set(obj.plotData.onRFareaHandle,'Position',[obj.plotData.muXon-obj.plotData.sigmaXon,obj.plotData.muYon-obj.plotData.sigmaYon,2*obj.plotData.sigmaXon,2*obj.plotData.sigmaYon]);
                     title(axesHandle,['On response (spike count), ' obj.plotData.onRFstring]);
                 end
             end
@@ -133,19 +133,18 @@ classdef Grid < StimGLProtocol
         
         function updateMeanOffRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.offRespImageHandle = imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colorbar; axis image;
+                obj.plotData.offRespImageHandle = imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colormap(gray(256)); colorbar; axis image;
                 obj.plotData.offRFcenterHandle=line(0,0,'Marker','x','Color','r');
                 obj.plotData.offRFareaHandle=rectangle('Position',[0,0,0.01,0.01],'Curvature',[1 1],'EdgeColor','r');
                 set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
                 xlabel(axesHandle,'azimuth (degrees)');
                 ylabel(axesHandle,'elevation (degrees)');
                 title(axesHandle,'Off response (spike count)');
-                obj.plotData.fitOffRespCheckboxHandle = uicontrol(get(axesHandle,'Parent'),'Style','checkbox','Units','normalized','Position',[0 0.95 0.15 0.05],'Value',0,'String','update fit');
             else
                 set(obj.plotData.offRespImageHandle,'Cdata',flipud(obj.plotData.meanOffResp));
                 if obj.plotData.updateOffRespFit
                     set(obj.plotData.offRFcenterHandle,'XData',obj.plotData.muXoff,'YData',obj.plotData.muYoff);
-                    set(obj.plotData.offRFareaHandle,'Position',[obj.plotData.muXoff-obj.plotData.sigmaXoff,obj.plotData.muYoff-obj.plotData.sigmaYoff,2*sigmaXoff,2*sigmaYoff]);
+                    set(obj.plotData.offRFareaHandle,'Position',[obj.plotData.muXoff-obj.plotData.sigmaXoff,obj.plotData.muYoff-obj.plotData.sigmaYoff,2*obj.plotData.sigmaXoff,2*obj.plotData.sigmaYoff]);
                     title(axesHandle,['Off response (spike count), ' obj.plotData.offRFstring]);
                 end
             end
@@ -274,26 +273,22 @@ classdef Grid < StimGLProtocol
             
             % Fit on and off response grids to 2D guassian to find RF center and sd
             if obj.epochNum>1
-                if get(obj.plotData.fitOnRespCheckboxHandle,'Value')
+                if get(obj.plotData.updateFitCheckboxHandle,'Value')
                     try
-                        [obj.plotData.onRFstring obj.plotData.muXon obj.plotData.muYon obj.plotData.sigmaXon obj.plotData.sigmaYon]=obj.gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOnResp);
+                        [obj.plotData.onRFstring obj.plotData.muXon obj.plotData.muYon obj.plotData.sigmaXon obj.plotData.sigmaYon]=gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOnResp);
                         obj.plotData.updateOnRespFit = true;
                     catch
-                        set(obj.plotData.fitOnRespCheckboxHandle,'Value',0);
                         obj.plotData.updateOnRespFit = false;
                     end
-                else
-                    obj.plotData.updateOnRespFit = false;
-                end
-                if get(obj.plotData.fitOffRespCheckboxHandle,'Value')
                     try
-                        [obj.plotData.offRFstring obj.plotData.muXoff obj.plotData.muYoff obj.plotData.sigmaXoff obj.plotData.sigmaYoff]=obj.gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOffResp);
+                        [obj.plotData.offRFstring obj.plotData.muXoff obj.plotData.muYoff obj.plotData.sigmaXoff obj.plotData.sigmaYoff]=gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOffResp);
                         obj.plotData.updateOffRespFit = true;
                     catch
-                        set(obj.plotData.fitOffRespCheckboxHandle,'Value',0);
                         obj.plotData.updateOffRespFit = false;
                     end
+                    set(obj.plotData.updateFitCheckboxHandle,'Value',0);
                 else
+                    obj.plotData.updateOnRespFit = false;
                     obj.plotData.updateOffRespFit = false;
                 end
             end
@@ -306,39 +301,6 @@ classdef Grid < StimGLProtocol
                 obj.notCompletedCoords = 1:size(obj.allCoords,1);
                 obj.loopCount = obj.loopCount+1;
             end
-        end
-        
-        function [RFstring muX muY sigmaX sigmaY]=gauss2Dfit(Xcoords,Ycoords,meanResp)
-            x=Xcoords(1):-1:Xcoords(end);
-            y=Ycoords(1):Ycoords(end);
-            objSize=Ycoords(2)-Ycoords(1);
-            meanRespIntp=interp2(Xcoords,Ycoords,meanResp,x,y','linear');
-            errorFunc=@(p) sum((meanRespIntp(:)-gauss2D(p,x,y)).^2);
-            peakResp=max(meanRespIntp(:));
-            [peakYindex peakXindex]=find(meanRespIntp==peakResp);
-            seedValues=[peakResp*5,x(peakXindex),y(peakYindex),objSize,objSize];
-            fitParams=fminsearch(errorFunc,seedValues,optimset('MaxFunEvals',1e5));
-            roundFitParams=round(fitParams*10)/10;
-            RFstring=['RF: center [' num2str(roundFitParams(2)) ',' num2str(roundFitParams(3)) '], sd [' num2str(roundFitParams(4)) ',' num2str(roundFitParams(5)) ']'];
-            % convert mu and sigma from degrees to image pixel coordinates
-            [~,muX]=min(abs(x-fitParams(2)));
-            muX=(muX-1)/objSize+1;
-            [~,muY]=min(abs(fliplr(y)-fitParams(3)));
-            muY=(muY-1)/objSize+1;
-            pixPerDeg=(numel(Ycoords)-1)/(Ycoords(end)-Ycoords(1));
-            sigmaX=fitParams(4)*pixPerDeg;
-            sigmaY=fitParams(5)*pixPerDeg;
-        end
-
-        function z=gauss2D(p,x,y)
-            z=zeros(numel(y),numel(x));
-            for i=1:numel(y)
-                for j=1:numel(x)
-                    % p(1:5)=[A,muX,muY,sigmaX,sigmaY]
-                    z(i,j)=(p(1)/(2*pi*p(4)*p(5)))*exp(-((((x(j)-p(2))^2)/(2*p(4)^2))+(((y(i)-p(3))^2)/(2*p(5)^2))));
-                end
-            end
-            z=z(:);
         end
         
         function keepGoing = continueRun(obj)
