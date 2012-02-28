@@ -57,15 +57,18 @@ classdef Circle < StimGLProtocol
             % Prepare figures
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectColor)>1
-                obj.plotData.meanColorResp = NaN(1,numel(obj.objectColor));
+                obj.plotData.meanColorOnResp = NaN(1,numel(obj.objectColor));
+                obj.plotData.meanColorOffResp = NaN(1,numel(obj.objectColor));
                 obj.openFigure('Custom','Name','MeanColorRespFig','UpdateCallback',@updateMeanColorRespFig);
             end
             if numel(obj.objectSize)>1
-                obj.plotData.meanSizeResp = NaN(1,numel(obj.objectSize));
+                obj.plotData.meanSizeOnResp = NaN(1,numel(obj.objectSize));
+                obj.plotData.meanSizeOffResp = NaN(1,numel(obj.objectSize));
                 obj.openFigure('Custom','Name','MeanSizeRespFig','UpdateCallback',@updateMeanSizeRespFig);
             end
             if numel(obj.flashDur)>1
-                obj.plotData.meanFlashDurResp = NaN(1,numel(obj.flashDur));
+                obj.plotData.meanFlashDurOnResp = NaN(1,numel(obj.flashDur));
+                obj.plotData.meanFlashDurOffResp = NaN(1,numel(obj.flashDur));
                 obj.openFigure('Custom','Name','MeanFlashDurRespFig','UpdateCallback',@updateMeanFlashDurRespFig);
             end
             if obj.numFlashes>1
@@ -110,45 +113,54 @@ classdef Circle < StimGLProtocol
         
         function updateMeanColorRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.meanColorRespHandle = line(obj.objectColor,obj.plotData.meanColorResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanColorOnRespHandle = line(obj.objectColor,obj.plotData.meanColorOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none','MarkerFaceColor','g');
+                obj.plotData.meanColorOffRespHandle = line(obj.objectColor,obj.plotData.meanColorOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none','MarkerFaceColor','r');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectColor)-0.01,max(obj.objectColor)+0.01],'Xtick',obj.objectColor);
-                xlabel(axesHandle,'object brightness (normalized)');
+                xlabel(axesHandle,'object color (normalized)');
                 ylabel(axesHandle,'response (spike count)');
             else
-                set(obj.plotData.meanColorRespHandle,'Ydata',obj.plotData.meanColorResp);
+                set(obj.plotData.meanColorOnRespHandle,'Ydata',obj.plotData.meanColorOnResp);
+                set(obj.plotData.meanColorOffRespHandle,'Ydata',obj.plotData.meanColorOffResp);
             end
-            line(obj.plotData.epochObjectColor,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectColor,obj.plotData.epochOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectColor,obj.plotData.epochOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none');
         end
         
         function updateMeanSizeRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.meanSizeRespHandle = line(obj.objectSize,obj.plotData.meanSizeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanSizeOnRespHandle = line(obj.objectSize,obj.plotData.meanSizeOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none','MarkerFaceColor','g');
+                obj.plotData.meanSizeOffRespHandle = line(obj.objectSize,obj.plotData.meanSizeOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none','MarkerFaceColor','r');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSize)-1,max(obj.objectSize)+1],'Xtick',obj.objectSize);
                 xlabel(axesHandle,'object diameter (degrees)');
                 ylabel(axesHandle,'response (spike count)');
             else
-                set(obj.plotData.meanSizeRespHandle,'Ydata',obj.plotData.meanSizeResp);
+                set(obj.plotData.meanSizeOnRespHandle,'Ydata',obj.plotData.meanSizeOnResp);
+                set(obj.plotData.meanSizeOffRespHandle,'Ydata',obj.plotData.meanSizeOffResp);
             end
-            line(obj.plotData.epochObjectSize,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectSize,obj.plotData.epochOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectSize,obj.plotData.epochOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none');
         end
         
         function updateMeanFlashDurRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.meanFlashDurRespHandle = line(obj.flashDur,obj.plotData.meanFlashDurResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanFlashDurOnRespHandle = line(obj.flashDur,obj.plotData.meanFlashDurOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none','MarkerFaceColor','g');
+                obj.plotData.meanFlashDurOffRespHandle = line(obj.flashDur,obj.plotData.meanFlashDurOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none','MarkerFaceColor','r');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.flashDur)-1,max(obj.flashDur)+1],'Xtick',obj.flashDur);
-                xlabel(axesHandle,'object diameter (degrees)');
+                xlabel(axesHandle,'flash duration (s)');
                 ylabel(axesHandle,'response (spike count)');
             else
-                set(obj.plotData.meanFlashDurRespHandle,'Ydata',obj.plotData.meanFlashDurResp);
+                set(obj.plotData.meanFlashDurRespHandle,'Ydata',obj.plotData.meanFlashDurOnResp);
+                set(obj.plotData.meanFlashDurRespHandle,'Ydata',obj.plotData.meanFlashDurOffResp);
             end
-            line(obj.plotData.epochFlashDur,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochFlashDur,obj.plotData.epochOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
+            line(obj.plotData.epochFlashDur,obj.plotData.epochOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none');
         end
         
         function updateMeanInterFlashIntRespFig(obj,axesHandle)
             if obj.epochNum==1
                 obj.plotData.meanInterFlashIntRespHandle = line(obj.interFlashInt,obj.plotData.meanInterFlashIntResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.interFlashInt)-1,max(obj.interFlashInt)+1],'Xtick',obj.interFlashInt);
-                xlabel(axesHandle,'object diameter (degrees)');
+                xlabel(axesHandle,'inter-flash interval (s)');
                 ylabel(axesHandle,'response ratio (flash2/flash1)');
             else
                 set(obj.plotData.meanInterFlashIntRespHandle,'Ydata',obj.plotData.meanInterFlashIntResp);
@@ -302,18 +314,22 @@ classdef Circle < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.epochFlashDur));
+            obj.plotData.epochOnResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.epochFlashDur));
+            obj.plotData.epochOffResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.epochFlashDur & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur));
             if numel(obj.objectColor)>1
                 objectColorIndex = find(obj.objectColor==obj.plotData.epochObjectColor,1);
-                obj.plotData.meanColorResp(objectColorIndex) = nanmean([repmat(obj.plotData.meanColorResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                obj.plotData.meanColorOnResp(objectColorIndex) = nanmean([repmat(obj.plotData.meanColorOnResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
+                obj.plotData.meanColorOffResp(objectColorIndex) = nanmean([repmat(obj.plotData.meanColorOffResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
             end
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
-                obj.plotData.meanSizeResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                obj.plotData.meanSizeOnResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeOnResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
+                obj.plotData.meanSizeOffResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeOffResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
             end
             if numel(obj.flashDur)>1
                 flashDurIndex = find(obj.flashDur==obj.plotData.epochFlashDur,1);
-                obj.plotData.meanFlashDurResp(flashDurIndex) = nanmean([repmat(obj.plotData.meanFlashDurResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                obj.plotData.meanFlashDurOnResp(flashDurIndex) = nanmean([repmat(obj.plotData.meanFlashDurOnResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
+                obj.plotData.meanFlashDurOffResp(flashDurIndex) = nanmean([repmat(obj.plotData.meanFlashDurOffResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
             end
             if obj.numFlashes>1
                 if numel(obj.interFlashInt)>1

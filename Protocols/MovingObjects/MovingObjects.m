@@ -56,6 +56,10 @@ classdef MovingObjects < StimGLProtocol
             
             % Prepare figures
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
+            if numel(obj.objectSize)>1
+                obj.plotData.meanSizeResp = NaN(1,numel(obj.objectSize));
+                obj.openFigure('Custom','Name','MeanSizeRespFig','UpdateCallback',@updateMeanSizeRespFig);
+            end
             if numel(obj.objectSpeed)>1
                 obj.plotData.meanSpeedResp = NaN(1,numel(obj.objectSpeed));
                 obj.openFigure('Custom','Name','MeanSpeedRespFig','UpdateCallback',@updateMeanSpeedRespFig);
@@ -99,6 +103,18 @@ classdef MovingObjects < StimGLProtocol
             set(obj.plotData.targetTimeLineHandle,'Xdata',[obj.plotData.stimStart+obj.plotData.targetTime,obj.plotData.stimStart+obj.plotData.targetTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle,obj.plotData.targetTimeLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+        end
+        
+        function updateMeanSizeRespFig(obj,axesHandle)
+            if obj.epochNum==1
+                obj.plotData.meanSizeRespHandle = line(obj.objectSize,obj.plotData.meanSizeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSize)-1,max(obj.objectSize)+1],'Xtick',obj.objectSize);
+                xlabel(axesHandle,'object size (degrees)');
+                ylabel(axesHandle,'response (spike count)');
+            else
+                set(obj.plotData.meanSizeRespHandle,'Ydata',obj.plotData.meanSizeResp);
+            end
+            line(obj.plotData.epochObjectSize,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
         function updateMeanSpeedRespFig(obj,axesHandle)
@@ -147,6 +163,7 @@ classdef MovingObjects < StimGLProtocol
             epochObjectSize = obj.trialTypes(epochTrialType,1);
             epochObjectSpeed = obj.trialTypes(epochTrialType,2);
             epochObjectDir = obj.trialTypes(epochTrialType,3);
+            obj.plotData.epochObjectSize = epochObjectSize;
             obj.plotData.epochObjectSpeed = epochObjectSpeed;
             obj.plotData.epochObjectDir = epochObjectDir;
             
@@ -449,7 +466,11 @@ classdef MovingObjects < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.targetTime-0.5 & spikeTimes<obj.plotData.stimStart+obj.plotData.targetTime+0.5));
+            if numel(obj.objectSize)>1
+                objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
+                obj.plotData.meanSizeResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+            end
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
                 obj.plotData.meanSpeedResp(objectSpeedIndex) = nanmean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
