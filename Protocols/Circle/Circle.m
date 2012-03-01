@@ -101,6 +101,7 @@ classdef Circle < StimGLProtocol
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
                 obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             else
+                xlim(axesHandle,[0 max(obj.plotData.time)]);
                 set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
                 set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
@@ -149,8 +150,8 @@ classdef Circle < StimGLProtocol
                 xlabel(axesHandle,'flash duration (s)');
                 ylabel(axesHandle,'response (spike count)');
             else
-                set(obj.plotData.meanFlashDurRespHandle,'Ydata',obj.plotData.meanFlashDurOnResp);
-                set(obj.plotData.meanFlashDurRespHandle,'Ydata',obj.plotData.meanFlashDurOffResp);
+                set(obj.plotData.meanFlashDurOnRespHandle,'Ydata',obj.plotData.meanFlashDurOnResp);
+                set(obj.plotData.meanFlashDurOffRespHandle,'Ydata',obj.plotData.meanFlashDurOffResp);
             end
             line(obj.plotData.epochFlashDur,obj.plotData.epochOnResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
             line(obj.plotData.epochFlashDur,obj.plotData.epochOffResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none');

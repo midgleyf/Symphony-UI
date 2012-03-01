@@ -466,7 +466,7 @@ classdef MovingObjects < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.targetTime-0.5 & spikeTimes<obj.plotData.stimStart+obj.plotData.targetTime+0.5));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.targetTime-1 & spikeTimes<obj.plotData.stimStart+obj.plotData.targetTime+1));
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
                 obj.plotData.meanSizeResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
