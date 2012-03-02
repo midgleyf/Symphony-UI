@@ -326,7 +326,7 @@ classdef ExpandingObjects < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+2*obj.stimTime));
             if numel(obj.objectExpansionRate)>1
                 objectExpansionRateIndex = find(obj.objectExpansionRate==obj.plotData.epochObjectExpansionRate,1);
                 obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = nanmean([repmat(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);

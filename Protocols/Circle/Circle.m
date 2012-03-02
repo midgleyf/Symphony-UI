@@ -334,11 +334,11 @@ classdef Circle < StimGLProtocol
             end
             if obj.numFlashes>1
                 if numel(obj.interFlashInt)>1
-                    flash1resp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.epochFlashDur));
+                    flash1resp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur));
                     if flash1resp==0
                         obj.plotData.epochFlashRespRatio = NaN;
                     else
-                        flash2resp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.epochFlashDur+obj.plotData.interFlashInt & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur+obj.plotData.interFlashInt));
+                        flash2resp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.epochFlashDur+obj.plotData.epochInterFlashInt & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur+obj.plotData.epochInterFlashInt));
                         obj.plotData.epochFlashRespRatio = flash2resp/flash1resp;
                     end
                     interFlashIntIndex = find(obj.interFlashInt==obj.plotData.epochInterFlashInt,1);
