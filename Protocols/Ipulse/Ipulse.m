@@ -1,7 +1,7 @@
 classdef Ipulse < SymphonyProtocol
     
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.Ipulse'
+        identifier = 'Symphony.Ipulse'
         version = 1
         displayName = 'I pulse'
     end

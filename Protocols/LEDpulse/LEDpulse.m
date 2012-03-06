@@ -1,7 +1,7 @@
 classdef LEDpulse < SymphonyProtocol
     
     properties (Constant)
-        identifier = 'org.janelia.research.murphy.symphony.LEDpulse'
+        identifier = 'Symphony.LEDpulse'
         version = 1
         displayName = 'LED pulse'
     end
@@ -30,7 +30,7 @@ classdef LEDpulse < SymphonyProtocol
     methods
         
         function [stimuli,sampleRate] = sampleStimuli(obj)
-            % Return a set of sample stimuli, one for each value in Iamp.
+            % Return a set of sample stimuli
             obj.loopCount = 1;
             sampleRate = obj.rigConfig.sampleRate;
             [LEDstim,Istim] = obj.stimulusForEpoch();
@@ -52,14 +52,14 @@ classdef LEDpulse < SymphonyProtocol
             obj.loopCount = 1;
             
             % Prepare figure
-            sampInt=1/obj.rigConfig.sampleRate;
+            sampInt=1/obj.rigConfig.sampleRate*1000;
             obj.plotData.time=sampInt:sampInt:obj.epochDur;
             obj.openFigure('Custom','Name','Responses','UpdateCallback',@updateResponsesFig);
         end
             
         function updateResponsesFig(obj,axesHandle)
             if obj.epochNum==1
-                xlabel(axesHandle,'s');
+                xlabel(axesHandle,'ms');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out');
             else
@@ -73,7 +73,7 @@ classdef LEDpulse < SymphonyProtocol
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
             
-            [LEDstim,Istim] = obj.stimulusForEpoch(obj.epochNum);
+            [LEDstim,Istim] = obj.stimulusForEpoch();
             obj.addStimulus('LED','LED stimulus',LEDstim,'V');
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',Istim,'A');
         end
