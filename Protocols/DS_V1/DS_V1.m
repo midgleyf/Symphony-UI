@@ -196,7 +196,7 @@ classdef DS_V1 < StimGLProtocol
             % Determine number of frames to complete path and X and Y positions in degrees at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
             distance= obj.RFdiameter;
-            nStimFrames = round((distance/epochObjectSpeed)*frameRate)
+            nStimFrames = round((distance/epochObjectSpeed)*frameRate);
             if XendPix==XstartPix
                 pos_X_vector = XstartPix*ones(1,nStimFrames);
             else
@@ -208,14 +208,14 @@ classdef DS_V1 < StimGLProtocol
                 pos_Y_vector= YstartPix: (YendPix-YstartPix)/(nStimFrames-1):YendPix;
             end
             
-
-%             XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime)*frameRate)];
-%             YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime)*frameRate)];
+            
+            preFrames = obj.preTime*frameRate;
+            XsizeVectorPix = [epochObjectSize * ones(1,preFrames + nStimFrames),zeros(1,obj.postTime*frameRate)];
+            YsizeVectorPix =[obj.objectSizeX * ones(1,preFrames + nStimFrames),zeros(1,obj.postTime*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
-            FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;
-            preFrames = obj.preTime*frameRate;
+            FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;           
             params.nFrames = FrameNb;
             frameVars = zeros(FrameNb,12);
             frameVars(:,1) = 0:(FrameNb-1); % frame number
@@ -227,8 +227,8 @@ classdef DS_V1 < StimGLProtocol
             frameVars(1 : preFrames,6) = pos_Y_vector(1);
             frameVars(preFrames+1 : (nStimFrames+preFrames),6) = pos_Y_vector;
             frameVars((nStimFrames+preFrames+1) : end,6) = pos_Y_vector(end);
-            frameVars(:,7) = epochObjectSize;
-            frameVars(:,8) = obj.objectSizeX;
+            frameVars(:,7) = XsizeVectorPix;
+            frameVars(:,8) = YsizeVectorPix;
             frameVars(:,9) = epochObjectDir;
             frameVars(:,10) = obj.objectColor;
             frameVars(:,12) = 1; % zScaled needs to be 1
