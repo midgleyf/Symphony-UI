@@ -8,18 +8,20 @@ classdef LEDpulse < SymphonyProtocol
     
     properties (Hidden)
         loopCount
+        epochsPerLoop
         plotData
     end
     
     properties
-        epochDur = 600;
+        preTime = 200;
+        postTime = 300;
         LEDpulseNum = 1;
-        LEDpulseDelay = 200;
+        LEDpulseDelay = [0,1,2,4,10];
         LEDpulseDur = 1;
-        LEDpulseInt = 5;
-        LEDpulseAmp = 1;
+        LEDpulseInt = [5,10,20,40,100,500,1000];
+        LEDpulseAmp = [0.5,1,2,4];
         IpulseNum = 0;
-        IpulseDelay = 200;
+        IpulseDelay = 0;
         IpulseDur = 2;
         IpulseInt = 10;
         IpulseAmp = 1000;
@@ -31,18 +33,8 @@ classdef LEDpulse < SymphonyProtocol
         
         function [stimuli,sampleRate] = sampleStimuli(obj)
             % Return a set of sample stimuli
-            obj.loopCount = 1;
+            stimuli = [];
             sampleRate = obj.rigConfig.sampleRate;
-            [LEDstim,Istim] = obj.stimulusForEpoch();
-            if any(LEDstim) && any(Istim)
-                stimuli{1} = LEDstim/max(abs(LEDstim))+Istim/max(abs(Istim));
-            elseif any(LEDstim)
-                stimuli{1} = LEDstim;
-            elseif any(Istim)
-                stimuli{1} = Istim;
-            else
-                stimuli{1} = zeros(1,numel(LEDstim));
-            end
         end
         
         function prepareRun(obj)
@@ -50,10 +42,10 @@ classdef LEDpulse < SymphonyProtocol
             prepareRun@SymphonyProtocol(obj);
             
             obj.loopCount = 1;
+            obj.epochsPerLoop = max([numel(obj.LEDpulseDelay),numel(obj.LEDpulseInt),numel(obj.LEDpulseAmp)]);
             
             % Prepare figure
-            sampInt=1/obj.rigConfig.sampleRate*1000;
-            obj.plotData.time=sampInt:sampInt:obj.epochDur;
+            obj.plotData.sampInt = 1/obj.rigConfig.sampleRate*1000;
             obj.openFigure('Custom','Name','Responses','UpdateCallback',@updateResponsesFig);
         end
             
@@ -65,29 +57,80 @@ classdef LEDpulse < SymphonyProtocol
             else
                 set(obj.plotData.prevLineHandle,'Color',[0.8 0.8 0.8]);
             end
-            obj.plotData.prevLineHandle = line(obj.plotData.time,1000*obj.response('Amplifier_Ch1'),'Parent',axesHandle,'Color','k');
-            title(axesHandle,['Epoch ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
+            data = 1000*obj.response('Amplifier_Ch1');
+            obj.plotData.prevLineHandle = line(obj.plotData.sampInt:obj.plotData.sampInt:obj.plotData.sampInt*numel(data),data,'Parent',axesHandle,'Color','k');
+            xlim([0,obj.plotData.sampInt*numel(data)]);
+            dataRange = max(data)-min(data);
+            ylim([min(data)-0.05*dataRange,max(data)+0.05*dataRange]);
+            title(axesHandle,['Epoch ' num2str(obj.epochNum-obj.epochsPerLoop*(obj.loopCount-1)) ' of ' num2str(obj.epochsPerLoop) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
         function prepareEpoch(obj)
             % Call the base class method which sets up default backgrounds and records responses.
             prepareEpoch@SymphonyProtocol(obj);
             
-            [LEDstim,Istim] = obj.stimulusForEpoch();
+            [LEDstim,Istim,epochParam] = obj.stimulusForEpoch(obj.epochNum);
+            if numel(obj.LEDpulseDelay>1)
+                obj.addParameter('epochLEDpulseDelay',epochParam);
+            elseif numel(obj.LEDpulseInt>1)
+                obj.addParameter('epochLEDpulseInt',epochParam);
+            elseif numel(obj.LEDpulseAmp>1)
+                obj.addParameter('epochLEDpulseAmp',epochParam);
+            end
             obj.addStimulus('LED','LED stimulus',LEDstim,'V');
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',Istim,'A');
         end
         
-        function [LEDstim,Istim] = stimulusForEpoch(obj)
-            LEDstim = zeros(1,obj.rigConfig.sampleRate/1000*obj.epochDur);
-            LEDpulsePts = obj.rigConfig.sampleRate/1000*(obj.LEDpulseDelay+obj.LEDpulseInt*(0:obj.LEDpulseNum-1));
-            for n=1:numel(LEDpulsePts)
-                LEDstim(LEDpulsePts(n):LEDpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.LEDpulseDur) = obj.LEDpulseAmp;
+        function [LEDstim,Istim,epochParam] = stimulusForEpoch(obj,epochNum)
+            if obj.LEDpulseNum>0
+                if numel(obj.LEDpulseDelay>1)
+                    epochParam = obj.LEDpulseDelay(epochNum-obj.epochsPerLoop*(obj.loopCount-1));
+                    epochLEDpulseDelay = epochParam;
+                    epochLEDpulseInt = obj.LEDpulseInt;
+                    epochLEDpulseAmp = obj.LEDpulseAmp;
+                elseif numel(obj.LEDpulseInt>1)
+                    epochParam = obj.LEDpulseInt(epochNum-obj.epochsPerLoop*(obj.loopCount-1));
+                    epochLEDpulseDelay = obj.LEDpulseDelay;
+                    epochLEDpulseInt = epochParam;
+                    epochLEDpulseAmp = obj.LEDpulseAmp;
+                elseif numel(obj.LEDpulseAmp>1)
+                    epochParam = obj.LEDpulseAmp(epochNum-obj.epochsPerLoop*(obj.loopCount-1));
+                    epochLEDpulseDelay = obj.LEDpulseDelay;
+                    epochLEDpulseInt = obj.LEEpulseInt;
+                    epochLEDpulseAmp = epochParam;
+                else
+                    epochParam=[];
+                    epochLEDpulseDelay = obj.LEDpulseDelay;
+                    epochLEDpulseInt = obj.LEDpulseInt;
+                    epochLEDpulseAmp = obj.LEDpulseAmp;
+                end
+                prePts = obj.rigConfig.sampleRate/1000*(obj.preTime+epochLEDpulseDelay);
+                postPts = obj.rigConfig.sampleRate/1000*obj.postTime;
+                LEDpulsePts = obj.rigConfig.sampleRate/1000*(1+epochLEDpulseInt*(0:obj.LEDpulseNum-1));
+                stimPts = LEDpulsePts(end)+obj.rigConfig.sampleRate/1000*obj.LEDpulseDur;
+                LEDstim = zeros(1,prePts+stimPts+postPts);
+                for n=1:numel(LEDpulsePts)
+                    LEDstim(LEDpulsePts(n):LEDpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.LEDpulseDur) = epochLEDpulseAmp;
+                end
+            else
+                epochParam = [];
+                LEDstim = 0;
             end
-            Istim = zeros(1,obj.rigConfig.sampleRate/1000*obj.epochDur);
-            IpulsePts = obj.rigConfig.sampleRate/1000*(obj.IpulseDelay+obj.IpulseInt*(0:obj.IpulseNum-1));
-            for n=1:numel(IpulsePts)
-                Istim(IpulsePts(n):IpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.IpulseDur) = 1e-12*obj.IpulseAmp;
+            if obj.IpulseNum>0
+                prePts = obj.rigConfig.sampleRate/1000*(obj.preTime+obj.IpulseDelay);
+                IpulsePts = obj.rigConfig.sampleRate/1000*(1+obj.IpulseInt*(0:obj.IpulseNum-1));
+                stimPts = IpulsePts(end)+obj.rigConfig.sampleRate/1000*obj.IpulseDur;
+                Istim = zeros(1,prePts+stimPts+postPts);
+                for n=1:numel(IpulsePts)
+                    Istim(IpulsePts(n):IpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.IpulseDur) = obj.IpulseAmp;
+                end
+            else
+                Istim = 0;
+            end
+            if numel(LEDstim)>numel(Istim)
+                Istim = [Istim,zeros(1,numel(LEDstim)-numel(Istim))];
+            elseif numel(Istim)>numel(LEDstim)
+                LEDstim = [LEDstim,zeros(1,numel(Istim)-numel(LEDstim))];
             end
         end
         
@@ -95,7 +138,9 @@ classdef LEDpulse < SymphonyProtocol
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);
             
-            obj.loopCount = obj.loopCount+1;
+            if obj.epochNum-obj.epochsPerLoop*(obj.loopCount-1)==obj.epochsPerLoop
+                obj.loopCount = obj.loopCount+1;
+            end
         end
         
         function keepGoing = continueRun(obj)
