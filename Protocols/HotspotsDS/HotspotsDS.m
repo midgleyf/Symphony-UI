@@ -107,10 +107,6 @@ classdef HotspotsDS < StimGLProtocol
                     obj.openFigure('Custom','Name','VariableDirRespFig','UpdateCallback',@updateMeanDirRespFig);
                  end
              end
-%             if numel(obj.objectSizeT)>1
-%                 obj.plotData.meanSizeResp = NaN(1,numel(obj.objectSizeT));
-%                 obj.openFigure('Custom','Name','MeanSizeRespFig','UpdateCallback',@updateMeanSizeRespFig);
-%             end
 
         end
         
@@ -146,45 +142,6 @@ classdef HotspotsDS < StimGLProtocol
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
-%         function updateMeanSpeedRespFig(obj,axesHandle)
-%             if obj.epochNum==1
-%                 obj.plotData.meanSpeedRespHandle = line(obj.objectSpeed,obj.plotData.meanSpeedResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-%                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSpeed)-1,max(obj.objectSpeed)+1],'Xtick',obj.objectSpeed);
-%                 xlabel(axesHandle,'object speed (um/s)');
-%                 ylabel(axesHandle,'response (spike count)');
-%             else
-%                 set(obj.plotData.meanSpeedRespHandle,'Ydata',obj.plotData.meanSpeedResp);
-%             end
-%             line(obj.plotData.epochObjectSpeed,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
-%         end
-%         
-%         function updateMeanDirRespFig(obj,axesHandle)
-%             if obj.epochNum==1
-%                 obj.plotData.meanDirRespHandle = line(obj.objectDir,obj.plotData.meanDirResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-%                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectDir)-10,max(obj.objectDir)+10],'Xtick',obj.objectDir);
-%                 xlabel(axesHandle,'object direction (degrees relative to horizontal)');
-%                 ylabel(axesHandle,'response (spike count)');
-%             else
-%                 set(obj.plotData.meanDirRespHandle,'Ydata',obj.plotData.meanDirResp);
-%             end
-%             line(obj.plotData.epochObjectDir,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
-%         end
-%         
-%         function updateMeanSizeRespFig(obj,axesHandle)
-%             if obj.epochNum==1
-%                 obj.plotData.meanSizeRespHandle = line(obj.objectSizeT,obj.plotData.meanSizeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-%                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSizeT)-10,max(obj.objectSizeT)+10],'Xtick',obj.objectSizeT);
-%                 if strcmp(obj.unitObjSizeT,'microns')
-%                     xlabel(axesHandle, 'Bar Thickness (um)');
-%                 else
-%                     xlabel(axesHandle, 'Bar time spend for each position (sec)');
-%                 end
-%                 ylabel(axesHandle,'response (spike count)');
-%             else
-%                 set(obj.plotData.meanSizeRespHandle,'Ydata',obj.plotData.meanSizeResp);
-%             end
-%             line(obj.plotData.epochObjectSize,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
-%         end
         function updateMeanRespFig(obj,axesHandle)
             if obj.epochNum==1
                 obj.plotData.RespImageHandle = imagesc(flipud(obj.plotData.meanResp),'Parent',axesHandle); colorbar; axis image;
@@ -211,6 +168,7 @@ classdef HotspotsDS < StimGLProtocol
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
+            params.ftrackbox_w = 10;
             
             
             % Pick a combination of object size/speed/direction from the trialTypes list
@@ -221,7 +179,8 @@ classdef HotspotsDS < StimGLProtocol
             obj.notCompletedTrialTypes(randIndex) = [];
             epochObjectTrialD = obj.trialTypes(epochTrialType,1);
             epochObjectSpeed = obj.trialTypes(epochTrialType,2);
-            epochObjectDir = obj.trialTypes(epochTrialType,3);
+            realObjectDir = obj.trialTypes(epochTrialType,3);
+            epochObjectDir = realObjectDir +90;
             epochCircleLogic = obj.trialTypes(epochTrialType,4);
             obj.plotData.epochObjectSpeed = epochObjectSpeed;
             obj.plotData.epochObjectDir = epochObjectDir;
@@ -232,14 +191,14 @@ classdef HotspotsDS < StimGLProtocol
             params.objLenY = obj.objectSizeL;
             params.numObj = 1;
             
-            % Set starting and ending position for stim
+            % Set starting and ending position for stim using trigonometry 
             RFcenterX= 640;
             RFcenterY= 360;
             RFrayon= obj.RFdiameter/2;
             obj.plotData.RFrayon = RFrayon;
-            theta = 2*acosd(epochObjectTrialD/RFrayon);
+            theta = 2*acosd(epochObjectTrialD/RFrayon); % angle between starting and ending points of the chord. 
             obj.plotData.epochTheta = theta;
-            epsilon = 90 - (theta/2);
+            epsilon = 90 - (theta/2); %angle between 0 and starting point of chord.
             
             if epochCircleLogic == true
                 
@@ -292,16 +251,14 @@ classdef HotspotsDS < StimGLProtocol
             % during postTime and while stop stimGL completes
             FrameNb = (obj.appTime + obj.dispTime)*frameRate + nStimFrames;
             preFrames = obj.appTime*frameRate;
-            XsizeVectorPix = obj.objectSizeL*ones(1,FrameNb);
-            YsizeVectorPix = obj.objectSizeT*ones(1,FrameNb);
-            XsizeVectorPix(preFrames + nStimFrames : end) = 0 ;
-            YsizeVectorPix(preFrames + nStimFrames : end) =0 ;
+            XsizeVectorPix = [obj.objectSizeL*ones(1,FrameNb),zeros(1,5*frameRate)];
+            YsizeVectorPix = [obj.objectSizeT*ones(1,FrameNb),zeros(1,5*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
             params.nFrames = FrameNb;
-            frameVars = zeros(FrameNb,12);
-            frameVars(:,1) = 0:(FrameNb-1); % frame number
+            frameVars = zeros(numel(XsizeVectorPix),12);
+            frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number
             frameVars(:,4) = 0; % objType (0=box)
             frameVars(1 : preFrames,5) = pos_X_vector(1);
