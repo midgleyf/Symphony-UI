@@ -37,7 +37,6 @@ classdef DS_V1 < StimGLProtocol
         unitObjSizeY= { 'microns', 'constant time residency (sec/um)' }
         objectSpeed = [10,30]; % um/sec
         objectDir = 0:45:315; % degres (sens trigonometrique)
-%         WholeCell = false;
     end
     
     
@@ -149,7 +148,7 @@ classdef DS_V1 < StimGLProtocol
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
-            
+            params.ftrackbox_w = 10;
             
             % Pick a combination of object size/speed/direction from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -159,7 +158,8 @@ classdef DS_V1 < StimGLProtocol
             obj.notCompletedTrialTypes(randIndex) = [];
             epochObjectSize = obj.trialTypes(epochTrialType,1);
             epochObjectSpeed = obj.trialTypes(epochTrialType,2);
-            epochObjectDir = obj.trialTypes(epochTrialType,3);
+            realObjectDir = obj.trialTypes(epochTrialType,3);
+            epochObjectDir = realObjectDir +90;
             obj.plotData.epochObjectSpeed = epochObjectSpeed;
             obj.plotData.epochObjectDir = epochObjectDir;
             obj.plotData.epochObjectSize = epochObjectSize;
@@ -210,15 +210,15 @@ classdef DS_V1 < StimGLProtocol
             
             
             preFrames = obj.preTime*frameRate;
-            XsizeVectorPix = [epochObjectSize * ones(1,preFrames + nStimFrames),zeros(1,obj.postTime*frameRate)];
-            YsizeVectorPix =[obj.objectSizeX * ones(1,preFrames + nStimFrames),zeros(1,obj.postTime*frameRate)];
+            XsizeVectorPix = [epochObjectSize * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            YsizeVectorPix = [obj.objectSizeX * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
             FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;           
             params.nFrames = FrameNb;
-            frameVars = zeros(FrameNb,12);
-            frameVars(:,1) = 0:(FrameNb-1); % frame number
+            frameVars = zeros(numel(XsizeVectorPix),12);
+            frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number
             frameVars(:,4) = 0; % objType (0=box)
             frameVars(1 : preFrames,5) = pos_X_vector(1);
@@ -244,9 +244,7 @@ classdef DS_V1 < StimGLProtocol
             cd(currentDir);
             params.frame_vars = [protocolDir '/frame_vars.txt'];
 
-            % Set number of delay frames for preTime and determine stimTime
-            
-%             params.delay = round(obj.preTime*frameRate);
+            % determine stimTime
             stimTime = nStimFrames/frameRate;
             obj.plotData.stimTime = stimTime;
             
@@ -262,8 +260,6 @@ classdef DS_V1 < StimGLProtocol
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
-%             SetParams(obj.stimGL, obj.plugInName, params);
-%             Start(obj.stimGL, obj.plugInName, 1);
             SetParams(obj.stimGL, obj.plugInName, params);
             Start(obj.stimGL, obj.plugInName, 0);
             Unpause(obj.stimGL);
