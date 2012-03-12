@@ -65,17 +65,19 @@ classdef RFcircleMapping < StimGLProtocol
             obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectColor)>1
-                obj.plotData.meanColorResp = NaN(1,numel(obj.objectColor));
+                obj.plotData.meanColorRespON = NaN(1,numel(obj.objectColor));
+                obj.plotData.meanColorRespOFF = NaN(1,numel(obj.objectColor));
                 obj.openFigure('Custom','Name','MeanColorRespFig','UpdateCallback',@updateMeanColorRespFig);
             end
             if numel(obj.objectSize)>1
-                obj.plotData.meanSizeResp = NaN(1,numel(obj.objectSize));
+                obj.plotData.meanSizeRespON = NaN(1,numel(obj.objectSize));
+                obj.plotData.meanSizeRespOFF = NaN(1,numel(obj.objectSize));
                 obj.openFigure('Custom','Name','MeanSizeRespFig','UpdateCallback',@updateMeanSizeRespFig);
             end
         end
         
         function updateResponseFig(obj,axesHandle)
-            data = obj.response('Amplifier_Ch1');
+            data = 1000 * obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
@@ -105,26 +107,32 @@ classdef RFcircleMapping < StimGLProtocol
         
         function updateMeanColorRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.meanColorRespHandle = line(obj.objectColor,obj.plotData.meanColorResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanColorRespHandleON = line(obj.objectColor,obj.plotData.meanColorRespON,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanColorRespHandleOFF = line(obj.objectColor,obj.plotData.meanColorRespOFF,'Parent',axesHandle,'Color','r','Marker','d','LineStyle','none','MarkerFaceColor','r');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectColor)-0.1,max(obj.objectColor)+0.1],'Xtick',obj.objectColor);
                 xlabel(axesHandle,'object brightness (normalized)');
-                ylabel(axesHandle,'response (spike count)');
+                ylabel(axesHandle,'responses: rd=OFF, ok=ON (spike count)');
             else
-                set(obj.plotData.meanColorRespHandle,'Ydata',obj.plotData.meanColorResp);
+                set(obj.plotData.meanColorRespHandleON,'Ydata',obj.plotData.meanColorRespON);
+                set(obj.plotData.meanColorRespHandleOFF,'Ydata',obj.plotData.meanColorRespOFF);
             end
-            line(obj.plotData.epochObjectColor,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectColor,obj.plotData.epochRespON,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectColor,obj.plotData.epochRespOFF,'Parent',axesHandle,'Color','r','Marker','d','LineStyle','none');
         end
         
         function updateMeanSizeRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.meanSizeRespHandle = line(obj.objectSize,obj.plotData.meanSizeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanSizeRespHandleON = line(obj.objectSize,obj.plotData.meanSizeRespON,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                obj.plotData.meanSizeRespHandleOFF = line(obj.objectSize,obj.plotData.meanSizeRespOFF,'Parent',axesHandle,'Color','r','Marker','d','LineStyle','none','MarkerFaceColor','r');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSize)-1,max(obj.objectSize)+1],'Xtick',obj.objectSize);
                 xlabel(axesHandle,'object diameter (microns)');
-                ylabel(axesHandle,'response (spike count)');
+                ylabel(axesHandle,'responses: rd=OFF, ok=ON (spike count)');
             else
-                set(obj.plotData.meanSizeRespHandle,'Ydata',obj.plotData.meanSizeResp);
+                set(obj.plotData.meanSizeRespHandleON,'Ydata',obj.plotData.meanSizeRespON);
+                set(obj.plotData.meanSizeRespHandleOFF,'Ydata',obj.plotData.meanSizeRespOFF);
             end
-            line(obj.plotData.epochObjectSize,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectSize,obj.plotData.epochRespON,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochObjectSize,obj.plotData.epochRespOFF,'Parent',axesHandle,'Color','r','Marker','d','LineStyle','none');
         end
         
         function prepareEpoch(obj)
@@ -225,21 +233,26 @@ classdef RFcircleMapping < StimGLProtocol
             
             % Update epoch and mean response (spike count) versus object color and/or size
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
+            obj.plotData.epochRespON = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
+            obj.plotData.epochRespOFF = numel(find(spikeTimes>obj.preTime+obj.stimTime & spikeTimes<obj.preTime+2*obj.stimTime));
             if numel(obj.objectColor)>1
                 objectColorIndex = find(obj.objectColor==obj.plotData.epochObjectColor,1);
-                if isnan(obj.plotData.meanColorResp(objectColorIndex))
-                    obj.plotData.meanColorResp(objectColorIndex) = obj.plotData.epochResp;
+                if isnan(obj.plotData.meanColorRespON(objectColorIndex)) || isnan(obj.plotData.meanColorRespOFF(objectColorIndex))
+                    obj.plotData.meanColorRespON(objectColorIndex) = obj.plotData.epochRespON;
+                    obj.plotData.meanColorRespOFF(objectColorIndex) = obj.plotData.epochRespOFF;
                 else
-                    obj.plotData.meanColorResp(objectColorIndex) = mean([repmat(obj.plotData.meanColorResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    obj.plotData.meanColorRespON(objectColorIndex) = mean([repmat(obj.plotData.meanColorRespON(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochRespON]);
+                    obj.plotData.meanColorRespOFF(objectColorIndex) = mean([repmat(obj.plotData.meanColorRespOFF(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochRespOFF]);
                 end
             end
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
-                if isnan(obj.plotData.meanSizeResp(objectSizeIndex))
-                    obj.plotData.meanSizeResp(objectSizeIndex) = obj.plotData.epochResp;
+                if isnan(obj.plotData.meanSizeRespON(objectSizeIndex)) || isnan(obj.plotData.meanSizeRespOFF(objectSizeIndex))
+                    obj.plotData.meanSizeRespON(objectSizeIndex) = obj.plotData.epochRespON;
+                    obj.plotData.meanSizeRespOFF(objectSizeIndex) = obj.plotData.epochRespOFF;
                 else
-                    obj.plotData.meanSizeResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    obj.plotData.meanSizeRespON(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeRespON(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochRespON]);
+                    obj.plotData.meanSizeRespOFF(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeRespOFF(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochRespOFF]);
                 end
             end
             
