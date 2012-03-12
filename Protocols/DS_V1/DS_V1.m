@@ -69,7 +69,7 @@ classdef DS_V1 < StimGLProtocol
         end
         
         function updateResponseFig(obj,axesHandle)
-            data = obj.response('Amplifier_Ch1');
+            data = 1000 * obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
@@ -223,10 +223,12 @@ classdef DS_V1 < StimGLProtocol
             frameVars(:,4) = 0; % objType (0=box)
             frameVars(1 : preFrames,5) = pos_X_vector(1);
             frameVars((preFrames+1) : (nStimFrames+preFrames),5) = pos_X_vector;
-            frameVars((nStimFrames+preFrames+1) : end,5) = pos_X_vector(end);
+            frameVars((nStimFrames+preFrames+1) : FrameNb,5) = pos_X_vector(end);
+            frameVars(FrameNb : end, 5) = 0;
             frameVars(1 : preFrames,6) = pos_Y_vector(1);
             frameVars(preFrames+1 : (nStimFrames+preFrames),6) = pos_Y_vector;
-            frameVars((nStimFrames+preFrames+1) : end,6) = pos_Y_vector(end);
+            frameVars((nStimFrames+preFrames+1) : FrameNb,6) = pos_Y_vector(end);
+            frameVars(FrameNb : end, 6) = 0;
             frameVars(:,7) = XsizeVectorPix;
             frameVars(:,8) = YsizeVectorPix;
             frameVars(:,9) = epochObjectDir;
