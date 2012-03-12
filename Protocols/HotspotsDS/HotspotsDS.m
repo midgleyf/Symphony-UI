@@ -226,8 +226,6 @@ classdef HotspotsDS < StimGLProtocol
             else
                 params.objLenX = epochObjectSpeed*obj.objectSizeT;
             end
-%             params.nLoops = 1;
-
                 
             % Determine number of frames to complete path and X and Y positions at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -245,18 +243,21 @@ classdef HotspotsDS < StimGLProtocol
                 pos_Y_vector= YstartPix: (YendPix-YstartPix)/(nStimFrames-1):YendPix;
             end
             
-            
             % Determine total frame number
             % Pad object size vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
             FrameNb = (obj.appTime + obj.dispTime)*frameRate + nStimFrames;
             preFrames = obj.appTime*frameRate;
+            if strcmp(obj.unitObjSizeT, 'microns')
+               YsizeVectorPix = [obj.objectSizeT*ones(1,FrameNb),zeros(1,5*frameRate)];
+            else
+               YsizeVectorPix = [(epochObjectSpeed*obj.objectSizeT)*ones(1,FrameNb),zeros(1,5*frameRate)];
+            end 
             XsizeVectorPix = [obj.objectSizeL*ones(1,FrameNb),zeros(1,5*frameRate)];
-            YsizeVectorPix = [obj.objectSizeT*ones(1,FrameNb),zeros(1,5*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
-            params.nFrames = FrameNb;
+            params.nFrames = numel(XsizeVectorPix);
             frameVars = zeros(numel(XsizeVectorPix),12);
             frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number
@@ -264,11 +265,11 @@ classdef HotspotsDS < StimGLProtocol
             frameVars(1 : preFrames,5) = pos_X_vector(1);
             frameVars((preFrames+1) : (nStimFrames+preFrames),5) = pos_X_vector;
             frameVars((nStimFrames+preFrames+1) : FrameNb,5) = pos_X_vector(end);
-            frameVars(FrameNb : end, 5) = 0;
+            frameVars(FrameNb : end, 5) = 3000;
             frameVars(1 : preFrames,6) = pos_Y_vector(1);
             frameVars(preFrames+1 : (nStimFrames+preFrames),6) = pos_Y_vector;
             frameVars((nStimFrames+preFrames+1) : FrameNb,6) = pos_Y_vector(end);
-            frameVars(FrameNb : end, 6) = 0;
+            frameVars(FrameNb : end, 6) = 3000;
             frameVars(:,7) = YsizeVectorPix;
             frameVars(:,8) = XsizeVectorPix;
             frameVars(:,9) = epochObjectDir;

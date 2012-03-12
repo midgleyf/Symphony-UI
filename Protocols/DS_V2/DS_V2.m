@@ -164,10 +164,6 @@ classdef DS_V2 < StimGLProtocol
             obj.plotData.epochObjectDir = epochObjectDir;
             obj.plotData.epochObjectDiam = epochObjectDiam;
             
-            
-            % Set object properties
-            params.numObj = 1;
-            
             % Set trajectory for stimulus
             % set initial position for stim
             RFcenterX= 640;
@@ -182,7 +178,8 @@ classdef DS_V2 < StimGLProtocol
             YstartPix = RFdiam*trigoY + RFcenterY;
             YendPix = RFdiam*(-trigoY) + RFcenterY;
             
-            % Set variable parameters
+            % Set object properties
+            params.numObj = 1;
             params.objPhi = epochObjectDir + 90 ;
             if strcmp(obj.unitObjDiam, 'microns')
                 params.xradius = epochObjectDiam / 2;
@@ -191,8 +188,6 @@ classdef DS_V2 < StimGLProtocol
                 params.xradius = epochObjectSpeed * (epochObjectDiam / 2); 
                 params.yradius = epochObjectSpeed * (epochObjectDiam / 2);
             end
-%             params.nLoops = 1;
-
                 
             % Determine number of frames to complete path and X and Y positions in degrees at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -209,15 +204,18 @@ classdef DS_V2 < StimGLProtocol
                 pos_Y_vector= YstartPix: (YendPix-YstartPix)/(nStimFrames-1):YendPix;
             end
             
-            
             preFrames = obj.preTime*frameRate;
-            XsizeVectorPix = [epochObjectDiam * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            if strcmp(obj.unitObjDiam, 'microns')
+                XsizeVectorPix = [epochObjectDiam * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            else
+                XsizeVectorPix = [(epochObjectSpeed * epochObjectDiam) * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            end
             YsizeVectorPix = XsizeVectorPix;
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
             FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;           
-            params.nFrames = FrameNb;
+            params.nFrames = numel(XsizeVectorPix);
             frameVars = zeros(numel(XsizeVectorPix),12);
             frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number

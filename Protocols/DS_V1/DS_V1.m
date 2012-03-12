@@ -163,12 +163,7 @@ classdef DS_V1 < StimGLProtocol
             obj.plotData.epochObjectSpeed = epochObjectSpeed;
             obj.plotData.epochObjectDir = epochObjectDir;
             obj.plotData.epochObjectSize = epochObjectSize;
-            
-            
-            % Set object properties
-            params.objLenY = obj.objectSizeX;
-            params.numObj = 1;
-            
+  
             % Set trajectory for stimulus
             % set initial position for stim
             RFcenterX= 640;
@@ -183,15 +178,15 @@ classdef DS_V1 < StimGLProtocol
             YstartPix = RFdiam*trigoY + RFcenterY;
             YendPix = RFdiam*(-trigoY) + RFcenterY;
             
-            % Set variable parameters
+            % Set object properties
+            params.objLenY = obj.objectSizeX;
+            params.numObj = 1;
             params.objPhi = epochObjectDir ;
             if strcmp(obj.unitObjSizeY, 'microns')
                 params.objLenX = epochObjectSize;
             else
                 params.objLenX = epochObjectSpeed*epochObjectSize;
             end
-%             params.nLoops = 1;
-
                 
             % Determine number of frames to complete path and X and Y positions in degrees at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -208,15 +203,19 @@ classdef DS_V1 < StimGLProtocol
                 pos_Y_vector= YstartPix: (YendPix-YstartPix)/(nStimFrames-1):YendPix;
             end
             
-            
+            FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;
             preFrames = obj.preTime*frameRate;
-            XsizeVectorPix = [epochObjectSize * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            if strcmp(obj.unitObjSizeY, 'microns')
+                XsizeVectorPix = [epochObjectSize * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            else
+                XsizeVectorPix = [(epochObjectSpeed*epochObjectSize) * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            end
             YsizeVectorPix = [obj.objectSizeX * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
-            FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;           
-            params.nFrames = FrameNb;
+                       
+            params.nFrames = numel(XsizeVectorPix);
             frameVars = zeros(numel(XsizeVectorPix),12);
             frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number
@@ -224,11 +223,11 @@ classdef DS_V1 < StimGLProtocol
             frameVars(1 : preFrames,5) = pos_X_vector(1);
             frameVars((preFrames+1) : (nStimFrames+preFrames),5) = pos_X_vector;
             frameVars((nStimFrames+preFrames+1) : FrameNb,5) = pos_X_vector(end);
-            frameVars(FrameNb : end, 5) = 0;
+            frameVars(FrameNb : end, 5) = 3000;
             frameVars(1 : preFrames,6) = pos_Y_vector(1);
             frameVars(preFrames+1 : (nStimFrames+preFrames),6) = pos_Y_vector;
             frameVars((nStimFrames+preFrames+1) : FrameNb,6) = pos_Y_vector(end);
-            frameVars(FrameNb : end, 6) = 0;
+            frameVars(FrameNb : end, 6) = 3000;
             frameVars(:,7) = XsizeVectorPix;
             frameVars(:,8) = YsizeVectorPix;
             frameVars(:,9) = epochObjectDir;
