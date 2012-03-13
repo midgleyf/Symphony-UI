@@ -151,8 +151,8 @@ classdef RFgridMapping < StimGLProtocol
             stimPosX = obj.allCoords(obj.notCompletedCoords(randIndex),1);
             stimPosY = obj.allCoords(obj.notCompletedCoords(randIndex),2);
             obj.notCompletedCoords(randIndex) = [];
-            obj.plotData.stimPosX = stimPosX + obj.somaPositionX;
-            obj.plotData.stimPosY = stimPosY + obj.somaPositionY;
+            obj.plotData.stimPosX = stimPosX;
+            obj.plotData.stimPosY = stimPosY;
             
             % Set object properties
             params.numObj = 1;
@@ -160,8 +160,8 @@ classdef RFgridMapping < StimGLProtocol
             params.objType = 'box';
             
             % get object position and size in pixels
-            params.objXinit = stimPosY;
-            params.objYinit = stimPosX;
+            params.objXinit = stimPosY +  obj.somaPositionY;
+            params.objYinit = stimPosX +  obj.somaPositionX;
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
