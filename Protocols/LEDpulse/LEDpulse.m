@@ -110,7 +110,7 @@ classdef LEDpulse < SymphonyProtocol
                 stimPts = LEDpulsePts(end)+obj.rigConfig.sampleRate/1000*obj.LEDpulseDur;
                 LEDstim = zeros(1,prePts+stimPts+postPts);
                 for n=1:numel(LEDpulsePts)
-                    LEDstim(LEDpulsePts(n):LEDpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.LEDpulseDur) = epochLEDpulseAmp;
+                    LEDstim(prePts+LEDpulsePts(n):prePts+LEDpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.LEDpulseDur) = epochLEDpulseAmp;
                 end
             else
                 epochParam = [];
@@ -122,7 +122,7 @@ classdef LEDpulse < SymphonyProtocol
                 stimPts = IpulsePts(end)+obj.rigConfig.sampleRate/1000*obj.IpulseDur;
                 Istim = zeros(1,prePts+stimPts+postPts);
                 for n=1:numel(IpulsePts)
-                    Istim(IpulsePts(n):IpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.IpulseDur) = obj.IpulseAmp;
+                    Istim(prePts+IpulsePts(n):prePts+IpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.IpulseDur) = obj.IpulseAmp;
                 end
             else
                 Istim = 0;

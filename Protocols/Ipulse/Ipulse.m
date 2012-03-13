@@ -46,6 +46,7 @@ classdef Ipulse < SymphonyProtocol
             
         function updateResponsesFig(obj,axesHandle)
             if obj.epochNum==1
+                xlim([0,obj.plotData.time(end)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out');
