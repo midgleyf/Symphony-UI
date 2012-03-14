@@ -93,7 +93,7 @@ classdef Ipulse < SymphonyProtocol
                 keepGoing = false;
             end
             % pause for inter-epoch interval
-            if keepGoing
+            if keepGoing && obj.epochNum>0
                 pause on
                 pause(obj.interEpochInterval);   
             end
