@@ -329,17 +329,29 @@ classdef ExpandingObjects < StimGLProtocol
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+2*obj.stimTime));
             if numel(obj.objectExpansionRate)>1
                 objectExpansionRateIndex = find(obj.objectExpansionRate==obj.plotData.epochObjectExpansionRate,1);
-                obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = nanmean([repmat(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanExpansionRateResp(objectExpansionRateIndex) = mean([repmat(obj.plotData.meanExpansionRateResp(objectExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
             end
             if obj.numObjects==2
                 if numel(obj.object2PositionX)>1 || numel(obj.object2PositionY)>1
                     object2PositionXIndex = find(obj.object2PositionX==obj.plotData.epochObject2PositionX,1);
                     object2PositionYIndex = find(obj.object2PositionY==obj.plotData.epochObject2PositionY,1);
-                    obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = nanmean([repmat(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    if obj.loopCount==1
+                        obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex) = mean([repmat(obj.plotData.meanObj2PositionResp(object2PositionYIndex,object2PositionXIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
                 end
                 if numel(obj.object2ExpansionRate)>1
                     object2ExpansionRateIndex = find(obj.object2ExpansionRate==obj.plotData.epochObject2ExpansionRate,1);
-                    obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = nanmean([repmat(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    if obj.loopCount==1
+                        obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex) = mean([repmat(obj.plotData.meanObj2ExpansionRateResp(object2ExpansionRateIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
                 end
             end
             
@@ -361,7 +373,7 @@ classdef ExpandingObjects < StimGLProtocol
                 keepGoing = false;
             end
             % pause for random inter-epoch interval
-            if keepGoing
+            if keepGoing && obj.epochNum>0
                 rng('shuffle');
                 pause on;
                 pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);

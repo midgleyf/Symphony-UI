@@ -319,30 +319,49 @@ classdef Circle < StimGLProtocol
             obj.plotData.epochOffResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.epochFlashDur & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur));
             if numel(obj.objectColor)>1
                 objectColorIndex = find(obj.objectColor==obj.plotData.epochObjectColor,1);
-                obj.plotData.meanColorOnResp(objectColorIndex) = nanmean([repmat(obj.plotData.meanColorOnResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
-                obj.plotData.meanColorOffResp(objectColorIndex) = nanmean([repmat(obj.plotData.meanColorOffResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanColorOnResp(objectColorIndex) =obj.plotData.epochOnResp;
+                    obj.plotData.meanColorOnResp(objectColorIndex) =obj.plotData.epochOffResp;
+                else
+                    obj.plotData.meanColorOnResp(objectColorIndex) = mean([repmat(obj.plotData.meanColorOnResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
+                    obj.plotData.meanColorOffResp(objectColorIndex) = mean([repmat(obj.plotData.meanColorOffResp(objectColorIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
+                end
             end
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
-                obj.plotData.meanSizeOnResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeOnResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
-                obj.plotData.meanSizeOffResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeOffResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanSizeOnResp(objectSizeIndex) = obj.plotData.epochOnResp;
+                    obj.plotData.meanSizeOffResp(objectSizeIndex) = obj.plotData.epochOffResp;
+                else
+                    obj.plotData.meanSizeOnResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeOnResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
+                    obj.plotData.meanSizeOffResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeOffResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
+                end
             end
             if numel(obj.flashDur)>1
                 flashDurIndex = find(obj.flashDur==obj.plotData.epochFlashDur,1);
-                obj.plotData.meanFlashDurOnResp(flashDurIndex) = nanmean([repmat(obj.plotData.meanFlashDurOnResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
-                obj.plotData.meanFlashDurOffResp(flashDurIndex) = nanmean([repmat(obj.plotData.meanFlashDurOffResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanFlashDurOnResp(flashDurIndex) = obj.plotData.epochOnResp;
+                    obj.plotData.meanFlashDurOffResp(flashDurIndex) = obj.plotData.epochOffResp;
+                else
+                    obj.plotData.meanFlashDurOnResp(flashDurIndex) = mean([repmat(obj.plotData.meanFlashDurOnResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochOnResp]);
+                    obj.plotData.meanFlashDurOffResp(flashDurIndex) = mean([repmat(obj.plotData.meanFlashDurOffResp(flashDurIndex),1,obj.loopCount-1),obj.plotData.epochOffResp]);
+                end
             end
             if obj.numFlashes>1
                 if numel(obj.interFlashInt)>1
+                    interFlashIntIndex = find(obj.interFlashInt==obj.plotData.epochInterFlashInt,1);
                     flash1resp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur));
                     if flash1resp==0
-                        obj.plotData.epochFlashRespRatio = NaN;
+                        obj.plotData.epochFlashRespRatio = obj.plotData.meanInterFlashIntResp(interFlashIntIndex);
                     else
                         flash2resp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.epochFlashDur+obj.plotData.epochInterFlashInt & spikeTimes<obj.plotData.stimStart+2*obj.plotData.epochFlashDur+obj.plotData.epochInterFlashInt));
                         obj.plotData.epochFlashRespRatio = flash2resp/flash1resp;
                     end
-                    interFlashIntIndex = find(obj.interFlashInt==obj.plotData.epochInterFlashInt,1);
-                    obj.plotData.meanInterFlashIntResp(interFlashIntIndex) = nanmean([repmat(obj.plotData.meanInterFlashIntResp(interFlashIntIndex),1,obj.loopCount-1),obj.plotData.epochFlashRespRatio]);
+                    if obj.loopCount==1
+                        obj.plotData.meanInterFlashIntResp(interFlashIntIndex) = obj.plotData.epochFlashRespRatio;
+                    else
+                        obj.plotData.meanInterFlashIntResp(interFlashIntIndex) = mean([repmat(obj.plotData.meanInterFlashIntResp(interFlashIntIndex),1,obj.loopCount-1),obj.plotData.epochFlashRespRatio]);
+                    end
                 end
             end
             
@@ -364,7 +383,7 @@ classdef Circle < StimGLProtocol
                 keepGoing = false;
             end
             % pause for random inter-epoch interval
-            if keepGoing
+            if keepGoing && obj.epochNum>0
                 rng('shuffle');
                 pause on;
                 pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);

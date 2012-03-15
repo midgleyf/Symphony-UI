@@ -311,7 +311,7 @@ classdef Grid < StimGLProtocol
                 keepGoing = false;
             end
             % pause for random inter-epoch interval
-            if keepGoing
+            if keepGoing && obj.epochNum>0
                 rng('shuffle');
                 pause on;
                 pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);

@@ -8,7 +8,8 @@ function [RFstring muX muY sigmaX sigmaY]=gauss2Dfit(Xcoords,Ycoords,meanResp)
     [peakYindex peakXindex]=find(meanRespIntp==peakResp);
     peakX=x(round(mean(peakXindex)));
     peakY=y(round(mean(peakYindex)));
-    [halfPeakDistYindex halfPeakDistXindex]=find(meanRespIntp==0.5*peakResp);
+    halfPeakDiff=abs(meanRespIntp-0.5*peakResp);
+    [halfPeakDistYindex halfPeakDistXindex]=find(halfPeakDiff==min(halfPeakDiff(:)));
     halfPeakDistX=abs(peakX-x(round(mean(halfPeakDistXindex))));
     halfPeakDistY=abs(peakY-y(round(mean(halfPeakDistYindex))));
     seedValues=[peakResp*10,peakX,peakY,halfPeakDistX,halfPeakDistY];

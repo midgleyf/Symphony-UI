@@ -340,11 +340,19 @@ classdef LoomingObjects < StimGLProtocol
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
-                obj.plotData.meanSpeedResp(objectSpeedIndex) = nanmean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
             end
             if obj.numObjects==2
                 relCollisionTimeIndex = find(obj.relCollisionTime==obj.plotData.epochRelCollisionTime,1);
-                obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex) = nanmean([repmat(obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex) = mean([repmat(obj.plotData.meanRelCollisionTimeResp(relCollisionTimeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
             end
             
             % Call the base class method which updates the figures.
@@ -365,7 +373,7 @@ classdef LoomingObjects < StimGLProtocol
                 keepGoing = false;
             end
             % pause for random inter-epoch interval
-            if keepGoing
+            if keepGoing && obj.epochNum>0
                 rng('shuffle');
                 pause on;
                 pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);

@@ -469,15 +469,27 @@ classdef MovingObjects < StimGLProtocol
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.plotData.targetTime-1 & spikeTimes<obj.plotData.stimStart+obj.plotData.targetTime+1));
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
-                obj.plotData.meanSizeResp(objectSizeIndex) = nanmean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanSizeResp(objectSizeIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanSizeResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
             end
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
-                obj.plotData.meanSpeedResp(objectSpeedIndex) = nanmean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
             end
             if numel(obj.objectDir)>1
                 objectDirIndex = find(obj.objectDir==obj.plotData.epochObjectDir,1);
-                obj.plotData.meanDirResp(objectDirIndex) = nanmean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                if obj.loopCount==1
+                    obj.plotData.meanDirResp(objectDirIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanDirResp(objectDirIndex) = mean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
             end
             
             % Call the base class method which updates the figures.
@@ -498,7 +510,7 @@ classdef MovingObjects < StimGLProtocol
                 keepGoing = false;
             end
             % pause for random inter-epoch interval
-            if keepGoing
+            if keepGoing && obj.epochNum>0
                 rng('shuffle');
                 pause on;
                 pause(rand(1)*(obj.interTrialIntMax-obj.interTrialIntMin)+obj.interTrialIntMin);
