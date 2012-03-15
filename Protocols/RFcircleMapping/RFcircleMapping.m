@@ -10,6 +10,8 @@ classdef RFcircleMapping < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
+        Yfactor = 1
+        Xfactor = 1
     end
     
     properties (Hidden)
@@ -17,6 +19,7 @@ classdef RFcircleMapping < StimGLProtocol
         notCompletedTrialTypes
         plotData
         objectSize
+        photodiodeThreshold = 6;
     end
 
     properties
@@ -35,15 +38,18 @@ classdef RFcircleMapping < StimGLProtocol
     
     properties (Dependent = true, SetAccess = private)
         finalSize;
-    end
-    
-    properties
-        RFcenterX = 640;
-        RFcenterY = 360;
+        RFcenterX; 
+        RFcenterY;
     end
 
     methods
+        function RFcenterX = get.RFcenterX(obj)
+            RFcenterX = 640; 
+        end
         
+        function RFcenterY = get.RFcenterY(obj) 
+            RFcenterY = 360;
+        end
         function finalSize = get.finalSize(obj)
             finalSize = obj.objectStartDiam + ((obj.stepNumber-1)*obj.objectGrowth);
         end
@@ -81,7 +87,7 @@ classdef RFcircleMapping < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-           %     obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
                 obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlabel(axesHandle,'s');
@@ -99,7 +105,7 @@ classdef RFcircleMapping < StimGLProtocol
             else
                 set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
-           %     set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
@@ -164,8 +170,8 @@ classdef RFcircleMapping < StimGLProtocol
             params.objType = 'ellipse';
             params.objXinit = obj.RFcenterX;
             params.objYinit = obj.RFcenterY;
-            objectSizeXPix = epochObjectSize;
-            objectSizeYPix = epochObjectSize;
+            objectSizeXPix = epochObjectSize / obj.Yfactor;
+            objectSizeYPix = epochObjectSize / obj.Yfactor;
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
@@ -175,8 +181,8 @@ classdef RFcircleMapping < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            params.objLenX = [objectSizeXPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
-            params.objLenY = [objectSizeYPix zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
+            params.objLenX = [objectSizeXPix/ obj.Yfactor zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
+            params.objLenY = [objectSizeYPix/ obj.Yfactor zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('epochObjectColor', epochObjectColor);
@@ -187,8 +193,6 @@ classdef RFcircleMapping < StimGLProtocol
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
-%             SetParams(obj.stimGL, obj.plugInName, params);
-%             Start(obj.stimGL, obj.plugInName, 1);
             SetParams(obj.stimGL, obj.plugInName, params);
             Start(obj.stimGL, obj.plugInName, 0);
             Unpause(obj.stimGL);
@@ -234,8 +238,12 @@ classdef RFcircleMapping < StimGLProtocol
             
             % Update epoch and mean response (spike count) versus object color and/or size
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochRespON = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.stimTime));
-            obj.plotData.epochRespOFF = numel(find(spikeTimes>obj.preTime+obj.stimTime & spikeTimes<obj.preTime+2*obj.stimTime));
+             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
+            if isempty(obj.plotData.stimStart)
+                obj.plotData.stimStart = obj.preTime;
+            end
+            obj.plotData.epochRespON = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.stimTime));
+            obj.plotData.epochRespOFF = numel(find(spikeTimes>obj.plotData.stimStart+obj.stimTime & spikeTimes<obj.plotData.stimStart+2*obj.stimTime));
             if numel(obj.objectColor)>1
                 objectColorIndex = find(obj.objectColor==obj.plotData.epochObjectColor,1);
                 if isnan(obj.plotData.meanColorRespON(objectColorIndex)) || isnan(obj.plotData.meanColorRespOFF(objectColorIndex))

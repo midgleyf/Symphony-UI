@@ -13,6 +13,8 @@ classdef HotspotsDS < StimGLProtocol
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
+        Xfactor = 1 
+        Yfactor = 1 
     end
     
     properties (Hidden)
@@ -44,8 +46,20 @@ classdef HotspotsDS < StimGLProtocol
         figureBinSize = 0.1 % seconds
     end
     
+    properties (Dependent = true, SetAccess = private) 
+        RFcenterX = NaN;
+        RFcenterY = NaN;
+    end    
     
     methods
+        
+        function RFcenterX = get.RFcenterX(obj)
+            RFcenterX = 640; 
+        end
+        
+        function RFcenterY = get.RFcenterY(obj) 
+            RFcenterY = 360;
+        end
          
         function prepareRun(obj)
             % Call the base class method which clears all figures.
@@ -179,8 +193,7 @@ classdef HotspotsDS < StimGLProtocol
             obj.notCompletedTrialTypes(randIndex) = [];
             epochObjectTrialD = obj.trialTypes(epochTrialType,1);
             epochObjectSpeed = obj.trialTypes(epochTrialType,2);
-            realObjectDir = obj.trialTypes(epochTrialType,3);
-            epochObjectDir = realObjectDir +90;
+            epochObjectDir = obj.trialTypes(epochTrialType,3);
             epochCircleLogic = obj.trialTypes(epochTrialType,4);
             obj.plotData.epochObjectSpeed = epochObjectSpeed;
             obj.plotData.epochObjectDir = epochObjectDir;
@@ -188,13 +201,11 @@ classdef HotspotsDS < StimGLProtocol
             
             
             % Set constant object properties
-            params.objLenY = obj.objectSizeL;
+            params.objLenY = obj.objectSizeL / obj.Xfactor;
             params.numObj = 1;
             
             % Set starting and ending position for stim using trigonometry 
-            RFcenterX= 640;
-            RFcenterY= 360;
-            RFrayon= obj.RFdiameter/2;
+            RFrayon= (obj.RFdiameter / obj.Xfactor)/2 ;
             obj.plotData.RFrayon = RFrayon;
             theta = 2*acosd(epochObjectTrialD/RFrayon); % angle between starting and ending points of the chord. 
             obj.plotData.epochTheta = theta;
@@ -202,29 +213,29 @@ classdef HotspotsDS < StimGLProtocol
             
             if epochCircleLogic == true
                 
-                trigoXstart = cosd(epochObjectDir + epsilon);
-                trigoYstart = sind(epochObjectDir + epsilon);
-                trigoXend = cosd(epochObjectDir + epsilon + theta);
-                trigoYend = sind(epochObjectDir + epsilon + theta);
+                trigoXstart = cosd(epochObjectDir -90 + epsilon);
+                trigoYstart = sind(epochObjectDir -90 + epsilon);
+                trigoXend = cosd(epochObjectDir -90 + epsilon + theta);
+                trigoYend = sind(epochObjectDir -90 + epsilon + theta);
             else
-                trigoXstart = cosd(epochObjectDir - epsilon);
-                trigoYstart = sind(epochObjectDir - epsilon);
-                trigoXend = cosd(epochObjectDir - epsilon - theta);
-                trigoYend = sind(epochObjectDir - epsilon - theta);
+                trigoXstart = cosd(epochObjectDir -90 - epsilon);
+                trigoYstart = sind(epochObjectDir -90 - epsilon);
+                trigoXend = cosd(epochObjectDir -90 - epsilon - theta);
+                trigoYend = sind(epochObjectDir -90 - epsilon - theta);
             end
                     
-            XstartPix = RFrayon*trigoXstart + RFcenterX;
-            XendPix = RFrayon*trigoXend + RFcenterX;
-            YstartPix = RFrayon*trigoYstart + RFcenterY;
-            YendPix = RFrayon*trigoYend + RFcenterY;
+            XstartPix = RFrayon*trigoXstart + obj.RFcenterX;
+            XendPix = RFrayon*trigoXend + obj.RFcenterX;
+            YstartPix = RFrayon*trigoYstart + obj.RFcenterY;
+            YendPix = RFrayon*trigoYend + obj.RFcenterY;
                        
             
             % Set variable parameters
-            params.objPhi = epochObjectDir ;
+            params.objPhi = epochObjectDir -90 ;
             if strcmp(obj.unitObjSizeT, 'microns')
-                params.objLenX = obj.objectSizeT;
+                params.objLenX = obj.objectSizeT / obj.Yfactor;
             else
-                params.objLenX = epochObjectSpeed*obj.objectSizeT;
+                params.objLenX = epochObjectSpeed*obj.objectSizeT / obj.Yfactor;
             end
                 
             % Determine number of frames to complete path and X and Y positions at each frame
@@ -249,11 +260,11 @@ classdef HotspotsDS < StimGLProtocol
             FrameNb = (obj.appTime + obj.dispTime)*frameRate + nStimFrames;
             preFrames = obj.appTime*frameRate;
             if strcmp(obj.unitObjSizeT, 'microns')
-               YsizeVectorPix = [obj.objectSizeT*ones(1,FrameNb),zeros(1,5*frameRate)];
+               YsizeVectorPix = [obj.objectSizeT / obj.Yfactor * ones(1,FrameNb),zeros(1,5*frameRate)];
             else
-               YsizeVectorPix = [(epochObjectSpeed*obj.objectSizeT)*ones(1,FrameNb),zeros(1,5*frameRate)];
-            end 
-            XsizeVectorPix = [obj.objectSizeL*ones(1,FrameNb),zeros(1,5*frameRate)];
+               YsizeVectorPix = [epochObjectSpeed * obj.objectSizeT / obj.Yfactor * ones(1,FrameNb),zeros(1,5*frameRate)];
+            end  
+            XsizeVectorPix = [obj.objectSizeL / obj.Xfactor * ones(1,FrameNb),zeros(1,5*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix

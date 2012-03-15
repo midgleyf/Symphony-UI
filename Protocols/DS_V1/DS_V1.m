@@ -7,20 +7,20 @@ classdef DS_V1 < StimGLProtocol
 
     properties (Constant)
         identifier = 'org.janelia.research.murphy.stimgl.movingobjects'
-        version = 1
+        version = 2
         displayName = 'Direction Selectivity'
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
-        
-
+        Xfactor = 1;
+        Yfactor = 1; 
     end
     
     properties (Hidden)
         trialTypes
         notCompletedTrialTypes
         plotData
-
+        photodiodeThreshold = 6;
     end
 
     properties
@@ -39,9 +39,20 @@ classdef DS_V1 < StimGLProtocol
         objectDir = 0:45:315; % degres (sens trigonometrique)
     end
     
-    
+    properties (Dependent = true, SetAccess = private) 
+        RFcenterX = NaN; 
+        RFcenterY = NaN; 
+    end
+
     methods
         
+        function RFcenterX = get.RFcenterX(obj) 
+            RFcenterX = 640; 
+        end
+        
+        function RFcenterY = get.RFcenterY(obj) 
+            RFcenterY = 360;
+        end
         function prepareRun(obj)
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
@@ -73,7 +84,7 @@ classdef DS_V1 < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-       %         obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
                 obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 obj.plotData.stimEndLineHandle = line([obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlabel(axesHandle,'s');
@@ -91,7 +102,7 @@ classdef DS_V1 < StimGLProtocol
             else
                 set(obj.plotData.responseLineHandle,'Xdata',obj.plotData.time,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
-        %        set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
+                set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
@@ -159,38 +170,36 @@ classdef DS_V1 < StimGLProtocol
             epochObjectSize = obj.trialTypes(epochTrialType,1);
             epochObjectSpeed = obj.trialTypes(epochTrialType,2);
             realObjectDir = obj.trialTypes(epochTrialType,3);
-            epochObjectDir = realObjectDir +90;
+            epochObjectDir = realObjectDir -90;
             obj.plotData.epochObjectSpeed = epochObjectSpeed;
-            obj.plotData.epochObjectDir = epochObjectDir;
+            obj.plotData.epochObjectDir = realObjectDir;
             obj.plotData.epochObjectSize = epochObjectSize;
   
             % Set trajectory for stimulus
             % set initial position for stim
-            RFcenterX= 640;
-            RFcenterY= 360;
-            RFdiam= obj.RFdiameter;
-            
+            RFdiam= obj.RFdiameter / obj.Xfactor; 
+            RFrayon = RFdiam/2; 
             trigoX=cosd(epochObjectDir);
             trigoY=sind(epochObjectDir);
 
-            XstartPix = RFdiam*trigoX + RFcenterX;
-            XendPix = RFdiam*(-trigoX) + RFcenterX;
-            YstartPix = RFdiam*trigoY + RFcenterY;
-            YendPix = RFdiam*(-trigoY) + RFcenterY;
+            XstartPix = RFrayon*trigoX + obj.RFcenterX;
+            XendPix = RFrayon*(-trigoX) + obj.RFcenterX;
+            YstartPix = RFrayon*trigoY + obj.RFcenterY;
+            YendPix = RFrayon*(-trigoY) + obj.RFcenterY;
             
             % Set object properties
-            params.objLenY = obj.objectSizeX;
+            params.objLenY = obj.objectSizeX / obj.Xfactor;
             params.numObj = 1;
             params.objPhi = epochObjectDir ;
             if strcmp(obj.unitObjSizeY, 'microns')
-                params.objLenX = epochObjectSize;
+                params.objLenX = epochObjectSize / obj.Yfactor;
             else
-                params.objLenX = epochObjectSpeed*epochObjectSize;
+                params.objLenX = epochObjectSpeed*epochObjectSize / obj.Yfactor;
             end
                 
             % Determine number of frames to complete path and X and Y positions in degrees at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
-            distance= obj.RFdiameter;
+            distance= RFdiam;
             nStimFrames = round((distance/epochObjectSpeed)*frameRate);
             if XendPix==XstartPix
                 pos_X_vector = XstartPix*ones(1,nStimFrames);
@@ -206,11 +215,11 @@ classdef DS_V1 < StimGLProtocol
             FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;
             preFrames = obj.preTime*frameRate;
             if strcmp(obj.unitObjSizeY, 'microns')
-                XsizeVectorPix = [epochObjectSize * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+                XsizeVectorPix = [epochObjectSize / obj.Yfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
             else
-                XsizeVectorPix = [(epochObjectSpeed*epochObjectSize) * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+                XsizeVectorPix = [epochObjectSpeed*epochObjectSize / obj.Yfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
             end
-            YsizeVectorPix = [obj.objectSizeX * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            YsizeVectorPix = [obj.objectSizeX / obj.Xfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
@@ -250,7 +259,7 @@ classdef DS_V1 < StimGLProtocol
             obj.plotData.stimTime = stimTime;
             
             % Add epoch-specific parameters for ovation
-            obj.addParameter('epochObjectDir',epochObjectDir);
+            obj.addParameter('epochObjectDir',realObjectDir);
             obj.addParameter('epochObjectSpeed',epochObjectSpeed);
             obj.addParameter('epochObjectSizeY',epochObjectSize);
             obj.addParameter('stimFrames',nStimFrames);
@@ -308,8 +317,12 @@ classdef DS_V1 < StimGLProtocol
             % Update epoch and mean response (spike count) versus object speed and/or direction
             sampInt = 1/obj.rigConfig.sampleRate;
             obj.plotData.time = sampInt:sampInt:obj.preTime+obj.plotData.stimTime+obj.postTime;
+            obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
+            if isempty(obj.plotData.stimStart)
+                obj.plotData.stimStart = obj.preTime;
+            end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.preTime & spikeTimes<obj.preTime+obj.plotData.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
                 if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
@@ -327,6 +340,9 @@ classdef DS_V1 < StimGLProtocol
                 end
             end
             
+             % WHERE IS OBJECT SIZE??
+             % WHERE IS OBJECT SIZE??
+              
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);
             
