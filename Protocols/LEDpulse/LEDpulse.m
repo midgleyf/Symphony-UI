@@ -83,20 +83,20 @@ classdef LEDpulse < SymphonyProtocol
         
         function [LEDstim,Istim,epochParam] = stimulusForEpoch(obj,epochNum)
             if obj.LEDpulseNum>0
-                if numel(obj.LEDpulseDelay>1)
+                if numel(obj.LEDpulseDelay)>1
                     epochParam = obj.LEDpulseDelay(epochNum-obj.epochsPerLoop*(obj.loopCount-1));
                     epochLEDpulseDelay = epochParam;
                     epochLEDpulseInt = obj.LEDpulseInt;
                     epochLEDpulseAmp = obj.LEDpulseAmp;
-                elseif numel(obj.LEDpulseInt>1)
+                elseif numel(obj.LEDpulseInt)>1
                     epochParam = obj.LEDpulseInt(epochNum-obj.epochsPerLoop*(obj.loopCount-1));
                     epochLEDpulseDelay = obj.LEDpulseDelay;
                     epochLEDpulseInt = epochParam;
                     epochLEDpulseAmp = obj.LEDpulseAmp;
-                elseif numel(obj.LEDpulseAmp>1)
+                elseif numel(obj.LEDpulseAmp)>1
                     epochParam = obj.LEDpulseAmp(epochNum-obj.epochsPerLoop*(obj.loopCount-1));
                     epochLEDpulseDelay = obj.LEDpulseDelay;
-                    epochLEDpulseInt = obj.LEEpulseInt;
+                    epochLEDpulseInt = obj.LEDpulseInt;
                     epochLEDpulseAmp = epochParam;
                 else
                     epochParam=[];
