@@ -110,7 +110,7 @@ classdef RFgridMapping < StimGLProtocol
         
         function updateMeanOnRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.onRespImageHandle = imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colorbar; axis image;
+                obj.plotData.onRespImageHandle = imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colormap(gray(256)); colorbar; axis image;
                 set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
                 xlabel(axesHandle,'Width (microns)');
                 ylabel(axesHandle,'Height (microns)');
@@ -122,7 +122,7 @@ classdef RFgridMapping < StimGLProtocol
         
         function updateMeanOffRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.offRespImageHandle = imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colorbar; axis image;
+                obj.plotData.offRespImageHandle = imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colormap(gray(256)); colorbar; axis image;
                 set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
                 xlabel(axesHandle,'Width (microns)');
                 ylabel(axesHandle,'Height (microns))');

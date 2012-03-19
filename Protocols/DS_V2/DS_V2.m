@@ -20,19 +20,22 @@ classdef DS_V2 < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 6;
+        photodiodeThreshold = 8;
     end
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
+        stimGLdelay = 1.11; % seconds
         preTime = 1; % seconds
         postTime = 2; % seconds
+        appTime = 1; % seconds
+        dispTime = 1; % seconds
         intertrialIntervalMin = 1; % seconds
         intertrialIntervalMax = 2; % seconds
         backgroundColor = 0;
         objectColor = 1;
         RFdiameter = 150; % microns
-        objectDiameter = [50:50:150]; % microns 
+        objectDiameter = 50:50:150;  % microns 
         unitObjDiam= { 'microns', 'constant time residency (sec/um)' }
         objectSpeed = [10,30]; % um/sec
         objectDir = 0:45:315; % degres (sens trigonometrique)
@@ -86,8 +89,10 @@ classdef DS_V2 < StimGLProtocol
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
                 obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
-                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.appTimeLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','c','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime,obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -105,6 +110,9 @@ classdef DS_V2 < StimGLProtocol
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
                 set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
             end
+            set(obj.plotData.appTimeLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
+            set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime,obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -216,29 +224,29 @@ classdef DS_V2 < StimGLProtocol
                 pos_Y_vector= YstartPix: (YendPix-YstartPix)/(nStimFrames-1):YendPix;
             end
             
-            preFrames = obj.preTime*frameRate;
+            appFrames = obj.appTime*frameRate;
             if strcmp(obj.unitObjDiam, 'microns')
-                XsizeVectorPix = [epochObjectDiam / obj.Yfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+                XsizeVectorPix = [epochObjectDiam / obj.Yfactor * ones(1,appFrames + nStimFrames),zeros(1,(obj.dispTime+5)*frameRate)];
             else
-                XsizeVectorPix = [epochObjectSpeed * epochObjectDiam / obj.Yfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+                XsizeVectorPix = [epochObjectSpeed * epochObjectDiam / obj.Yfactor * ones(1,appFrames + nStimFrames),zeros(1,(obj.dispTime+5)*frameRate)];
             end
             YsizeVectorPix = XsizeVectorPix;
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
-            FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;           
+            FrameNb = (obj.appTime + obj.dispTime)*frameRate + nStimFrames;           
             params.nFrames = numel(XsizeVectorPix);
             frameVars = zeros(numel(XsizeVectorPix),12);
             frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number
             frameVars(:,4) = 1; % objType (1=ellipse)
-            frameVars(1 : preFrames,5) = pos_X_vector(1);
-            frameVars((preFrames+1) : (nStimFrames+preFrames),5) = pos_X_vector;
-            frameVars((nStimFrames+preFrames+1) : FrameNb,5) = pos_X_vector(end);
+            frameVars(1 : appFrames,5) = pos_X_vector(1);
+            frameVars((appFrames+1) : (nStimFrames+appFrames),5) = pos_X_vector;
+            frameVars((nStimFrames+appFrames+1) : FrameNb,5) = pos_X_vector(end);
             frameVars(FrameNb : end, 5) = 0;
-            frameVars(1 : preFrames,6) = pos_Y_vector(1);
-            frameVars(preFrames+1 : (nStimFrames+preFrames),6) = pos_Y_vector;
-            frameVars((nStimFrames+preFrames+1) : FrameNb,6) = pos_Y_vector(end);
+            frameVars(1 : appFrames,6) = pos_Y_vector(1);
+            frameVars(appFrames+1 : (nStimFrames+appFrames),6) = pos_Y_vector;
+            frameVars((nStimFrames+appFrames+1) : FrameNb,6) = pos_Y_vector(end);
             frameVars(FrameNb : end, 6) = 0;
             frameVars(:,7) = XsizeVectorPix;
             frameVars(:,8) = YsizeVectorPix;
@@ -259,7 +267,7 @@ classdef DS_V2 < StimGLProtocol
 
             % Set number of delay frames for preTime and determine stimTime
             
-%             params.delay = round(obj.preTime*frameRate);
+            params.delay = round((obj.stimGLdelay+obj.preTime)*frameRate);
             stimTime = nStimFrames/frameRate;
             obj.plotData.stimTime = stimTime;
             
@@ -271,7 +279,7 @@ classdef DS_V2 < StimGLProtocol
             obj.addParameter('stimTime',stimTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+stimTime+obj.postTime)));
+            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+appFrames+stimTime+obj.dispTime+obj.postTime)));
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
@@ -320,8 +328,7 @@ classdef DS_V2 < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object speed and/or direction
-            sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.plotData.stimTime+obj.postTime;
+            obj.plotData.time = 1/obj.rigConfig.sampleRate * (1:numel(data));
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
             if isempty(obj.plotData.stimStart)
@@ -344,9 +351,14 @@ classdef DS_V2 < StimGLProtocol
                     obj.plotData.meanDirResp(objectDirIndex) = mean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
             end
-            
-            % WHERE IS OBJECT SIZE??
-            % WHERE IS OBJECT SIZE??
+            if numel(obj.objectDiameter)>1
+                objectDiamIndex = find(obj.objectDiameter==obj.plotData.epochObjectDiam,1);
+                if isnan(obj.plotData.meanSizeResp(objectDiamIndex))
+                    obj.plotData.meanDiamResp(objectDiamIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanDiamResp(objectDiamIndex) = mean([repmat(obj.plotData.meanDiamResp(objectDiamIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
             
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);

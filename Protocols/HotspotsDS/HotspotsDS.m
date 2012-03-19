@@ -22,11 +22,12 @@ classdef HotspotsDS < StimGLProtocol
         notCompletedTrialTypes
         plotData
         circleLogic
-        photodiodeThreshold = 0.1;
+        photodiodeThreshold = 8;
     end
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
+        stimGLdelay = 1.11; % seconds.
         preTime = 1; % seconds, time before apparition of the stimulus
         postTime = 1; % seconds, time after completion of the stimulus
         appTime = 1; % seconds, time before movement start

@@ -19,7 +19,7 @@ classdef Grid < StimGLProtocol
         allCoords
         notCompletedCoords
         plotData
-        photodiodeThreshold = 0.1;
+        photodiodeThreshold = 0.7;
     end
 
     properties
@@ -86,7 +86,7 @@ classdef Grid < StimGLProtocol
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
                 obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -161,7 +161,9 @@ classdef Grid < StimGLProtocol
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.fps_mode = 'single';
             params.ftrack_change = 0;
-            params.ftrackbox_w = 10;
+            params.ftrackbox_w = 20;
+            params.ftrackbox_x = -25;
+            params.ftrackbox_y = 20;
             
             % Pick a random grid point; complete all grid points before repeating any
             rng('shuffle');

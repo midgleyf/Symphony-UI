@@ -20,7 +20,7 @@ classdef DS_V1 < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 6;
+        photodiodeThreshold = 8;
     end
 
     properties
@@ -87,10 +87,10 @@ classdef DS_V1 < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
-                obj.plotData.appTimeLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
-                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.appTime+obj.stimTime,obj.plotData.stimStart+obj.appTime+obj.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
+                obj.plotData.appTimeLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','c','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime,obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
@@ -111,7 +111,7 @@ classdef DS_V1 < StimGLProtocol
             end
             set(obj.plotData.appTimeLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
             set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime]);
-            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime+obj.stimTime,obj.plotData.stimStart+obj.appTime+obj.stimTime]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime,obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -328,7 +328,7 @@ classdef DS_V1 < StimGLProtocol
             
             % Update epoch and mean response (spike count) versus object speed and/or direction
             obj.plotData.time = 1/obj.rigConfig.sampleRate * (1:numel(data));
-            obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
+            obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold ,1));
             if isempty(obj.plotData.stimStart)
                 obj.plotData.stimStart = obj.preTime;
             end
@@ -350,9 +350,14 @@ classdef DS_V1 < StimGLProtocol
                     obj.plotData.meanDirResp(objectDirIndex) = mean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
             end
-            
-             % WHERE IS OBJECT SIZE??
-             % WHERE IS OBJECT SIZE??
+            if numel(obj.objectSizeY)>1
+                objectSizeIndex = find(obj.objectSizeY==obj.plotData.epochObjectSize,1);
+                if isnan(obj.plotData.meanSizeResp(objectSizeIndex))
+                    obj.plotData.meanSizeResp(objectSizeIndex) = obj.plotData.epochResp;
+                else
+                    obj.plotData.meanSizeResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                end
+            end
               
             % Call the base class method which updates the figures.
             completeEpoch@SymphonyProtocol(obj);
