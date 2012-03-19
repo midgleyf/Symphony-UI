@@ -24,15 +24,16 @@ classdef RFcircleMapping < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
-        preTime = 0.5;
-        stimTime = 0.5;
-        postTime = 0.5;
-        intertrialIntervalMin = 1;
-        intertrialIntervalMax = 2;
+        stimGLdelay = 1.11; %seconds
+        preTime = 0.5; %seconds
+        stimTime = 0.5; %seconds
+        postTime = 0.5; %seconds
+        intertrialIntervalMin = 1; %seconds
+        intertrialIntervalMax = 2; %seconds
         backgroundColor = 0;
         objectColor = [0.5,1];
-        objectStartDiam = 100;
-        objectGrowth = 20;
+        objectStartDiam = 100; % microns
+        objectGrowth = 20; % microns
         stepNumber = 5;       
     end
     
@@ -67,8 +68,6 @@ classdef RFcircleMapping < StimGLProtocol
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
             
             % Prepare figures
-            sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.stimTime+obj.postTime;
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
             if numel(obj.objectColor)>1
                 obj.plotData.meanColorRespON = NaN(1,numel(obj.objectColor));
@@ -87,9 +86,10 @@ classdef RFcircleMapping < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
-                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.stimTime,obj.preTime+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -107,6 +107,8 @@ classdef RFcircleMapping < StimGLProtocol
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
                 set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
             end
+            set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.stimTime,obj.plotData.stimStart+obj.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -151,7 +153,9 @@ classdef RFcircleMapping < StimGLProtocol
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
-            params.ftrackbox_w = 10;
+            params.ftrackbox_w = 20;
+            params.ftrackbox_x = -25;
+            params.ftrackbox_y = 20;
             
             % Pick a combination of object color and size from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -175,7 +179,7 @@ classdef RFcircleMapping < StimGLProtocol
             
             % Set nFrames and the number of delay frames for preTime
             frameRate = double(GetRefreshRate(obj.stimGL));
-            params.delay = round(obj.preTime*frameRate);
+            params.delay = round((obj.stimGLdelay + obj.preTime)*frameRate);
             params.nFrames = round(obj.stimTime*frameRate);
             params.tFrames = params.nFrames;
             
@@ -237,8 +241,9 @@ classdef RFcircleMapping < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object color and/or size
+            obj.plotData.time = 1/obj.rigConfig.sampleRate*(1:numel(data));
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
+            obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
             if isempty(obj.plotData.stimStart)
                 obj.plotData.stimStart = obj.preTime;
             end

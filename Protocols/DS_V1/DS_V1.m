@@ -25,8 +25,11 @@ classdef DS_V1 < StimGLProtocol
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
+        stimGLdelay = 1.11 ; % unpausing time for stimGL (sec)
         preTime = 1; % seconds
         postTime = 2; % seconds
+        appTime = 1; % seconds
+        dispTime = 1; % seconds
         intertrialIntervalMin = 1; % seconds
         intertrialIntervalMax = 2; % seconds
         backgroundColor = 0;
@@ -85,8 +88,10 @@ classdef DS_V1 < StimGLProtocol
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
                 obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
-                obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
-                obj.plotData.stimEndLineHandle = line([obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.appTimeLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
+                obj.plotData.stimEndLineHandle = line([obj.plotData.stimStart+obj.appTime+obj.stimTime,obj.plotData.stimStart+obj.appTime+obj.stimTime],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
+                xlim(axesHandle,[0 max(obj.plotData.time)]);
                 xlabel(axesHandle,'s');
                 ylabel(axesHandle,'mV');
                 set(axesHandle,'Box','off','TickDir','out','Position',[0.1 0.1 0.85 0.8]);
@@ -104,6 +109,9 @@ classdef DS_V1 < StimGLProtocol
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
                 set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
             end
+            set(obj.plotData.appTimeLineHandle,'Xdata',[obj.plotData.stimStart,obj.plotData.stimStart]);
+            set(obj.plotData.stimBeginLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime,obj.plotData.stimStart+obj.appTime]);
+            set(obj.plotData.stimEndLineHandle,'Xdata',[obj.plotData.stimStart+obj.appTime+obj.stimTime,obj.plotData.stimStart+obj.appTime+obj.stimTime]);
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
@@ -159,7 +167,11 @@ classdef DS_V1 < StimGLProtocol
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
-            params.ftrackbox_w = 10;
+            params.ftrackbox_w = 20;
+            params.ftrackbox_x = -25;
+            params.ftrackbox_y = 20;
+            frameRate = double(GetRefreshRate(obj.stimGL));
+            params.delay = round((obj.stimGLdelay+obj.preTime)*frameRate);
             
             % Pick a combination of object size/speed/direction from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -212,14 +224,14 @@ classdef DS_V1 < StimGLProtocol
                 pos_Y_vector= YstartPix: (YendPix-YstartPix)/(nStimFrames-1):YendPix;
             end
             
-            FrameNb = (obj.preTime + obj.postTime)*frameRate + nStimFrames;
-            preFrames = obj.preTime*frameRate;
+            FrameNb = (obj.appTime + obj.dispTime)*frameRate + nStimFrames;
+            appFrames = obj.appTime*frameRate;
             if strcmp(obj.unitObjSizeY, 'microns')
-                XsizeVectorPix = [epochObjectSize / obj.Yfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+                XsizeVectorPix = [epochObjectSize / obj.Yfactor * ones(1,appFrames + nStimFrames),zeros(1,(obj.dispTime+5)*frameRate)];
             else
-                XsizeVectorPix = [epochObjectSpeed*epochObjectSize / obj.Yfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+                XsizeVectorPix = [epochObjectSpeed*epochObjectSize / obj.Yfactor * ones(1,appFrames + nStimFrames),zeros(1,(obj.dispTime+5)*frameRate)];
             end
-            YsizeVectorPix = [obj.objectSizeX / obj.Xfactor * ones(1,preFrames + nStimFrames),zeros(1,(obj.postTime+5)*frameRate)];
+            YsizeVectorPix = [obj.objectSizeX / obj.Xfactor * ones(1,appFrames + nStimFrames),zeros(1,(obj.dispTime+5)*frameRate)];
             
             % Specify frame parameters in frame_vars.txt file
             % create frameVars matrix
@@ -229,13 +241,13 @@ classdef DS_V1 < StimGLProtocol
             frameVars(:,1) = 0:(numel(XsizeVectorPix)-1); % frame number
             frameVars(:,2) = 0; % object number
             frameVars(:,4) = 0; % objType (0=box)
-            frameVars(1 : preFrames,5) = pos_X_vector(1);
-            frameVars((preFrames+1) : (nStimFrames+preFrames),5) = pos_X_vector;
-            frameVars((nStimFrames+preFrames+1) : FrameNb,5) = pos_X_vector(end);
+            frameVars(1 : appFrames,5) = pos_X_vector(1);
+            frameVars((appFrames+1) : (nStimFrames+appFrames),5) = pos_X_vector;
+            frameVars((nStimFrames+appFrames+1) : FrameNb,5) = pos_X_vector(end);
             frameVars(FrameNb : end, 5) = 3000;
-            frameVars(1 : preFrames,6) = pos_Y_vector(1);
-            frameVars(preFrames+1 : (nStimFrames+preFrames),6) = pos_Y_vector;
-            frameVars((nStimFrames+preFrames+1) : FrameNb,6) = pos_Y_vector(end);
+            frameVars(1 : appFrames,6) = pos_Y_vector(1);
+            frameVars(appFrames+1 : (nStimFrames+appFrames),6) = pos_Y_vector;
+            frameVars((nStimFrames+appFrames+1) : FrameNb,6) = pos_Y_vector(end);
             frameVars(FrameNb : end, 6) = 3000;
             frameVars(:,7) = XsizeVectorPix;
             frameVars(:,8) = YsizeVectorPix;
@@ -266,7 +278,7 @@ classdef DS_V1 < StimGLProtocol
             obj.addParameter('stimTime',stimTime);
             
             % Create a dummy stimulus so the epoch runs for the desired length
-            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+stimTime+obj.postTime)));
+            stimulus = zeros(1,floor(obj.rigConfig.sampleRate*(obj.preTime+obj.appTime+stimTime+obj.dispTime+obj.postTime)));
             obj.addStimulus('Amplifier_Ch1','Amplifier_Ch1 stimulus',stimulus,'A');
             
             % Start the StimGL plug-in
@@ -315,8 +327,7 @@ classdef DS_V1 < StimGLProtocol
             end
             
             % Update epoch and mean response (spike count) versus object speed and/or direction
-            sampInt = 1/obj.rigConfig.sampleRate;
-            obj.plotData.time = sampInt:sampInt:obj.preTime+obj.plotData.stimTime+obj.postTime;
+            obj.plotData.time = 1/obj.rigConfig.sampleRate * (1:numel(data));
             obj.plotData.stimStart = obj.plotData.time(find(obj.response('Photodiode')>=obj.photodiodeThreshold,1));
             if isempty(obj.plotData.stimStart)
                 obj.plotData.stimStart = obj.preTime;

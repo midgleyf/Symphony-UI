@@ -129,7 +129,7 @@ classdef HotspotsDS < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
-       %         obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color','b');
                 obj.plotData.stimBeginLineHandle = line([obj.preTime,obj.preTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
                 obj.plotData.spikingDelayLineHandle = line ([obj.plotData.spikingDelay,obj.plotData.spikingDelay],get(axesHandle,'YLim'),'Color','k','LineStyle',':');
                 obj.plotData.stimEndLineHandle = line([obj.preTime+obj.plotData.stimTime,obj.preTime+obj.plotData.stimTime],get(axesHandle,'YLim'),'Color','r','LineStyle',':');
@@ -150,7 +150,7 @@ classdef HotspotsDS < StimGLProtocol
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
                 set(obj.plotData.spikingDelayLineHandle, 'Xdata', obj.plotData.spikingDelay,'Ydata', get(axesHandle,'YLim')); 
                 % pas sur du X / Y ici
-        %        set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
+                set(obj.plotData.photodiodeLineHandle,'Xdata',obj.plotData.time,'Ydata',obj.response('Photodiode'));
             end
             set([obj.plotData.stimBeginLineHandle,obj.plotData.stimEndLineHandle],'Ydata',get(axesHandle,'YLim'));
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
@@ -182,7 +182,9 @@ classdef HotspotsDS < StimGLProtocol
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
-            params.ftrackbox_w = 10;
+            params.ftrackbox_w = 20;
+            params.ftrackbox_x = -25;
+            params.ftrackbox_y = 20;
             
             
             % Pick a combination of object size/speed/direction from the trialTypes list

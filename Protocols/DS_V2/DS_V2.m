@@ -160,8 +160,9 @@ classdef DS_V2 < StimGLProtocol
             params.bgcolor = obj.backgroundColor;
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
-            params.ftrackbox_w = 10;
-            
+            params.ftrackbox_w = 20;
+            params.ftrackbox_x = -25;
+            params.ftrackbox_y = 20;
             
             % Pick a combination of object size/speed/direction from the trialTypes list
             % complete all combinations before repeating any particular combination

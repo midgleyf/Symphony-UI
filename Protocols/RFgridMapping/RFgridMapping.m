@@ -13,13 +13,13 @@ classdef RFgridMapping < StimGLProtocol
         allCoords
         notCompletedCoords
         plotData
-        photodiodeThreshold = 0.1;
+        photodiodeThreshold = 7;
     end
 
     properties
         spikePolThrLimRet = [Inf,1,100,1];
         testPulseAmp = -20;
-        stimglDelay = 1.1;
+        stimglDelay = 1.11;
         preTime = 0.5;
         stimTime = 0.5;
         postTime = 0.5;
@@ -79,7 +79,7 @@ classdef RFgridMapping < StimGLProtocol
         function updateResponseFig(obj,axesHandle)
             data = 1000*obj.response('Amplifier_Ch1');
             if obj.epochNum==1
-              %  obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
+                obj.plotData.photodiodeLineHandle = line(obj.plotData.time,obj.response('Photodiode'),'Parent',axesHandle,'Color',[0.8 0.8 0.8]);
                 obj.plotData.responseLineHandle = line(obj.plotData.time,data,'Parent',axesHandle,'Color','k');
                 obj.plotData.spikeMarkerHandle = line(obj.plotData.time(obj.plotData.spikePts),data(obj.plotData.spikePts),'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
                 obj.plotData.stimBeginLineHandle = line([obj.plotData.stimStart,obj.plotData.stimStart],get(axesHandle,'YLim'),'Color','b','LineStyle',':');
@@ -98,7 +98,7 @@ classdef RFgridMapping < StimGLProtocol
                 uicontrol(get(axesHandle,'Parent'),'Style','text','Units','normalized','Position',[0.71 0.915 0.075 0.03],'String','return');
                 obj.plotData.returnEditHandle = uicontrol(get(axesHandle,'Parent'),'Style','edit','Units','normalized','Position',[0.795 0.905 0.075 0.05],'String',num2str(obj.spikePolThrLimRet(4)));
             else
-              %  set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
+                set(obj.plotData.photodiodeLineHandle,'Ydata',obj.response('Photodiode'));
                 set(obj.plotData.responseLineHandle,'Ydata',data);
                 set(obj.plotData.spikeMarkerHandle,'Xdata',obj.plotData.time(obj.plotData.spikePts),'Ydata',data(obj.plotData.spikePts));
             end
@@ -143,7 +143,9 @@ classdef RFgridMapping < StimGLProtocol
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.fps_mode = 'single';
             params.ftrack_change = 0;
-            params.ftrackbox_w = 10;
+            params.ftrackbox_w = 20;
+            params.ftrackbox_x = -25;
+            params.ftrackbox_y = 20;
             
             % Pick a random grid point; complete all grid points before repeating any
             rng('shuffle');
