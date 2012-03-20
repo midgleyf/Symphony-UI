@@ -118,11 +118,12 @@ classdef LEDpulse < SymphonyProtocol
             end
             if obj.IpulseNum>0
                 prePts = obj.rigConfig.sampleRate/1000*(obj.preTime+obj.IpulseDelay);
+                postPts = obj.rigConfig.sampleRate/1000*obj.postTime;
                 IpulsePts = obj.rigConfig.sampleRate/1000*(1+obj.IpulseInt*(0:obj.IpulseNum-1));
                 stimPts = IpulsePts(end)+obj.rigConfig.sampleRate/1000*obj.IpulseDur;
                 Istim = zeros(1,prePts+stimPts+postPts);
                 for n=1:numel(IpulsePts)
-                    Istim(prePts+IpulsePts(n):prePts+IpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.IpulseDur) = obj.IpulseAmp;
+                    Istim(prePts+IpulsePts(n):prePts+IpulsePts(n)+obj.rigConfig.sampleRate/1000*obj.IpulseDur) = 1e-12*obj.IpulseAmp;
                 end
             else
                 Istim = 0;
