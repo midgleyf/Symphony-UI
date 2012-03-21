@@ -19,7 +19,7 @@ classdef RFcircleMapping < StimGLProtocol
         notCompletedTrialTypes
         plotData
         objectSize
-        photodiodeThreshold = 8;
+        photodiodeThreshold = 2.5;
     end
 
     properties

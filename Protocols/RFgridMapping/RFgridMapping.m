@@ -13,7 +13,7 @@ classdef RFgridMapping < StimGLProtocol
         allCoords
         notCompletedCoords
         plotData
-        photodiodeThreshold = 7;
+        photodiodeThreshold = 2.5;
     end
 
     properties

@@ -22,7 +22,7 @@ classdef HotspotsDS < StimGLProtocol
         notCompletedTrialTypes
         plotData
         circleLogic
-        photodiodeThreshold = 8;
+        photodiodeThreshold = 2.5;
     end
 
     properties

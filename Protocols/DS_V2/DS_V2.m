@@ -20,7 +20,7 @@ classdef DS_V2 < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 8;
+        photodiodeThreshold = 2.5;
     end
 
     properties

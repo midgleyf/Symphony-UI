@@ -20,7 +20,7 @@ classdef DS_V1 < StimGLProtocol
         trialTypes
         notCompletedTrialTypes
         plotData
-        photodiodeThreshold = 8;
+        photodiodeThreshold = 2.5;
     end
 
     properties
@@ -333,7 +333,7 @@ classdef DS_V1 < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart+obj.appTime & spikeTimes<obj.plotData.stimStart+obj.appTime+obj.plotData.stimTime));
             if numel(obj.objectSpeed)>1
                 objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
                 if isnan(obj.plotData.meanSpeedResp(objectSpeedIndex))
