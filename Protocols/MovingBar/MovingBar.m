@@ -104,7 +104,7 @@ classdef MovingBar < StimGLProtocol
                 obj.plotData.meanSizeRespHandle = line(obj.objectSize,obj.plotData.meanSizeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSize)-1,max(obj.objectSize)+1],'Xtick',obj.objectSize);
                 xlabel(axesHandle,'object size (degrees)');
-                ylabel(axesHandle,'response (spike count)');
+                ylabel(axesHandle,'response (spikes/s)');
             else
                 set(obj.plotData.meanSizeRespHandle,'Ydata',obj.plotData.meanSizeResp);
             end
@@ -116,7 +116,7 @@ classdef MovingBar < StimGLProtocol
                 obj.plotData.meanSpeedRespHandle = line(obj.objectSpeed,obj.plotData.meanSpeedResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSpeed)-1,max(obj.objectSpeed)+1],'Xtick',obj.objectSpeed);
                 xlabel(axesHandle,'object speed (degrees/s)');
-                ylabel(axesHandle,'response (spike count)');
+                ylabel(axesHandle,'response (spikes/s)');
             else
                 set(obj.plotData.meanSpeedRespHandle,'Ydata',obj.plotData.meanSpeedResp);
             end
@@ -128,7 +128,7 @@ classdef MovingBar < StimGLProtocol
                 obj.plotData.meanDirRespHandle = line(obj.objectDir,obj.plotData.meanDirResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
                 set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectDir)-10,max(obj.objectDir)+10],'Xtick',obj.objectDir);
                 xlabel(axesHandle,'object direction (degrees relative to vertical)');
-                ylabel(axesHandle,'response (spike count)');
+                ylabel(axesHandle,'response (spikes/s)');
             else
                 set(obj.plotData.meanDirRespHandle,'Ydata',obj.plotData.meanDirResp);
             end
@@ -329,7 +329,7 @@ classdef MovingBar < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime))/obj.plotData.stimTime;
              if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
                 if obj.loopCount==1
