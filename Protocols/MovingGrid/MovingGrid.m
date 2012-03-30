@@ -1,9 +1,9 @@
-classdef MovingBar < StimGLProtocol
+classdef MovingGrid < StimGLProtocol
 
     properties (Constant)
-        identifier = 'Symphony.StimGL.MovingBar'
+        identifier = 'Symphony.StimGL.MovingGrid'
         version = 1
-        displayName = 'Moving Bar'
+        displayName = 'Moving Grid'
         plugInName = 'MovingObjects'
         xMonPix = 1280;
         yMonPix = 720;
@@ -32,9 +32,11 @@ classdef MovingBar < StimGLProtocol
         interTrialIntMax = 2;
         backgroundColor = 0;
         objectColor = 1;
-        objectSize = [5,20];
-        objectSpeed = [30,80];
+        objectSize = 5;
+        objectSpeed = 30;
         objectDir = 0:90:270;
+        Xcoords = 90:-10:20;
+        Ycoords = -5:10:35;
     end
     
     
@@ -46,24 +48,23 @@ classdef MovingBar < StimGLProtocol
             
             obj.loopCount = 1;
             
-            % Get all combinations of trial types based on object size, speed, and direction
-            obj.trialTypes = allcombs(obj.objectSize,obj.objectSpeed,obj.objectDir);
-            obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
-            
+            % Get all combinations of trial types based on grid coordinates and movement direction
             % Prepare figures
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
-            if numel(obj.objectSize)>1
-                obj.plotData.meanSizeResp = NaN(1,numel(obj.objectSize));
-                obj.openFigure('Custom','Name','MeanSizeRespFig','UpdateCallback',@updateMeanSizeRespFig);
+            vertTrials=[];
+            horzTrials=[];
+            if any(ismember(obj.objectDir,[0,180]))
+                vertTrials=allcombs(obj.Xcoords,obj.objectDir(ismember(obj.objectDir,[0,180])));
+                obj.plotData.meanVertResp = NaN(1,numel(obj.Xcoords));
+                obj.openFigure('Custom','Name','VertRespFig','UpdateCallback',@updateVertRespFig);
             end
-            if numel(obj.objectSpeed)>1
-                obj.plotData.meanSpeedResp = NaN(1,numel(obj.objectSpeed));
-                obj.openFigure('Custom','Name','MeanSpeedRespFig','UpdateCallback',@updateMeanSpeedRespFig);
+            if any(ismember(obj.objectDir,[90,270]))
+                horzTrials=allcombs(obj.Ycoords,obj.objectDir(ismember(obj.objectDir,[90,270])));
+                obj.plotData.meanHorzResp = NaN(1,numel(obj.Ycoords));
+                obj.openFigure('Custom','Name','HorzRespFig','UpdateCallback',@updateHorzRespFig);
             end
-            if numel(obj.objectDir)>1
-                obj.plotData.meanDirResp = NaN(1,numel(obj.objectDir));
-                obj.openFigure('Custom','Name','MeanDirRespFig','UpdateCallback',@updateMeanDirRespFig);
-            end
+            obj.trialTypes = [vertTrials; horzTrials];
+            obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
         end
         
         function updateResponseFig(obj,axesHandle)
@@ -99,40 +100,32 @@ classdef MovingBar < StimGLProtocol
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
-        function updateMeanSizeRespFig(obj,axesHandle)
-            if obj.epochNum==1
-                obj.plotData.meanSizeRespHandle = line(obj.objectSize,obj.plotData.meanSizeResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSize)-1,max(obj.objectSize)+1],'Xtick',obj.objectSize);
-                xlabel(axesHandle,'object size (degrees)');
-                ylabel(axesHandle,'response (spikes/s)');
-            else
-                set(obj.plotData.meanSizeRespHandle,'Ydata',obj.plotData.meanSizeResp);
+        function updateVertRespFig(obj,axesHandle)
+            if ismember(obj.plotData.epochObjectDir,[0,180])
+                if nnz(~isnan(obj.plotData.meanVertResp))==1
+                    obj.plotData.meanVertRespHandle = line(obj.Xcoords,obj.plotData.meanVertResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                    set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.Xcoords)-5,max(obj.Xcoords)+5],'XDir','reverse','Xtick',sort(obj.Xcoords));
+                    xlabel(axesHandle,'azimuth (degrees)');
+                    ylabel(axesHandle,'response (spikes/s)');
+                else
+                    set(obj.plotData.meanVertRespHandle,'Ydata',obj.plotData.meanVertResp);
+                end
+                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
             end
-            line(obj.plotData.epochObjectSize,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
-        function updateMeanSpeedRespFig(obj,axesHandle)
-            if obj.epochNum==1
-                obj.plotData.meanSpeedRespHandle = line(obj.objectSpeed,obj.plotData.meanSpeedResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSpeed)-1,max(obj.objectSpeed)+1],'Xtick',obj.objectSpeed);
-                xlabel(axesHandle,'object speed (degrees/s)');
-                ylabel(axesHandle,'response (spikes/s)');
-            else
-                set(obj.plotData.meanSpeedRespHandle,'Ydata',obj.plotData.meanSpeedResp);
+        function updateHorzRespFig(obj,axesHandle)
+            if ismember(obj.plotData.epochObjectDir,[90,270])
+                if nnz(~isnan(obj.plotData.meanHorzResp))==1
+                    obj.plotData.meanHorzRespHandle = line(obj.Ycoords,obj.plotData.meanHorzResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                    set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.Ycoords)-5,max(obj.Ycoords)+5],'Xtick',obj.Ycoords);
+                    xlabel(axesHandle,'elevation (degrees)');
+                    ylabel(axesHandle,'response (spikes/s)');
+                else
+                    set(obj.plotData.meanHorzRespHandle,'Ydata',obj.plotData.meanHorzResp);
+                end
+                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
             end
-            line(obj.plotData.epochObjectSpeed,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
-        end
-        
-        function updateMeanDirRespFig(obj,axesHandle)
-            if obj.epochNum==1
-                obj.plotData.meanDirRespHandle = line(obj.objectDir,obj.plotData.meanDirResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectDir)-10,max(obj.objectDir)+10],'Xtick',obj.objectDir);
-                xlabel(axesHandle,'object direction (degrees relative to vertical)');
-                ylabel(axesHandle,'response (spikes/s)');
-            else
-                set(obj.plotData.meanDirRespHandle,'Ydata',obj.plotData.meanDirResp);
-            end
-            line(obj.plotData.epochObjectDir,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
         function prepareEpoch(obj)
@@ -154,11 +147,9 @@ classdef MovingBar < StimGLProtocol
             randIndex = randi(numel(obj.notCompletedTrialTypes),1);
             epochTrialType = obj.notCompletedTrialTypes(randIndex);
             obj.notCompletedTrialTypes(randIndex) = [];
-            epochObjectSize = obj.trialTypes(epochTrialType,1);
-            epochObjectSpeed = obj.trialTypes(epochTrialType,2);
-            epochObjectDir = obj.trialTypes(epochTrialType,3);
-            obj.plotData.epochObjectSize = epochObjectSize;
-            obj.plotData.epochObjectSpeed = epochObjectSpeed;
+            epochCoord = obj.trialTypes(epochTrialType,1);
+            epochObjectDir = obj.trialTypes(epochTrialType,2);
+            obj.plotData.epochCoord = epochCoord;
             obj.plotData.epochObjectDir = epochObjectDir;
             
             % Determine object path (get start and end postions in pixels)
@@ -166,73 +157,82 @@ classdef MovingBar < StimGLProtocol
             screenDistPix = obj.screenDist*(obj.xMonPix/obj.screenWidth);
             screenWidthLeftPix = obj.screenWidthLeft*(obj.xMonPix/obj.screenWidth);
             screenHeightBelowPix = obj.screenHeightBelow*(obj.xMonPix/obj.screenWidth);
-            if epochObjectDir==0
-                XstartPix = obj.xMonPix/2;
-                YstartPix = 0;
-                XendPix = obj.xMonPix/2;
-                YendPix = obj.yMonPix;
-                XstartOffsetDeg = 0;
-                YstartOffsetDeg = -0.5*epochObjectSize;
-                XendOffsetDeg = 0;
-                YendOffsetDeg = 0.5*epochObjectSize;
-            elseif epochObjectDir==90
-                XstartPix = 0;
-                YstartPix = obj.yMonPix/2;
-                XendPix = obj.xMonPix;
-                YendPix = obj.yMonPix/2;
-                XstartOffsetDeg = -0.5*epochObjectSize;
-                YstartOffsetDeg = 0;
-                XendOffsetDeg = 0.5*epochObjectSize;
-                YendOffsetDeg = 0;
-            elseif epochObjectDir==180
-                XstartPix = obj.xMonPix/2;
-                YstartPix = obj.yMonPix;
-                XendPix = obj.xMonPix/2;
-                YendPix = 0;
-                XstartOffsetDeg = 0;
-                YstartOffsetDeg = 0.5*epochObjectSize;
-                XendOffsetDeg = 0;
-                YendOffsetDeg = -0.5*epochObjectSize;
-            elseif epochObjectDir==270
-                XstartPix = obj.xMonPix;
-                YstartPix = obj.yMonPix/2;
-                XendPix = 0;
-                YendPix = obj.yMonPix/2;
-                XstartOffsetDeg = 0.5*epochObjectSize;
-                YstartOffsetDeg = 0;
-                XendOffsetDeg = -0.5*epochObjectSize;
-                YendOffsetDeg = 0;
+            if ismember(epochObjectDir,[0,180])
+                XtargetDeg = obj.screenOriginHorzOffsetDeg-epochCoord;
+                XtargetPix = screenWidthLeftPix+screenDistPix*tand(XtargetDeg);
+                if epochObjectDir==0
+                    XstartPix = XtargetPix;
+                    YstartPix = 0;
+                    XendPix = XtargetPix;
+                    YendPix = obj.yMonPix;
+                    XstartOffsetDeg = 0;
+                    YstartOffsetDeg = -0.5*obj.objectSize;
+                    XendOffsetDeg = 0;
+                    YendOffsetDeg = 0.5*obj.objectSize;
+                elseif epochObjectDir==180
+                    XstartPix = XtargetPix;
+                    YstartPix = obj.yMonPix;
+                    XendPix = XtargetPix;
+                    YendPix = 0;
+                    XstartOffsetDeg = 0;
+                    YstartOffsetDeg = 0.5*obj.objectSize;
+                    XendOffsetDeg = 0;
+                    YendOffsetDeg = -0.5*obj.objectSize;
+                end
+            else
+                YtargetDeg = epochCoord;
+                YtargetPix = screenHeightBelowPix+screenDistPix*tand(YtargetDeg);
+                if epochObjectDir==90
+                    XstartPix = 0;
+                    YstartPix = YtargetPix;
+                    XendPix = obj.xMonPix;
+                    YendPix = YtargetPix;
+                    XstartOffsetDeg = -0.5*obj.objectSize;
+                    YstartOffsetDeg = 0;
+                    XendOffsetDeg = 0.5*obj.objectSize;
+                    YendOffsetDeg = 0;
+                elseif epochObjectDir==270
+                    XstartPix = obj.xMonPix;
+                    YstartPix = YtargetPix;
+                    XendPix = 0;
+                    YendPix = YtargetPix;
+                    XstartOffsetDeg = 0.5*obj.objectSize;
+                    YstartOffsetDeg = 0;
+                    XendOffsetDeg = -0.5*obj.objectSize;
+                    YendOffsetDeg = 0;
+                end
             end
             
-            % Determine number of frames to complete path
+            % Determine number of frames to complete path and X and Y positions in degrees at each frame
             frameRate = double(GetRefreshRate(obj.stimGL));
             XstartDeg = atand((XstartPix-0.5*obj.xMonPix)/screenDistPix)+XstartOffsetDeg;
             XendDeg = atand((XendPix-0.5*obj.xMonPix)/screenDistPix)+XendOffsetDeg;
             YstartDeg = atand((YstartPix-screenHeightBelowPix)/screenDistPix)+YstartOffsetDeg;
             YendDeg = atand((YendPix-screenHeightBelowPix)/screenDistPix)+YendOffsetDeg;
             pathDistDeg = sqrt((XendDeg-XstartDeg)^2+(YendDeg-YstartDeg)^2);
-            nStimFrames = round(pathDistDeg/epochObjectSpeed*frameRate)+1;
+            nStimFrames = round(pathDistDeg/obj.objectSpeed*frameRate)+1;
+            if XendDeg==XstartDeg
+                XposVectorDeg = XstartDeg*ones(1,nStimFrames);
+            else
+                XposVectorDeg = XstartDeg:(XendDeg-XstartDeg)/(nStimFrames-1):XendDeg;
+            end
+            if YendDeg==YstartDeg
+                YposVectorDeg = YstartDeg*ones(1,nStimFrames);
+            else
+                YposVectorDeg = YstartDeg:(YendDeg-YstartDeg)/(nStimFrames-1):YendDeg;
+            end
             
             % Determine object size and position at each frame in pixels
             % Pad object size vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            if XendDeg==XstartDeg
-                XsizeVectorPix = obj.xMonPix*ones(1,nStimFrames);
-                XposVectorPix = obj.xMonPix/2;
-                YposVectorDeg = YstartDeg:(YendDeg-YstartDeg)/(nStimFrames-1):YendDeg;
-                bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg-0.5*epochObjectSize);
-                topEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg+0.5*epochObjectSize);
-                YsizeVectorPix = topEdgesPix-bottomEdgesPix;
-                YposVectorPix = bottomEdgesPix+0.5*YsizeVectorPix;
-            elseif YendDeg==YstartDeg
-                XposVectorDeg = XstartDeg:(XendDeg-XstartDeg)/(nStimFrames-1):XendDeg;
-                leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(XposVectorDeg-0.5*epochObjectSize);
-                rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(XposVectorDeg+0.5*epochObjectSize);
-                XsizeVectorPix = rightEdgesPix-leftEdgesPix;
-                XposVectorPix = leftEdgesPix+0.5*XsizeVectorPix;
-                YsizeVectorPix = obj.yMonPix*ones(1,nStimFrames);
-                YposVectorPix = obj.yMonPix/2;
-            end
+            leftEdgesPix = screenWidthLeftPix+screenDistPix*tand(XposVectorDeg-0.5*obj.objectSize);
+            rightEdgesPix = screenWidthLeftPix+screenDistPix*tand(XposVectorDeg+0.5*obj.objectSize);
+            bottomEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg-0.5*obj.objectSize);
+            topEdgesPix = screenHeightBelowPix+screenDistPix*tand(YposVectorDeg+0.5*obj.objectSize);
+            XsizeVectorPix = rightEdgesPix-leftEdgesPix;
+            YsizeVectorPix = topEdgesPix-bottomEdgesPix;
+            XposVectorPix = leftEdgesPix+0.5*XsizeVectorPix;
+            YposVectorPix = bottomEdgesPix+0.5*YsizeVectorPix;
             XsizeVectorPix =[XsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             YsizeVectorPix =[YsizeVectorPix,zeros(1,(obj.postTime+10)*frameRate)];
             
@@ -241,7 +241,7 @@ classdef MovingBar < StimGLProtocol
             params.nFrames = numel(XsizeVectorPix);
             frameVars = zeros(params.nFrames,12);
             frameVars(:,1) = 0:params.nFrames-1; % frame number
-            frameVars(:,4) = 0; % objType (0=box)
+            frameVars(:,4) = 1; % objType (1=ellipse)
             frameVars(1:numel(XposVectorPix),5) = XposVectorPix;
             frameVars(numel(XposVectorPix)+1:end,5) = XposVectorPix(end);
             frameVars(1:numel(YposVectorPix),6) = YposVectorPix;
@@ -267,9 +267,8 @@ classdef MovingBar < StimGLProtocol
             obj.plotData.stimTime = stimTime;
             
             % Add epoch-specific parameters for ovation
+            obj.addParameter('epochCoord',epochCoord);
             obj.addParameter('epochObjectDir',epochObjectDir);
-            obj.addParameter('epochObjectSpeed',epochObjectSpeed);
-            obj.addParameter('epochObjectSize',epochObjectSize);
             obj.addParameter('stimFrames',nStimFrames);
             obj.addParameter('stimTime',stimTime);
             
@@ -330,28 +329,19 @@ classdef MovingBar < StimGLProtocol
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime))/obj.plotData.stimTime;
-            if numel(obj.objectSize)>1
-                objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
+            if ismember(obj.plotData.epochObjectDir,[0,180])
+                coordIndex = find(obj.Xcoords==obj.plotData.epochCoord,1);
                 if obj.loopCount==1
-                    obj.plotData.meanSizeResp(objectSizeIndex) = obj.plotData.epochResp;
+                    obj.plotData.meanVertResp(coordIndex) = obj.plotData.epochResp;
                 else
-                    obj.plotData.meanSizeResp(objectSizeIndex) = mean([repmat(obj.plotData.meanSizeResp(objectSizeIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    obj.plotData.meanVertResp(coordIndex) = mean([repmat(obj.plotData.meanVertResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
-            end
-            if numel(obj.objectSpeed)>1
-                objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
+            else
+                coordIndex = find(obj.Ycoords==obj.plotData.epochCoord,1);
                 if obj.loopCount==1
-                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
+                    obj.plotData.meanHorzResp(coordIndex) = obj.plotData.epochResp;
                 else
-                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
-                end
-            end
-            if numel(obj.objectDir)>1
-                objectDirIndex = find(obj.objectDir==obj.plotData.epochObjectDir,1);
-                if obj.loopCount==1
-                    obj.plotData.meanDirResp(objectDirIndex) = obj.plotData.epochResp;
-                else
-                    obj.plotData.meanDirResp(objectDirIndex) = mean([repmat(obj.plotData.meanDirResp(objectDirIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    obj.plotData.meanHorzResp(coordIndex) = mean([repmat(obj.plotData.meanHorzResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
             end
             
