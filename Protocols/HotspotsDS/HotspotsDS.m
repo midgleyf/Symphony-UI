@@ -333,7 +333,7 @@ classdef HotspotsDS < StimGLProtocol
             Stop(obj.stimGL);
             
             % Find spikes
-            data=obj.response('Amplifier_Ch1');
+            data= 1000* obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 polarity = obj.spikePolThrLimRet(1);
                 threshold = obj.spikePolThrLimRet(2);

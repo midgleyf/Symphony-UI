@@ -173,8 +173,8 @@ classdef RFgridMapping < StimGLProtocol
             
             % Pad object length vector with zeros to make object disappear
             % during postTime and while stop stimGL completes
-            params.objLenX = obj.objectSize ;
-            params.objLenY = obj.objectSize ;
+            params.objLenX = [obj.objectSize zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
+            params.objLenY = [obj.objectSize zeros(1,ceil((obj.postTime+10)/obj.stimTime))];
             
             % Add epoch-specific parameters for ovation
             obj.addParameter('stimPosX',stimPosX);

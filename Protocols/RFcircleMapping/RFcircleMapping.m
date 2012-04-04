@@ -154,8 +154,8 @@ classdef RFcircleMapping < StimGLProtocol
             params.interTrialBg = repmat(obj.backgroundColor,1,3);
             params.ftrack_change = 0;
             params.ftrackbox_w = 20;
-            params.ftrackbox_x = -25;
-            params.ftrackbox_y = 20;
+            params.ftrackbox_x = 20;
+            params.ftrackbox_w = 20;
             
             % Pick a combination of object color and size from the trialTypes list
             % complete all combinations before repeating any particular combination
@@ -206,7 +206,7 @@ classdef RFcircleMapping < StimGLProtocol
             Stop(obj.stimGL);
             
             % Find spikes
-            data=obj.response('Amplifier_Ch1');
+            data= 1000 * obj.response('Amplifier_Ch1');
             if obj.epochNum==1
                 polarity = obj.spikePolThrLimRet(1);
                 threshold = obj.spikePolThrLimRet(2);
