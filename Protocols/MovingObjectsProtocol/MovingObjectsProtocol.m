@@ -15,6 +15,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
         initialYPosition = 400
         objectXVelocity = 10
         objectYVelocity = 10
+        objectZVelocity = 10;
         wrapAtEdges = true
     end
     
@@ -47,6 +48,7 @@ classdef MovingObjectsProtocol < StimGLProtocol
             params.objYInit = obj.initialYPosition;
             params.objVelX = obj.objectXVelocity;
             params.objVelY = obj.objectYVelocity;
+            params.objVelZ = obj.objectZVelocity
             params.wrapEdge = uint8(obj.wrapAtEdges);
         end
         
