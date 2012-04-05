@@ -7,6 +7,8 @@ classdef Symphony < handle
         rigConfigDisplayNames
         rigConfig
         
+        protocolDirPopupNames       % directory names (to look for protocols)
+        protocolsDir            % path to directory containing currently listed protocols
         protocolClassNames          % The list of protocol class names.
         protocolDisplayNames
         protocol                    % The current protocol instance.
@@ -129,20 +131,74 @@ classdef Symphony < handle
         
         
         function discoverProtocols(obj)
-            % Get the list of protocols from the 'Protocols' folder.
-            symphonyPath = mfilename('fullpath');
-            parentDir = fileparts(symphonyPath);
-            protocolsDir = fullfile(parentDir, 'Protocols');
-            protocolDirs = dir(protocolsDir);
-            obj.protocolClassNames = cell(length(protocolsDir), 1);
-            obj.protocolDisplayNames = cell(length(protocolsDir), 1);
+            % Get the list of protocols from the selected folder.
+            
+            % Default folder on startup is 'Protocols' folder in Symphony UI directory
+            if isempty(obj.protocolsDir)
+                symphonyPath = mfilename('fullpath');
+                parentDir = fileparts(symphonyPath);
+                obj.protocolsDir = fullfile(parentDir, 'Protocols');
+            else
+                popupSelectionIndex = get(obj.controls.protocolDirPopup, 'Value');
+                if popupSelectionIndex==2
+                    obj.protocolsDir = fileparts(obj.protocolsDir);
+                else
+                    selectedFolderName = obj.protocolDirPopupNames{popupSelectionIndex};
+                    obj.protocolsDir = fullfile(obj.protocolsDir, selectedFolderName);
+                end
+                % Don't allow navigating above main protocols folder
+                if strcmp(obj.protocolsDir,fileparts(mfilename('fullpath')))
+                    obj.protocolsDir = fullfile(fileparts(mfilename('fullpath')), 'Protocols');
+                end
+            end
+            
+            % Search selected folder for protocol directories to populate protocolPopup menu 
+            % and non-protocol directories to populate protocolDirPopup menu
+            protocolsDirContents = dir(obj.protocolsDir);
+            isProtocol = false(length(protocolsDirContents), 1);
+            obj.protocolDirPopupNames = cell(length(protocolsDirContents), 1);
+            protocolDirCount = 0;
+            for i = 1:length(protocolsDirContents)
+                if protocolsDirContents(i).isdir
+                    % determine if subdirectory is a symphony protocol
+                    % (don't search contents of selected directory (.), parent directory (..), and .svn)
+                    if ~ismember(protocolsDirContents(i).name,{'.','..','.svn'})
+                        dirContent = dir(fullfile(obj.protocolsDir, protocolsDirContents(i).name));
+                        for d = 1:length(dirContent)
+                            if ~dirContent(d).isdir && strcmp(dirContent(d).name(end-1:end),'.m') && strcmp(dirContent(d).name(1:end-2),protocolsDirContents(i).name)
+                                    isProtocol(i) = true;
+                                    break
+                            end
+                        end
+                    end
+                    % non-protocol subdirectories
+                    if ~isProtocol(i)
+                        if ~strcmp(protocolsDirContents(i).name,'.svn')
+                            protocolDirCount = protocolDirCount + 1;
+                            obj.protocolDirPopupNames{protocolDirCount} = protocolsDirContents(i).name;
+                        end
+                    end
+                end
+            end
+            obj.protocolDirPopupNames = obj.protocolDirPopupNames(1:protocolDirCount);
+            % set name of current directory and parent directory in
+            % protocolDirPopup menu to something more informative than '.' and '..'
+            [parentDir, currentProtocolsDirName] = fileparts(obj.protocolsDir);
+            [~, protocolsDirParentName] = fileparts(parentDir);
+            obj.protocolDirPopupNames{1} = ['. (' currentProtocolsDirName ')'];
+            obj.protocolDirPopupNames{2} = ['.. (' protocolsDirParentName ')'];
+            
+            % Get protocol class names and display names for protocolPopup menu
+            protocolDirs = protocolsDirContents(isProtocol);
+            obj.protocolClassNames = cell(length(protocolDirs), 1);
+            obj.protocolDisplayNames = cell(length(protocolDirs), 1);
             protocolCount = 0;
             for i = 1:length(protocolDirs)
-                if protocolDirs(i).isdir && ~strcmp(protocolDirs(i).name, '.') && ~strcmp(protocolDirs(i).name, '..') && ~strcmp(protocolDirs(i).name, '.svn')
+                if protocolDirs(i).isdir && ~ismember(protocolDirs(i).name,{'.','..','.svn'})
                     protocolCount = protocolCount + 1;
                     className = protocolDirs(i).name;
                     obj.protocolClassNames{protocolCount} = className;
-                    addpath(fullfile(protocolsDir, filesep, className));
+                    addpath(fullfile(obj.protocolsDir, filesep, className));
                     obj.protocolDisplayNames{protocolCount} = classProperty(className, 'displayName');
                     if isempty(obj.protocolDisplayNames{protocolCount})
                         obj.protocolDisplayNames{protocolCount} = className;
@@ -278,21 +334,12 @@ classdef Symphony < handle
                 end
                 
                 % Create a default protocol plug-in.
-                lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
-                try
-                    obj.protocol = obj.createProtocol(lastChosenProtocol);
-                    protocolValue = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
-                catch ME
-                    disp(['Could not create a ' lastChosenProtocol '(' ME.message ')']);
-                    for protocolValue = 1:length(obj.protocolClassNames)
-                        if ~strcmp(obj.protocolClassNames{protocolValue}, lastChosenProtocol)
-                            try
-                                obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
-                                break;
-                            catch ME
-                                disp(['Could not create a ' obj.protocolClassNames{protocolValue} '(' ME.message ')']);
-                            end
-                        end
+                for protocolValue = 1:length(obj.protocolClassNames)
+                    try
+                        obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
+                        break;
+                    catch ME
+                        disp(['Could not create a ' obj.protocolClassNames{protocolValue} '(' ME.message ')']);
                     end
                 end
                 if isempty(obj.protocol)
@@ -369,11 +416,22 @@ classdef Symphony < handle
                     'Position', [10 195 336 84], ...
                     'BackgroundColor', bgColor);
                 
+                obj.controls.protocolDirPopup = uicontrol(...
+                    'Parent', obj.controls.protocolPanel, ...
+                    'Units', 'points', ...
+                    'Callback', @(hObject,eventdata)chooseProtocolDir(obj,hObject,eventdata), ...
+                    'Position', [10 44 130 22], ...
+                    'BackgroundColor', bgColor, ...
+                    'String', obj.protocolDirPopupNames, ...
+                    'Style', 'popupmenu', ...
+                    'Value', 1, ...
+                    'Tag', 'protocolDirPopup');
+                
                 obj.controls.protocolPopup = uicontrol(...
                     'Parent', obj.controls.protocolPanel, ...
                     'Units', 'points', ...
                     'Callback', @(hObject,eventdata)chooseProtocol(obj,hObject,eventdata), ...
-                    'Position', [10 42 130 22], ...
+                    'Position', [10 24 130 22], ...
                     'BackgroundColor', bgColor, ...
                     'String', obj.protocolDisplayNames, ...
                     'Style', 'popupmenu', ...
@@ -384,7 +442,7 @@ classdef Symphony < handle
                     'Parent', obj.controls.protocolPanel, ...
                     'Units', 'points', ...
                     'Callback', @(hObject,eventdata)editProtocolParameters(obj,hObject,eventdata), ...
-                    'Position', [10 10 130 22], ...
+                    'Position', [10 3 130 22], ...
                     'BackgroundColor', bgColor, ...
                     'String', 'Edit Parameters...', ...
                     'Tag', 'editParametersButton');
@@ -626,11 +684,30 @@ classdef Symphony < handle
         end
         
         
-        function editProtocolParameters(obj, ~, ~)
-            % The user clicked the "Parameters..." button.
-            if editParameters(obj.protocol)
-                obj.checkRigConfigAndProtocol();
+        function chooseProtocolDir(obj, ~, ~)
+            % The user chose a new directory from the pop-up.
+            
+            % Get the list of protocols from the selected folder.
+            if get(obj.controls.protocolDirPopup, 'Value')==1
+                % user selected the current directory of protocols
+                return
             end
+            obj.discoverProtocols(); % gets the names of protocol and non-protocol subdirectories from the selected folder
+            set(obj.controls.protocolDirPopup, 'String', obj.protocolDirPopupNames, 'Value', 1);
+            set(obj.controls.protocolPopup, 'Value', 1);
+            if isempty(obj.protocolDisplayNames)
+                % if there are no protocols in the selected directory
+                % current protocol to run is not changed
+                % but current protocol displayed in protocolPopup menu is empty string ' '
+                set(obj.controls.protocolPopup, 'String', {''});
+            else
+                % if selected directory contains protocols
+                % name of current protocol in protocolPopup is first protocol
+                % and that protocol is selected as the current protocol to run
+                set(obj.controls.protocolPopup, 'String', obj.protocolDisplayNames);
+                obj.chooseProtocol();
+            end
+
         end
         
         
@@ -653,7 +730,7 @@ classdef Symphony < handle
                     obj.protocol.closeFigures();
                     
                     obj.protocol = newProtocol;
-                    setpref('Symphony', 'LastChosenProtocol', protocolClassName);
+                    %setpref('Symphony', 'LastChosenProtocol', protocolClassName);
                     
                     if ~obj.protocol.allowSavingEpochs
                         obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
@@ -668,6 +745,14 @@ classdef Symphony < handle
                     protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
                     set(obj.controls.protocolPopup, 'Value', protocolValue);
                 end
+            end
+        end
+        
+        
+        function editProtocolParameters(obj, ~, ~)
+            % The user clicked the "Parameters..." button.
+            if editParameters(obj.protocol)
+                obj.checkRigConfigAndProtocol();
             end
         end
         
@@ -753,6 +838,7 @@ classdef Symphony < handle
                 end
                 set(obj.controls.pauseButton, 'Enable', 'off');
                 set(obj.controls.stopButton, 'Enable', 'off');
+                set(obj.controls.protocolDirPopup, 'Enable', 'on');
                 set(obj.controls.protocolPopup, 'Enable', 'on');
                 set(obj.controls.editParametersButton, 'Enable', 'on');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'on');
@@ -776,6 +862,7 @@ classdef Symphony < handle
             else    % running or paused
                 set(obj.controls.rigConfigPopup, 'Enable', 'off');
                 set(obj.controls.stopButton, 'Enable', 'on');
+                set(obj.controls.protocolDirPopup, 'Enable', 'off');
                 set(obj.controls.protocolPopup, 'Enable', 'off');
                 set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'off');
