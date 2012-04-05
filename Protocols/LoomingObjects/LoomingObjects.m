@@ -35,9 +35,8 @@ classdef LoomingObjects < StimGLProtocol
         objectColor = 1;
         objectPositionX = 20;
         objectPositionY = 0;
-        objectSize = 5;
-        objectSpeed = 25:25:150;
-        thetaMin = 0.5;
+        LoverV = [5,10,20,40];
+        thetaMin = 1;
         thetaMax = 20;
         holdTime = 0.1;
         object2PositionX = -20;
@@ -57,17 +56,17 @@ classdef LoomingObjects < StimGLProtocol
             % Get all combinations of trial types based on object speed if numObjects is one
             % or object speed and relative collision time if numObjects is two
             if obj.numObjects==1
-                obj.trialTypes = obj.objectSpeed';
+                obj.trialTypes = obj.LoverV';
             elseif obj.numObjects==2
-                obj.trialTypes = allcombs(obj.objectSpeed,obj.relCollisionTime);
+                obj.trialTypes = allcombs(obj.LoverV,obj.relCollisionTime);
             end
             obj.notCompletedTrialTypes = 1:size(obj.trialTypes,1);
             
             % Prepare figures
             obj.openFigure('Custom','Name','ResponseFig','UpdateCallback',@updateResponseFig);
-            if numel(obj.objectSpeed)>1
-                obj.plotData.meanSpeedResp = NaN(1,numel(obj.objectSpeed));
-                obj.openFigure('Custom','Name','MeanSpeedRespFig','UpdateCallback',@updateMeanSpeedRespFig);
+            if numel(obj.LoverV)>1
+                obj.plotData.meanLoverVResp = NaN(1,numel(obj.LoverV));
+                obj.openFigure('Custom','Name','MeanLoverVRespFig','UpdateCallback',@updateMeanLoverVRespFig);
             end
             if obj.numObjects==2
                 obj.plotData.meanRelCollisionTimeResp = NaN(1,numel(obj.relCollisionTime));
@@ -108,16 +107,16 @@ classdef LoomingObjects < StimGLProtocol
             set(obj.plotData.epochCountHandle,'String',['Epoch ' num2str(obj.epochNum-size(obj.trialTypes,1)*(obj.loopCount-1)) ' of ' num2str(size(obj.trialTypes,1)) ' in loop ' num2str(obj.loopCount) ' of ' num2str(obj.numberOfLoops)]);
         end
         
-        function updateMeanSpeedRespFig(obj,axesHandle)
+        function updateMeanLoverVRespFig(obj,axesHandle)
             if obj.epochNum==1
-                obj.plotData.meanSpeedRespHandle = line(obj.objectSpeed,obj.plotData.meanSpeedResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
-                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.objectSpeed)-1,max(obj.objectSpeed)+1],'Xtick',obj.objectSpeed);
-                xlabel(axesHandle,'object speed (cm/s)');
+                obj.plotData.meanLoverVRespHandle = line(obj.LoverV,obj.plotData.meanLoverVResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+                set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.LoverV)-1,max(obj.LoverV)+1],'Xtick',obj.LoverV);
+                xlabel(axesHandle,'object halfSize/speed (ms)');
                 ylabel(axesHandle,'response (spike count)');
             else
-                set(obj.plotData.meanSpeedRespHandle,'Ydata',obj.plotData.meanSpeedResp);
+                set(obj.plotData.meanLoverVRespHandle,'Ydata',obj.plotData.meanLoverVResp);
             end
-            line(obj.plotData.epochObjectSpeed,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+            line(obj.plotData.epochLoverV,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
         end
         
         function updateMeanRelCollisionTimeRespFig(obj,axesHandle)
@@ -161,19 +160,19 @@ classdef LoomingObjects < StimGLProtocol
             randIndex = randi(numel(obj.notCompletedTrialTypes),1);
             epochTrialType = obj.notCompletedTrialTypes(randIndex);
             obj.notCompletedTrialTypes(randIndex) = [];
-            epochObjectSpeed = obj.trialTypes(epochTrialType,1);
-            obj.plotData.epochObjectSpeed = epochObjectSpeed;
+            epochLoverV = obj.trialTypes(epochTrialType,1);
+            obj.plotData.epochLoverV = epochLoverV;
             if obj.numObjects==2
                 epochRelCollisionTime = obj.trialTypes(epochTrialType,2);
                 obj.plotData.epochRelCollisionTime = epochRelCollisionTime;
             end
             
             % Calculate visual angle of looming object(s)
+            % theta(t) = 2*arctan(halfSize/V*t)
+            % halfSize/V = LoverV in ms; convert from ms to frames because t is frame number
             frameRate = double(GetRefreshRate(obj.stimGL));
-            objectHalfSize = obj.screenDist*tand(obj.objectSize/2);
-            % theta(t) = 2*arctan(halfSize/V*t); halfSize in cm, V in cm/s, t in frame number
-            theta = 2*atand(objectHalfSize./((-epochObjectSpeed/frameRate).*(-frameRate*10:-1)));
-            theta = theta(theta>=obj.thetaMin);
+            theta = 2*atand((-epochLoverV/1000*frameRate)./(-10*frameRate:-1));
+            theta(theta<obj.thetaMin) = [];
             theta(theta>obj.thetaMax) = obj.thetaMax;
             theta = [theta,obj.thetaMax*ones(1,round(obj.holdTime*frameRate))];
             if obj.numObjects==2
@@ -274,7 +273,7 @@ classdef LoomingObjects < StimGLProtocol
             obj.plotData.stimTime = stimTime;
                        
             % Add epoch-specific parameters for ovation
-            obj.addParameter('epochObjectSpeed',epochObjectSpeed);
+            obj.addParameter('epochObjectSpeed',epochLoverV);
             if obj.numObjects==2
                 obj.addParameter('epochRelCollisionTime',epochRelCollisionTime);
             end
@@ -338,12 +337,12 @@ classdef LoomingObjects < StimGLProtocol
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
             obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime));
-            if numel(obj.objectSpeed)>1
-                objectSpeedIndex = find(obj.objectSpeed==obj.plotData.epochObjectSpeed,1);
+            if numel(obj.LoverV)>1
+                LoverVIndex = find(obj.LoverV==obj.plotData.epochLoverV,1);
                 if obj.loopCount==1
-                    obj.plotData.meanSpeedResp(objectSpeedIndex) = obj.plotData.epochResp;
+                    obj.plotData.meanLoverVResp(LoverVIndex) = obj.plotData.epochResp;
                 else
-                    obj.plotData.meanSpeedResp(objectSpeedIndex) = mean([repmat(obj.plotData.meanSpeedResp(objectSpeedIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    obj.plotData.meanLoverVResp(LoverVIndex) = mean([repmat(obj.plotData.meanLoverVResp(LoverVIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
                 end
             end
             if obj.numObjects==2
