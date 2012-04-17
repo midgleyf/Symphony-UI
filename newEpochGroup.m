@@ -8,17 +8,32 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
     
     handles.rigNames = {'A', 'B', 'C', 'D'};
     if isempty(prevEpochGroup)
-        lastChosenPath = getpref('SymphonyEpochGroup', 'LastChosenOutputPath', '');
-        lastChosenLabel = getpref('SymphonyEpochGroup', 'LastChosenLabel', '');
-        lastChosenKeywords = getpref('SymphonyEpochGroup', 'LastChosenKeywords', '');
-        if isempty(parentGroup)
-            sourcePath = getpref('SymphonyEpochGroup', 'LastChosenSourcePath', '');
+        if ispref('Symphony', 'LastChosenEpochGroup')
+            s = getpref('Symphony', 'LastChosenEpochGroup');
+            lastChosenPath = s.outputPath;
+            lastChosenLabel = s.label;
+            lastChosenKeywords = s.keywords;
+            if isempty(parentGroup)
+                sourcePath = s.sourcePath;
+            else
+                sourcePath = parentGroup.rootGroup().source.path();
+            end
+            lastChosenMouseID = s.mouseID;
+            lastChosenCellID = s.cellID;
+            lastChosenRig = s.rigName;
         else
-            sourcePath = parentGroup.rootGroup().source.path();
+            lastChosenPath = getpref('SymphonyEpochGroup', 'LastChosenOutputPath', '');
+            lastChosenLabel = getpref('SymphonyEpochGroup', 'LastChosenLabel', '');
+            lastChosenKeywords = getpref('SymphonyEpochGroup', 'LastChosenKeywords', '');
+            if isempty(parentGroup)
+                sourcePath = getpref('SymphonyEpochGroup', 'LastChosenSourcePath', '');
+            else
+                sourcePath = parentGroup.rootGroup().source.path();
+            end
+            lastChosenMouseID = getpref('SymphonyEpochGroup', 'LastChosenMouseID', '');
+            lastChosenCellID = getpref('SymphonyEpochGroup', 'LastChosenCellID', '');
+            lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
         end
-        lastChosenMouseID = getpref('SymphonyEpochGroup', 'LastChosenMouseID', '');
-        lastChosenCellID = getpref('SymphonyEpochGroup', 'LastChosenCellID', '');
-        lastChosenRig = getpref('SymphonyEpochGroup', 'LastChosenRigName', 'A');
     else
         lastChosenPath = prevEpochGroup.outputPath;
         lastChosenLabel = prevEpochGroup.label;
@@ -374,14 +389,20 @@ function saveNewGroup(~, ~, handles)
         guidata(handles.figure, handles);
         
         % Remember these settings for the next time a group is created.
-        setpref('SymphonyEpochGroup', 'LastChosenLabel', handles.epochGroup.label)
-        setpref('SymphonyEpochGroup', 'LastChosenKeywords', handles.epochGroup.keywords)
+        s.label = handles.epochGroup.label;
+        s.keywords = handles.epochGroup.keywords;
         if isempty(handles.parentGroup)
-            setpref('SymphonyEpochGroup', 'LastChosenOutputPath', handles.epochGroup.outputPath)
-            setpref('SymphonyEpochGroup', 'LastChosenSourcePath', handles.epochGroup.source.parentSource.path())    % remember the tissue, not the cell (?)
-            setpref('SymphonyEpochGroup', 'LastChosenMouseID', handles.epochGroup.userProperty('mouseID'))
-            setpref('SymphonyEpochGroup', 'LastChosenCellID', handles.epochGroup.userProperty('cellID'))
-            setpref('SymphonyEpochGroup', 'LastChosenRigName', handles.epochGroup.userProperty('rigName'))
+            s.outputPath = handles.epochGroup.outputPath;
+            s.sourcePath = handles.epochGroup.source.parentSource.path();   % remember the tissue, not the cell (?)
+            s.mouseID = handles.epochGroup.userProperty('mouseID');
+            s.cellID = handles.epochGroup.userProperty('cellID');
+            s.rigName = handles.epochGroup.userProperty('rigName');
+        end
+        setpref('Symphony', 'LastChosenEpochGroup', s);
+        
+        % Remove the old style pref if it exists.
+        if ispref('SymphonyEpochGroup')
+            rmpref('SymphonyEpochGroup');
         end
         
         uiresume

@@ -270,14 +270,22 @@ classdef RigConfiguration < handle
             
             % Get the local serial number of the MultiClamp.
             % (Stored as a local pref so that each rig can have its own value.)
-            multiClampSN = getpref('MultiClamp', 'SerialNumber', '');
+            if ispref('Symphony', 'MultiClamp_SerialNumber')
+                multiClampSN = getpref('Symphony', 'MultiClamp_SerialNumber', '');
+            else
+                multiClampSN = getpref('MultiClamp', 'SerialNumber', '');
+                if ispref('MultiClamp') && ~isempty(multiClampSN)
+                    setpref('Symphony', 'MultiClamp_SerialNumber', multiClampSN);
+                    rmpref('MultiClamp');
+                end
+            end
             if isempty(multiClampSN)
                 answer = inputdlg({'Enter the serial number of the MultiClamp:'}, 'Symphony', 1, {'831400'});
                 if isempty(answer)
                     error('Symphony:MultiClamp:NoSerialNumber', 'Cannot create a MultiClamp device without a serial number');
                 else
                     multiClampSN = uint32(str2double(answer{1}));
-                    setpref('MultiClamp', 'SerialNumber', multiClampSN);
+                    setpref('Symphony', 'MultiClamp_SerialNumber', multiClampSN);
                 end
             end
             
