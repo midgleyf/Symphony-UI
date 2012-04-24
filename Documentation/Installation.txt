@@ -1,0 +1,10 @@
+Symphony Installation
+---------------------
+
+To run Symphony you need the following items installed:
+
+* Windows 7
+* MultiClamp Commander
+* MATLAB 2011a (32 bit)
+* Symphony .NET Framework (available from http://download.physionconsulting.com/)
+* Symphony UI (available from https://subversion2/murphylab/CodeRepository/trunk/Symphony)

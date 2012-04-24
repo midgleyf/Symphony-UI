@@ -1,10 +1,39 @@
-Overview of the Symphony user interface code
-============================================
+Symphony Overview
+=================
 
-Start up the Symphony UI by running the StartSymphony.m script:
+Symphony is a system for running electrophysiology experiments.
+
+
+Starting Symphony
+-----------------
+
+After installing all of the necessary pieces (see Installation.txt) start up Symphony by running the 
+StartSymphony.m script from the MATLAB command window:
 
     >> StartSymphony
 
+If you run into problems be sure to look at Troubleshooting.txt.
+
+
+Customizing Symphony
+--------------------
+
+There are three areas where Symphony can be customized: rig configurations, protocols and figure handlers.
+
+Rig configurations define how the components of a rig are connected.  This includes the DAQ controller and 
+all connected devices.  See Rig Configurations.txt for more information on creating your own.
+
+Protocols define the series of stimuli that will be presented to the connected devices and which responses 
+should be recorded.  They can also present figure windows to display any results.  See Protocols.txt for 
+more information on creating your own protocols.
+
+Figure handlers are shared by protocols and graphically present any desired data, for example the response 
+of a device from the most recent epoch or statistics gathered across all epochs run so far.  See Figure 
+Handlers.txt for more information on using the existing handlers or creating your own.
+
+
+High-level descriptions of the main source files
+------------------------------------------------
 
 StartSymphony.m:
     adds Symphony folders to the MATLAB path
@@ -15,32 +44,27 @@ StartSymphony.m:
 Symphony.m:
     This class is responsible for:
         - managing the main user interface
-        - creating the DAQ controller, streams and devices
+        - managing the current rig configuration
         - managing epoch groups
         - managing the current protocol
     
-    All persistant data (DAQ controller, protocol, etc.) is stored as properties of the Symphony object.
-    
-    createSymphonyController():
-        creates a Heka or simulation controller using the .NET framework
-        sets up input and output streams
-        creates devices
-        binds streams to devices
+    All persistant data (rig configuration, protocol, etc.) is stored as properties of the Symphony object.
     
     showMainWindow():
+        creates a default rig configuration
         creates a default protocol
-        builds and displays the UI
+        builds and displays the user interface
     
     startAcquisition():
-        makes sure user has set protocol parameters
+        makes sure the user has set protocol parameters
         grabs current values from the UI
-        runs the protocol
+        tells the current protocol to start running
     
     pauseAcquisition():
-        tells the protocol to pause after the current epoch completes
+        tells the current protocol to pause after the current epoch completes
     
     stopAcquisition():
-        tells the protocol to stop after the current epoch completes
+        tells the current protocol to stop after the current epoch completes
 
 
 newEpochGroup.m:

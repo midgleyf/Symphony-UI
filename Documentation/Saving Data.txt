@@ -1,0 +1,38 @@
+Saving Data Acquired by Symphony
+================================
+
+The data acquired by Symphony can be saved into an HDF5 file that can be imported into the Ovation software for querying, etc.
+
+
+Epoch groups
+------------
+
+Tha data in the HDF5 file is organized into a hierarchy of epoch groups.  Each epoch group has a small set of properties and 
+contains any number of sub-epoch groups and/or epochs.  Each epoch has its own set of properties that capture the protocol 
+parameters and also contains the response data recorded from each device.  The stimuli sent to devices are not stored as it 
+is assumed that these can be recreated from the protocol parameters if needed.
+
+Each epoch group can have its own label and keywords but all of the other properties (source, cell ID, etc.) are only set 
+for the top-level group in each file.
+
+The location where the HDF5 file is stored can be chosen by the user but the name of the file is determined by current date, the 
+cell ID and the rig.
+
+
+Source hierarchy
+----------------
+
+The top level epoch group in each HDF5 file must indicate which "source" the data comes from.  This is a brain region and the 
+choices are determined by the contents of the SourceHierarchy.txt file.  It is a simple text file containing a hierarchy of 
+regions indicated by tab indents.  To add additional regions simply add new lines to that file with the appropriate number of 
+tabs preceding each region.  
+
+The HDF5 format does not capture the hierarchy leading to the chosen source so this is stored in a separate XML file.  This file 
+is automatically created in the same folder as the HDF5 file.
+
+
+Notes
+-----
+
+Any time that a protocol is paused or stopped user supplied notes can be saved with the other data.  These notes are saved 
+into the same XML file as the source hierarchy.

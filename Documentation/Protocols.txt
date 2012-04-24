@@ -2,8 +2,8 @@ Symphony protocols
 ==================
 
 An experimental protocol consists of a series of epochs, each of which can apply a different set of stimuli to and 
-record responses from the devices set up by Symphony.m.  The number and behavior of epochs are controlled by a set 
-of mostly user-editable parameters defined by the protocol.
+record responses from the devices defiened by the current rig configuration.  The number and behavior of epochs are 
+controlled by a set of mostly user-editable parameters defined by the protocol.
 
 
 Writing a new protocol
@@ -12,6 +12,7 @@ Writing a new protocol
 To define a new protocol you need to create a sub-class of the SymphonyProtocol class.  
 
 Your sub-class should:
+
 1. Uniquely identify the protocol.
 2. Define any user-modifiable parameters and their default values.
 3. Override at least the prepareEpoch() methods.
@@ -107,13 +108,13 @@ Each time a protocol is run its methods are called in the following order:
 The points where you can customize behavior are:
 
     prepareRig():
-        override this method to prepare the rig for running protocols, e.g. set device background values
+        override this method to prepare the rig for running protocols, e.g. set device background values.
         default behavior: set the DAQ sample rate
     prepareRun():
-        override this method to do any setup before any epochs have been run, e.g. open a figure
+        override this method to do any setup before any epochs have been run, e.g. open a figure.
         default behavior: clear all figures
     continueRun():
-        override this method to indicate if there are any more epochs to be run
+        override this method to indicate if there are any more epochs to be run.
         default behavior: return true unless the user has paused or stopped the protocol
     prepareEpoch():
         override this method to add stimuli, set parameters, etc.
@@ -122,15 +123,21 @@ The points where you can customize behavior are:
         override this method to perform any post-epoch clean up, analysis, etc.
         default behavior: update all figures
     completeRun():
-        override this method to perform any clean up, post-analysis, etc. after all epochs have been run
+        override this method to perform any clean up, post-analysis, etc. after all epochs have been run.
         default behavior: none
 
 Any overriden method must call the same method in the base class to allow the default behaviors to occur.
 
+See the Code Flow.pdf diagram for a graphical representation of these methods.
+
+
+Convenience methods
+-------------------
+
 The SymphonyProtocol class provides some convenience methods that you can call from your methods:
 
     openFigure():
-        opens a figure window (see FigureHandlers.txt for details)
+        opens a figure window (see Figure Handlers.txt for details)
     addStimulus():
         queue a MATLAB vector of voltages to be sent to a device
     addParameter():
@@ -143,7 +150,7 @@ The SymphonyProtocol class provides some convenience methods that you can call f
         after an epoch has run, returns the response of a device as a MATLAB vector
 
 If the convenience methods provided by the base class are not sufficient to implement the protocol then you can access 
-the Symphony framework objects directly:
+the Symphony .NET framework objects directly:
 
     obj.rigConfig.controller: the Symphony.Core.Controller
     obj.rigConfig.controller.GetDevice(): access to any of the Symphony.Core.ExternalDevice instances

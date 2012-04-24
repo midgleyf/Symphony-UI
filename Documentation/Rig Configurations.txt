@@ -65,3 +65,14 @@ class SimpleRig < RigConfiguration
         end
     end
 end
+
+
+Sample rate
+-----------
+
+Each rig configuration has a sample rate that is shared across all of its devices.  Currently the Symphony 
+.NET framework does not support different rates for different devices though this may change in the future.
+Typically the sample rate is set by the user when defining a protocol's parameters but you could preset the 
+rate by adding the following code to your sub-class' createDevices method:
+
+    obj.sampleRate = 20000;

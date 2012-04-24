@@ -1,0 +1,19 @@
+Symphony and StimGL
+===================
+
+The StimGL application developed by the Leonardo lab is included with Symphony.  This tool allows for the display of 
+visual stimuli in addition to any electrical stimuli.
+
+
+Creating a StimGL-based protocol
+--------------------------------
+
+TODO
+
+(API documented in Contents.m in StimGL/@StimOpenGL)
+
+
+Synchronization
+---------------
+
+TODO

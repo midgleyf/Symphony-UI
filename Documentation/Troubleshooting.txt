@@ -1,0 +1,28 @@
+Troubleshooting Symphony
+========================
+
+Debug logs
+----------
+
+The Symphony .NET framework keeps log files containing debug information.  These files are placed in a directory named "debug_logs" in the 
+directory above the StartSymphony.m file.  These log files contain information about communicating with the MultiClamp commander, etc.
+
+
+Switching hardware
+------------------
+
+If you change the Heka or MultiClamp hardware connected to a rig then you will need to type the following into the MATLAB command window:
+
+>> rmpref('Symphony', 'HekaBusID');
+>> rmpref('Symphony', 'MultiClamp_SerialNumber');
+
+The next time you run Symphony you will be asked to identify the new hardware.
+
+
+Reset to default preferences
+----------------------------
+
+If you are experiencing a problem and nothing else will solve it then you can try resetting to the default preferences.  Close all Symphony 
+windows and then type the following into the MATLAB command window:
+
+>> rmpref('Symphony')
