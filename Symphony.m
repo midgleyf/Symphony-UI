@@ -45,7 +45,7 @@ classdef Symphony < handle
             end
             Logging.ConfigureLogging(fullfile(symphonyDir, 'debug_log.xml'), [symphonyParentDir '/debug_logs']);
             
-            % See what protocols, figure handlers and sources are available.
+            % See what rig configurations, protocols, figure handlers and sources are available.
             obj.discoverRigConfigurations();
             obj.discoverProtocols();
             obj.discoverFigureHandlers();
@@ -334,7 +334,14 @@ classdef Symphony < handle
                 end
                 
                 % Create a default protocol plug-in.
-                for protocolValue = 1:length(obj.protocolClassNames)
+                lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
+                order = 1:length(obj.protocolClassNames);
+                index = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
+                if ~isempty(index)
+                    order(index) = [];
+                    order = [index order(:)'];
+                end
+                for protocolValue = order
                     try
                         obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
                         break;
@@ -730,7 +737,7 @@ classdef Symphony < handle
                     obj.protocol.closeFigures();
                     
                     obj.protocol = newProtocol;
-                    %setpref('Symphony', 'LastChosenProtocol', protocolClassName);
+                    setpref('Symphony', 'LastChosenProtocol', protocolClassName);
                     
                     if ~obj.protocol.allowSavingEpochs
                         obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
