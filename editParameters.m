@@ -36,7 +36,7 @@ function edited = editParameters(protocol)
         'WindowKeyPressFcn', @(hObject, eventdata)editParametersKeyPress(hObject, eventdata, guidata(hObject)), ...
         'Tag', 'figure');
     
-    uicontrolcolor = reshape(get(0,'defaultuicontrolbackgroundcolor'),[1,1,3]);
+    uicontrolcolor = reshape(get(0,'defaultuicontrolbackgroundcolor'), [1,1,3]);
 
     % array for pushbutton's CData
     button_size = 16;
@@ -48,7 +48,8 @@ function edited = editParameters(protocol)
         push_cdata(r,start:last,:) = 0;
     end
     
-
+    % Create a control for each of the protocol's parameters.
+    textFieldParamNames = {};
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
@@ -92,6 +93,8 @@ function edited = editParameters(protocol)
                 'Position', [labelWidth+201 dialogHeight-paramIndex*30-1 12 12], ...
                 'CData', flipdim(push_cdata, 1), ...
                 'Callback', @(hObject,eventdata)stepValueDown(hObject, eventdata, guidata(hObject), paramTag));
+            
+            textFieldParamNames{end + 1} = paramName; %#ok<AGROW>
         elseif islogical(defaultValue)
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
@@ -117,6 +120,8 @@ function edited = editParameters(protocol)
                 'String',  paramValue,...
                 'Style', 'edit', ...
                 'Tag', paramTag);
+            
+            textFieldParamNames{end + 1} = paramName; %#ok<AGROW>
         elseif iscellstr(defaultValue) || (iscell(defaultValue) && all(cellfun(@isnumeric, defaultValue)))
             % Default to the first item in the pop-up if nothing has been chosen yet.
             if iscell(paramValue)
@@ -162,7 +167,6 @@ function edited = editParameters(protocol)
         end
     end
     
-    % TODO: add "Reset to Defaults" button.
     % TODO: add save/load settings functionality
     
     if handles.showStimuli
@@ -171,6 +175,15 @@ function edited = editParameters(protocol)
         handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight - 10]);
         updateStimuli(handles);
     end
+    
+    handles.resetButton = uicontrol(...
+        'Parent', handles.figure,...
+        'Units', 'points', ...
+        'Callback', @(hObject,eventdata)useDefaultParameters(hObject,eventdata,guidata(hObject)), ...
+        'Position', [10 10 56 20], ...
+        'String', 'Reset', ...
+        'TooltipString', 'Restore the default parameters', ...
+        'Tag', 'resetButton');
     
     handles.cancelButton = uicontrol(...
         'Parent', handles.figure,...
@@ -189,6 +202,18 @@ function edited = editParameters(protocol)
         'Tag', 'saveButton');
     
     guidata(handles.figure, handles);
+    
+    % Try to add Java callbacks so that the stimuli and dependent values can be updated as new values are being typed.
+    drawnow
+    for i = 1:length(textFieldParamNames)
+        paramName = textFieldParamNames{i};
+        hObject = handles.([paramName 'Edit']);
+        try
+            javaHandle = findjobj(hObject);
+            set(javaHandle, 'KeyTypedCallback', {@valueChanged, hObject, paramName});
+        catch ME %#ok<NASGU>
+        end
+    end
     
     % Wait for the user to cancel or save.
     uiwait;
@@ -242,12 +267,13 @@ function value = getParamValueFromUI(handles, paramName)
     else
         defaultValue = [];
     end
+    javaHandle = findjobj(handles.(paramTag));
     if isnumeric(defaultValue)
         if length(defaultValue) > 1
             % Convert from a comma separated list, ranges, etc. to a vector of numbers.
-            paramValue = str2num(get(handles.(paramTag), 'String')); %#ok<ST2NM>
+            paramValue = str2num(get(javaHandle, 'Text')); %#ok<ST2NM>
         else
-            paramValue = str2double(get(handles.(paramTag), 'String'));
+            paramValue = str2double(get(javaHandle, 'Text'));
         end
         convFunc = str2func(class(defaultValue));
         value = convFunc(paramValue);
@@ -257,7 +283,7 @@ function value = getParamValueFromUI(handles, paramName)
         values = paramProps.DefaultValue;
         value = values{get(handles.(paramTag), 'Value')};
     elseif ischar(defaultValue)
-        value = get(handles.(paramTag), 'String');
+        value = get(javaHandle, 'Text');
     end
 end
 
@@ -363,6 +389,20 @@ function popUpMenuChanged(~, ~, handles)
 end
 
 
+function valueChanged(~, ~, hObject, paramName)
+    handles = guidata(hObject);
+    paramValue = getParamValueFromUI(handles, paramName);
+    try
+        handles.protocolCopy.(paramName) = paramValue;
+        updateDependentValues(handles);
+        updateStimuli(handles);
+        drawnow
+    catch ME %#ok<NASGU>
+        % The current text may be invalid so just ignore the exception.
+    end
+end
+
+
 function stepValueUp(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue + 1));
@@ -374,6 +414,33 @@ end
 function stepValueDown(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue - 1));
+    updateDependentValues(handles);
+    updateStimuli(handles);
+end
+
+
+function useDefaultParameters(~, ~, handles)
+    % Reset each independent parameter to its default value.
+    params = handles.protocolCopy.parameters();
+    paramNames = fieldnames(params);
+    paramCount = numel(paramNames);
+    for paramIndex = 1:paramCount
+        paramName = paramNames{paramIndex};
+        paramProps = findprop(handles.protocol, paramName);
+        if paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
+        else
+            defaultValue = [];
+        end
+        if iscell(defaultValue)
+            defaultValue = defaultValue{1};
+        end
+        if ~paramProps.Dependent
+            handles.protocolCopy.(paramName) = defaultValue;
+        end
+        setParamValueInUI(handles, paramName, defaultValue);
+    end
+    
     updateDependentValues(handles);
     updateStimuli(handles);
 end
