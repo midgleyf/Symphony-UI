@@ -329,7 +329,7 @@ classdef MovingBar < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime))/obj.plotData.stimTime;
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime+0.25))/(obj.plotData.stimTime+0.25);
             if numel(obj.objectSize)>1
                 objectSizeIndex = find(obj.objectSize==obj.plotData.epochObjectSize,1);
                 if obj.loopCount==1

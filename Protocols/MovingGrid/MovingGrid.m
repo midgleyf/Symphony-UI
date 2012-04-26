@@ -328,7 +328,7 @@ classdef MovingGrid < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime))/obj.plotData.stimTime;
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime+0.25))/(obj.plotData.stimTime+0.25);
             if ismember(obj.plotData.epochObjectDir,[0,180])
                 coordIndex = find(obj.Xcoords==obj.plotData.epochCoord,1);
                 if obj.loopCount==1

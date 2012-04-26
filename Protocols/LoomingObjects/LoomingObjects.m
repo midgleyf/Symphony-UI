@@ -273,7 +273,7 @@ classdef LoomingObjects < StimGLProtocol
             obj.plotData.stimTime = stimTime;
                        
             % Add epoch-specific parameters for ovation
-            obj.addParameter('epochObjectSpeed',epochLoverV);
+            obj.addParameter('epochLoverV',epochLoverV);
             if obj.numObjects==2
                 obj.addParameter('epochRelCollisionTime',epochRelCollisionTime);
             end
