@@ -115,7 +115,7 @@ classdef Grid < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.onRespImageHandle = imagesc(flipud(obj.plotData.meanOnResp),'Parent',axesHandle); colormap(gray(256)); colorbar; axis image;
                 obj.plotData.onRFcenterHandle=line(0,0,'Marker','x','Color','g');
-                obj.plotData.onRFareaHandle=rectangle('Position',[0,0,0.01,0.01],'Curvature',[1 1],'EdgeColor','g');
+                obj.plotData.onRFareaHandle=line(0,0,'Color','g');
                 set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
                 xlabel(axesHandle,'azimuth (degrees)');
                 ylabel(axesHandle,'elevation (degrees)');
@@ -125,7 +125,8 @@ classdef Grid < StimGLProtocol
                 set(obj.plotData.onRespImageHandle,'Cdata',flipud(obj.plotData.meanOnResp));
                 if obj.plotData.updateOnRespFit
                     set(obj.plotData.onRFcenterHandle,'XData',obj.plotData.muXon,'YData',obj.plotData.muYon);
-                    set(obj.plotData.onRFareaHandle,'Position',[obj.plotData.muXon-obj.plotData.sigmaXon,obj.plotData.muYon-obj.plotData.sigmaYon,2*obj.plotData.sigmaXon,2*obj.plotData.sigmaYon]);
+                    [X Y]=calcEllipse(obj.plotData.muXon,obj.plotData.muYon,obj.plotData.sigmaXon,obj.plotData.sigmaYon,obj.plotData.onRotation);
+                    set(obj.plotData.onRFareaHandle,'XData',X,'YData',Y);
                     title(axesHandle,['On response (spike count), ' obj.plotData.onRFstring]);
                 end
             end
@@ -135,7 +136,7 @@ classdef Grid < StimGLProtocol
             if obj.epochNum==1
                 obj.plotData.offRespImageHandle = imagesc(flipud(obj.plotData.meanOffResp),'Parent',axesHandle); colormap(gray(256)); colorbar; axis image;
                 obj.plotData.offRFcenterHandle=line(0,0,'Marker','x','Color','r');
-                obj.plotData.offRFareaHandle=rectangle('Position',[0,0,0.01,0.01],'Curvature',[1 1],'EdgeColor','r');
+                obj.plotData.offRFareaHandle=line(0,0,'Color','r');
                 set(axesHandle,'Box','off','TickDir','out','XTick',1:numel(obj.Xcoords),'XTickLabel',obj.Xcoords,'YTick',1:numel(obj.Ycoords),'YTickLabel',fliplr(obj.Ycoords));
                 xlabel(axesHandle,'azimuth (degrees)');
                 ylabel(axesHandle,'elevation (degrees)');
@@ -144,7 +145,8 @@ classdef Grid < StimGLProtocol
                 set(obj.plotData.offRespImageHandle,'Cdata',flipud(obj.plotData.meanOffResp));
                 if obj.plotData.updateOffRespFit
                     set(obj.plotData.offRFcenterHandle,'XData',obj.plotData.muXoff,'YData',obj.plotData.muYoff);
-                    set(obj.plotData.offRFareaHandle,'Position',[obj.plotData.muXoff-obj.plotData.sigmaXoff,obj.plotData.muYoff-obj.plotData.sigmaYoff,2*obj.plotData.sigmaXoff,2*obj.plotData.sigmaYoff]);
+                    [X Y]=calcEllipse(obj.plotData.muXoff,obj.plotData.muYoff,obj.plotData.sigmaXoff,obj.plotData.sigmaYoff,obj.plotData.offRotation);
+                    set(obj.plotData.offRFareaHandle,'XData',X,'YData',Y);
                     title(axesHandle,['Off response (spike count), ' obj.plotData.offRFstring]);
                 end
             end
@@ -275,13 +277,13 @@ classdef Grid < StimGLProtocol
             if obj.epochNum>1
                 if get(obj.plotData.updateFitCheckboxHandle,'Value')
                     try
-                        [obj.plotData.onRFstring obj.plotData.muXon obj.plotData.muYon obj.plotData.sigmaXon obj.plotData.sigmaYon]=gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOnResp);
+                        [obj.plotData.onRFstring obj.plotData.muXon obj.plotData.muYon obj.plotData.sigmaXon obj.plotData.sigmaYon obj.plotData.onRotation]=gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOnResp);
                         obj.plotData.updateOnRespFit = true;
                     catch
                         obj.plotData.updateOnRespFit = false;
                     end
                     try
-                        [obj.plotData.offRFstring obj.plotData.muXoff obj.plotData.muYoff obj.plotData.sigmaXoff obj.plotData.sigmaYoff]=gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOffResp);
+                        [obj.plotData.offRFstring obj.plotData.muXoff obj.plotData.muYoff obj.plotData.sigmaXoff obj.plotData.sigmaYoff obj.plotData.offRotation]=gauss2Dfit(obj.Xcoords,obj.Ycoords,obj.plotData.meanOffResp);
                         obj.plotData.updateOffRespFit = true;
                     catch
                         obj.plotData.updateOffRespFit = false;
