@@ -1,0 +1,1205 @@
+StimulateOpenGL II Plugin Parameter Documentation
+Calin A. Culianu <calin.culianu@gmail.com>
+Last Updated: May 27, 2011
+
+Below is a list of plugins and the configuration parameters that they
+accept.  Note parameters *are not* case sensitive.
+
+If a parameter is missing or unspecified, it takes on the default value
+listed for that parameter.  Some parameters lack default values and
+therefore must be specified in the configuration file and/or
+configuration parameter struct given in Matlab.  However, the majority of
+parameters below do have (sensible) defaults.
+
+A note about floating point 'equality': In C++, you can't just say myfloat == 0  
+and hope the test for equality is accurate.  That is because '0' has multiple 
+binary representations in IEEE754 (!) and as such the == operator sometimes 
+fails, even when myfloat really is 0.   The floating point concept of 
+equality is a bit fuzzy, and what programs always do is define some epsilon 
+value such that if the abs(valueA - valueB) <= epsilon, they are considered 
+equal by the app. How does this come into play?  In this app epsilon is defined 
+as 0.0000001.   So for sufficiently small quantities, such as 0.00000009, the 
+app will treat this quantity as zero or equivalent to zero.  This is 
+particularly important in cases where parameters that are 0 have special 
+meaning.  For example, in the `MovingObjects' plugin, setting objVelZ less than
+epsilon (0.0000001) would result in objVelZ being treated as 0, which turns off 
+3D frustum boncing and rndtrial placement & velocity in Z for that object.
+
+A note about the 'global' plugin parameters: all of these parameters apply
+to all plugins.  For example, the ftrackbox_x coordinate is accepted by all 
+plugins since frame tracking is supported by all plugins.  In addition to
+that consideration, some of these parameters are intended to be 'per-workstation' 
+parameters and as such get saved into the Windows registry on Windows (or 
+the user's home directory on Unixey systems).  This is so that workstation-
+specific parameters, such as (ftrackbox_*) reside outside of the config 
+files (which may be shared amongst multiple workstations).  Of the 
+parameters that are saved in such a way (which is a subset of all the globals),
+it is not necessary to specify them explicitly in the config file, since they 
+take the defaults set in the GUI.  To see which parameters fall into this 
+category, in the GUI, go to Options -> Global Parameter Defaults.
+
+----------------------------------------------------------------------------------
+Global PLUGIN PARAMETERS
+----------------------------------------------------------------------------------
+mon_x_pix
+        Synopsis:         Specifies the width in pixels of the GL window
+        Datatype:         integer
+        Possible values:  1 - +2147483647
+        Default value:    800
+
+mon_y_pix
+        Synopsis:         Specifies the height in pixels of the GL window
+        Datatype:         integer
+        Possible values:  1 - +2147483647
+        Default value:    600
+        
+color_order
+        Synopsis:         Specifies the order of the colorwheel for 'triple' fps 
+                          mode.
+        Datatype:         string
+        Possible values:  'brg' 'bgr' 'rgb' 'rbg' 'grb' 'gbr'
+        Default value:    'rgb'
+
+frame_vars
+        Synopsis:         Specifies a filename for reading in per-frame variables.
+                          If this variable is set, the experiment plugin runs in
+                          'frame var' mode, if supported.
+                          In frame var mode, the experiment plugin reads values
+                          from the frame_vars data file as input when preparing 
+                          each frame, on a frame-by-frame basis.  
+                          Currently only the 'MovingObjects' and 'MovingGrating'
+                          plugins support this feature.
+        Datatype:         string
+        Possible values:  Empty string (to specify no frame_vars), or a filename
+        Default value:    (Empty)
+                      
+fps_mode
+        Synopsis:         Specify the 'fps_mode' to run the experiment.
+        Datatype:         string
+        Possible values:  'single' for normal, single-fps, 120Hz mode
+                          'dual' for double-fps mode 240Hz mode
+                          'triple' for triple-fps 360Hz mode.
+                          Note anything other than 'single' only will actually 
+                          raise the effective fps when using the projector as
+                          output.
+        Default value:    'single'
+                
+bgcolor
+        Synopsis:         Specify the background (clear) color of the experiment.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    0.5
+
+delay
+        Synopsis:         Specify the number of frames to use as a pre-delay for
+                          each iteration of a plugin.  If delay is nonzero,
+                          plugins will present the following for 'delay' frames at
+                          (re-)start: a blank canvas cleared to the bgcolor, with
+                          a frame track box using the ftrack_end_color.  Note that
+                          the 'delay' frames are considered "extra-plugin"
+                          and as such do not have a defined 'frameNum' and so
+                          cannot be dumped programmatically from Matlab.  The
+                          usefulness of this parameter is that plugin looping
+                          involves re-initializing the plugin each iteration,        
+                          which is potentially expensive (on the order of tens of
+                          milliseconds), in addition to being jittery.  Thus 
+                          setting delay to a quantity that is sufficient to 
+                          always cover the init time would mask the jitter
+                          and also have the this inter-plugin time present a 
+                          default known frame state while the plugin re-
+                          initializes.  
+                          ** NB: If the plugin you are running is CheckerFlicker,
+                                 and nLoops > 1 and the loop count is > 0 (that is,
+                                 on iterations above the first) the actual number 
+                                 of delay frames outputted to the display may be 
+                                 inexact and may jitter by 1-2 frames.   This is a 
+                                 known issue and will be addressed in the future if 
+                                 it turns out to be problematic for experiments.  
+                                 When running plugins other than CheckerFlicker, the 
+                                 delay is always exact and this problem does not 
+                                 occur.  (See the CheckerFlicker notes as well).
+        Datatype:         integer
+        Possible values:  0 - +214748647
+        Default value:    0 (off)
+
+Nblinks
+        Synopsis:         Specifies the number of blinks or how many times to 
+                          display each frame.  Any value greater than 1 will cause
+                          the plugin to draw the same frame multiple times to the
+                          screen, in effect reducing the visible framerate by some
+                          integral factor.
+        Datatype:         integer
+        Possible values:  +1 - +2147483647
+        Default value:    1
+
+DO_with_vsync
+        Synopsis:         Specify whether to set a digital output line high on 
+                          plugin start.  If enabled, the line is set high after
+                          the first vsync of the first plugin frame, and is set
+                          low again when the plugin terminates.
+        Datatype:         string
+        Possible values:  'off' *or* an NI path to the DIO line -- which are 
+                          strings of the form DevX/portY/lineZ (eg Dev1/port0/line0). 
+        Default value:    off
+    
+ftrackbox_x
+        Synopsis:         Specifies the x-coordinate of the bottom-left
+                          corner of the frame track square (photodiode square).
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    0
+
+ftrackbox_y
+        Synopsis:         Specifies the y-coordinate of the bottom-left
+                          corner of the frame track square (photodiode square).
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    10
+
+ftrackbox_w
+        Synopsis:         Specifies the width of a side of the frame track 
+                          square (photodiode square).
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    45
+    
+ftrack_track_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'track' (or on) state -- this state appears every even 
+                          numbered frame.
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+                  
+ftrack_off_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'off' state.  This state is for odd-numbered frames.
+        Datatype:         real triplet, comma-separated (eg: .7, .5, 1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    0.0, 0.0, 0.0 (black).
+
+ftrack_change
+        Synopsis:         Specifies the interval, in frames, to use for asserting
+                          the ftrack_change state (and thus draw the ftrack box
+                          using the ftrack_change_color).  If zero, the
+                          ftrack_change state is never asserted.  If -1, depending
+                          on the plugin, this variable will be auto-computed (in
+                          MovingObjects it will auto-set to every tframes, for
+                          example). 
+                          If positive or auto-computed, the frame track box will
+                          be drawn with the ftrack_change_color every
+                          ftrack_change frames.
+        Datatype:         integer
+        Possible values:  -1 - +2147483647
+        Default value:    -1 (auto-compute for MovingObejcts and MovingGrating, 
+                          off for others).
+
+ftrack_change_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'change' state -- this state is asserted every 
+                          `ftrack_change' frames.  (see the description of the 
+                          `ftrrack_change' variable).
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+
+ftrack_start_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'start' state -- this state is asserted for frames
+                          with frameNum == 0 (first frame in an iteration).
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+
+ftrack_end_color
+        Synopsis:         Specifies the R,G,B color of the frame track box in the 
+                          'end' state -- that is the last frame in an iteration.  
+                          If the plugin is to loop, then ftrack_end_color will be 
+                          used for each loop's end.  This ftrack box color is not 
+                          used for non-terminating plugins (plugins that to not
+                          have nFrames defined). 
+        Datatype:         real triplet, comma-separated (eg .7,.5,1.0)
+        Possible values:  Each number in the triplet is in the range [0,1]
+        Default value:    1.0, 1.0, 1.0 (full intensity white).
+
+lmargin / rmargin / tmargin / bmargin
+        Synopsis:         These four variables affect the drawable area of the
+                          plugin window.  If nonzero, then the drawable canvas of
+                          the plugin will have margins such that the plugin will
+                          draw to a sub-rectangle of the overall GL window.  The
+                          frame track box is drawn outside this area, however. 
+        Datatype:         integer 
+        Possible values:  0 - (screen dimension in X/Y)
+        Default value:    0
+
+nFrames
+        Synopsis:         Specify the number of frames for one iteration of the
+                          plugin's run.  See nLoops below.  This quantity times 
+                          nLoops equals the number of total frames in the plugin's
+                          run. In some cases, if nFrames isn't specified, it may
+                          be auto-computed (such as in MovingObjects if using 
+                          tFrames).                  
+                          If set, the plugin will run nFrames * nLoops times and
+                          auto-terminate once it has already looped nLoops times.
+                          On the last frame in a loop, the ftrack_end_color will
+                          be used for the frame track box (if visible).  
+        Datatype:         integer 
+        Possible values:  0 - +2147483647
+        Default value:    0 (no auto-termination)
+
+nLoops
+        Synopsis:         Specify the number of times to 'loop' or repeat the
+                          plugin. This variable only works properly when nFrames
+                          is defined and nonzero (in some cases nFrames is auto-
+                          computed, see `nFrames' above).
+        Datatype:         integer 
+        Possible values:  0 - +2147483647
+        Default value:    0 (no looping)
+
+------------------------------------------------------------------------------
+`CheckerFlicker' PLUGIN PARAMETERS
+------------------------------------------------------------------------------
+
+PLUGIN NOTES  
+
+Checkerflicker is a relatively computationally expensive plugin.  This is
+because it utilizes a random number generator to create random colors per 
+'stixel'.  Random number generation, when done millions of times per second,
+starts to get noticeably taxing on even modern CPUs (as of the time of this
+writing, in 2010).  If the stixel size is small (1 or 2), the generator may not 
+be able to keep up with the screen refresh rate and so you may experience dropped
+frames.
+
+Strategies to mitigate this include playing with the 'fbo' variable as well
+as shrinking the render size (mon_x_pix/mon_y_pix) and/or adding some margins
+(lmargin, etc).  Also the 'gauss' versus 'uniform' random generators have slightly
+different costs as well.
+
+Additionally, since checkerflicker performs a whole bunch of setup to maximize 
+performance, 'looping' checkerflicker using the 'nLoops' and 'nFrames' parameters 
+is not entirely seamless.  Looping is implemented using a stop/restart call to the
+plugin, which for checkerflicker takes minimally two seconds!  As such, it is
+advisable to use the 'delay' parameter with checkerflicker, and to set it to at
+least 2.1 - 2.5 seconds worth of frames, so as to cover this period of time when
+the plugin is in an undefined state.
+
+`delay' results in a background frame being forced into the mix in between
+iterations of checkerflicker.  This frame has ft_off asserted. This masks the 
+undefined frames of checkerflicker with well-defined 'delay' background frames.  
+
+Specifying a period of time of at least 2.5s is advisable.  Not specifying a delay
+at all for checkerflicker or specifying too-small a delay is undefined.  
+
+Also note that due to CheckerFlicker's complexities, there is a known issue whereby
+the for nLoops > 1, on iterations above the first, the inter-plugin-delay may be 
+inexact by 1-2 frames, maximum.  That is, if you specify a delay of say 320, you 
+may find that the actual delay experienced as CheckerFlicker loops and re-iterates 
+is 319-321 frames. (See also the 'delay' parameter description above).
+
+Additional peformance notes from Anthony Leonardo submitted on 6/28/2011:
+
+"I get the following performance with build 110622, using my 2008 Dell box 
+(quad-core 3.3Ghz, 2Gb RAM, dual nvidia 8800GTS).
+
+These are all 2x2 checkers, rendered at 360Hz (120Hz monitor running with 
+fps_mode=triple), in Gaussian mode:
+
+1280x768: 3600us/frame, lots and lots of frame drops
+1000x768: 2700us/frame, ~14 drops/hr
+800x768:  2050us/frame, no drops
+625x768:  1400us/frame, no drops (equivalent to 800x600)
+
+This suggests my box can handle about 614,000 gauss rnd num updates/frame, 
+around 2ms rendering time, before things get unreliable."
+
+
+stixelwidth
+       Synopsis:         Specifies the width of the checker squares in pixels.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    10
+        
+stixelheight
+       Synopsis:         Specifies the height of the checker squares in pixels
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    10
+        
+rand_gen
+       Synopsis:         Specifies whether to use a gaussian, uniform, or binary 
+                         random number generator when generating color/grayscale
+                         values for the checker squares.  The characteristics of the
+                         generators are as follows:
+                            'uniform' - each color component or intensity is 
+                                        uniformly distributed within the range 
+                                        0 - 1.0.
+                             'gauss'  - each color component or intensity is 
+                                        distributed such that mean = the
+                                        `bgcolor'' (see bgcolor, which is a global
+                                        parameter) and variance is the `contrast'
+                                        parameter (see contrast).
+                             'binary' - each computed intensity is either all on or
+                                        all off (0 or 1.0), with a 50/50 probability
+                                        of each.
+       Datatype:         string
+       Possible values:  'uniform', 'gauss', or 'binary' (for pure b&w)
+       Default value:    uniform
+
+contrast
+       Synopsis:         If in rand_gen=gauss mode, specifies specifies the 
+                         variance of the normally distributed intensity levels
+                         generated.
+       Datatype:         float
+       Possible values:  0.0 - 1.0
+       Default value:    iff blackwhite==true, 
+                              1.0 
+                         else 
+                              0.3
+
+rand_displacement_x
+       Synopsis:         Specifies the amount (in pixels) by which to randomly 
+                         displace the checkerboard in the X direction, per frame.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+
+rand_displacement_y
+       Synopsis:         Specifies the amount (in pixels) by which to randomly 
+                         displace the checkerboard in the Y direction, per frame.
+       Datatype:         integer
+       Possible values:  -2147483648 - +2147483647
+       Default value:    0
+                                                         
+fbo 
+*AKA*
+prerender
+       Synopsis:         Specifies the number of frames to prerender and
+                         keep in the frame buffer (in VRAM).  Prerendering
+                         allows for some leeway in missing realtime deadlines
+                         when generating new checker frames on-the-fly.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    30
+
+cores
+       Synopsis:         Specifies the maximum number of cores to use
+                         for this plugin (mainthread + frame generation
+                         threads each use a core).  It is not a good idea
+                         to set this parameter to anything other than 2
+                         because having >1 frame generation thread
+                         means that the checkerboard frames are generated
+                         in a non-deterministic order, and thus commands
+                         that try to play-back the stimulation experiment
+                         from initial conditions, such as the DumpFrame command
+                         returns frames in non-repeatable order.  However,
+                         using >2 cores sometimes is useful if you want to
+                         generate 800x600 stixel checkerboards
+                         in quad_fps mode in realtime and you find you are
+                         getting frame underruns, and you don't care about. 
+                         Stimulation experiment repeatability.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    2
+
+colortable
+       Synopsis:         Specifies the size of the colortable to use.  This
+                         parameter must be a power of 2.  The colortable is 
+                         only really relevant to blackwhite=false mode where 
+                         a gaussian distributed set of color intensities is 
+                         needed for the checkers. Since generating gaussian 
+                         distributed colors is potentially slow, a pregenerated
+                         set of colors is used and a uniform random number is 
+                         used to index into this set of gaussian colors.  
+                         Colortable sizes of  2^24 start to be extremely 
+                         accurate with respect to the guassian distribution, 
+                         but they may be slow on some machines due to cache 
+                         thrashing.  The default of 2^17 is fairly accurate
+                         but not perfect.
+       Datatype:         integer
+       Possible values:  4096 - +1073741824 for the colortable size (must be 
+                         a power of 2), 
+                         *or* 
+                         a number <=24 to specify a power of 2 for the 
+                         colortable size
+       Default value:    17 (which means the colortable size will be 2^17 or 
+                         131072).
+
+seed
+        Synopsis:         Specifies the seed to use for the pseudo-random 
+                          number generator.  The sequence of random numbers
+                          generated is always the same for a particular seed.
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    10000
+
+----------------------------------------------------------------------------------
+`Flicker' PLUGIN PARAMETERS
+----------------------------------------------------------------------------------
+fps_mode
+        (This plugin uses this variable -- see global param)
+
+hz
+        Synopsis:         Specifies the flicker rate in Hz.  Note that the maximal 
+                          flicker rate is based on the refresh rate of the monitor
+                          and normally cannot exceed the monitor's refresh rate.
+                          However, on a DLP projector values above the maximal
+                          rate (for example 120Hz) are emulated using the 
+                          "projector sub-frame trick".  Values lower than the
+                          refresh rate are always emulated by displaying frames
+                          twice, three times, etc.  Thus, not all rates are
+                          mathematically possible and the exact set of possible 
+                          rates are a function of the refresh rate.
+        Datatype:         integer
+        Possible values:  180, 120, 90, 72, 60, 51, etc.  
+                          (Bascially 1000/(k * (1000/120/3)) for all k >=2)
+        Default value:    NONE (must be specified)
+
+intensity
+        Synopsis:         Specifies the gray level of the flicker 'on' state.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    1.0
+
+duty_cycle
+        Synopsis:         Specifies number of subframes in the duty cycle per 
+                          period.
+        Datatype:         integer
+        Possible values:  1 - +2147483647 (maximum value depends on hz param.)
+        Default value:    1 for 180 Hz, 2 for 120Hz, 3 otherwise.
+
+------------------------------------------------------------------------------
+`MovingGrating' PLUGIN PARAMETERS
+------------------------------------------------------------------------------
+
+angle
+       Synopsis:         Specifies the angle in degrees that the grayscale 
+                         bars should be rotated before drawn.  Rotation is
+                         counter-clockwise.  
+                         0 is perfectly vertical, 90 is perfectly horizontal,
+                         etc.                        
+       Datatype:         float
+       Possible values:  0.0 - 359.9
+       Default value:    NONE (must be specified)
+
+dangle
+       Synopsis:         Specifies the angle in degrees that the grayscale 
+                         bars should be rotated every tFrames.  Rotation is
+                         counter-clockwise and is applied every tFrames in an
+                         additive fashion. 
+                         0 is perfectly vertical, 90 is perfectly horizontal,
+                         etc.                        
+       Datatype:         float
+       Possible values:  0.0 - 359.9
+       Default value:    angle
+
+min_color
+       Synopsis:         Specifies the intensity to use as the minimum color.
+                         Waves are scaled to the range [min_color, max_color].
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    0.0 (black)
+
+max_color
+       Synopsis:         Specifies the intensity to use as the maximum color.
+                         Waves are scaled to the range [min_color, max_color].
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    1.0 (white)
+
+max_color2
+       Synopsis:         Specifies the intensity to use as the maximum color
+                         for reversal mode.  
+                         Every reversal frames, the max_color is alternated
+                         between max_color and max_color2.
+       Datatype:         float
+       Possible values:  0 - 1.0
+       Default value:    1.0 (white)
+
+period
+       Synopsis:         Specifies the width of the moving grayscale bars, 
+                         in pixels. Values below 3 seem to not generate any 
+                         visible frames.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    NONE (must be specified)
+
+reversal
+       Synopsis:         If nonzero, do contrast reversal every 'reversal' frames.
+                         Reversal has the max_color alternate with max_color2.
+                         If using max_color2, then intensities above the halfway
+                         point get re-scaled to max_color2.  In certain parameter
+                         regimes this presents the optical illusion of a 
+                         reversal of the direction of motion of the waves.
+       Datatype:         integer
+       Possible values:  0 - +inf
+       Default value:    0 (disabled)
+
+speed
+       Synopsis:         Specifies the number of pixels per frame that the
+                         grayscale bars move.  Motion is from right to left.
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    NONE (must be specified)
+
+tFrames
+       Synopsis:         Specifies the number of frames before applying the
+                         'dangle' rotation.  FT_Change is asserted when rotation
+                         is applied.  
+       Datatype:         integer
+       Possible values:  0 - +2147483647
+       Default value:    0 (off)
+
+wave
+       Synopsis:         Specifies the function to use for generating waves.    
+       Datatype:         string
+       Possible values:  `sine': generate sine waves. 
+                         `square': like a sine wave except there is no gray. 
+                         Either values are all on or all off.                     
+       Default value:    0 (off)
+
+----------------------------------------------------------------------------------
+`MovingObjects' PLUGIN PARAMETERS
+----------------------------------------------------------------------------------
+
+Performance notes:  This plugin generally can render hundreds of objects 
+onscreen without any dropped frames.  The only exception to this are objects
+of type sphere, which are considerably more complex due to their shading and
+lighting properties, as well as the fact that they contain many more vertices
+than other simple 2D objects such as the box or ellipse.  At the time of this
+writing (June, 2011) Anthony Leonardo's lab reports the following upper limits
+on spheres rendered at 1280x768 at 360Hz (120Hz monitor running with 
+fps_mode=triple).
+
+"My 2008 Dell box (quad-core 3.3Ghz, 2Gb RAM, dual NVidia 8800GTS) will
+run 15 simultaneous spheres with no recorded frame drops per hour."
+
+jitterlocal
+        Synopsis:         Specifies whether to enable or disable local
+                          target jitter.  If enabled, then each frame, after
+                          the target's position is adjusted based on its
+                          velocity vector, an additional computation
+                          is performed to perturb the target's position
+                          randomly by at most `jittermag' pixels in either
+                          axis direction. (This feature is meant to emulate 
+                          the jittery flightpath of a fly).  The 'j' key can be
+                          used to toggle this flag during the course of a plugin
+                          run.
+       Datatype:          boolean
+       Possible values:   0, 1, false, true, no, yes
+       Default value:     0
+
+jittermag
+       Synopsis:          If `jitterlocal' is true (and/or the 'j' key has been 
+                          used to enable jitter), then `jittermag' magnitude
+                          jitter is applied to the target for each frame. 
+                          Jitter is applied as follows: 
+                          After the target's position is adjusted based on its
+                          velocity vector, an additional computation is 
+                          performed to perturb the target's position randomly
+                          by at most `jittermag' pixels in either axis 
+                          direction. (This feature is meant to emulate the 
+                          jittery flightpath of a fly).  Note that if a 
+                          particular object is not moving in a particular axis
+                          direction (that is, if objVel* is 0) then no jitter
+                          motion will be generated in that direction.  For
+                          example an object with velocity vector (x,y,z)=(3,3,0) 
+                          will not get jitter in the Z direction, and similarly 
+                          an object with velocity vector (3,0,3) will not get 
+                          jitter in the Y direction (but will in X and Z).
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large jitter.  Jitter 
+                          magnitude should be sufficiently small such that 
+                          objects do not cross more than one screenful in 
+                          between frames.               
+       Datatype:          integer
+       Possible values:   -2147483648 - +2147483647
+       Default value:     2
+
+lightAmbient
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The greyscale intensity 
+                          of the ambient component of the light.  0.0 is off, 
+                          1.0 is a middle-gray.  The ambient component is the 
+                          illumination inherently present in the scene, even 
+                          when light from a source is not directly shining on an 
+                          object's face.
+       Datatype:          float
+       Possible values:   0.0 - 1.0
+       Default value:     0.5
+
+lightAttenuationConstant 
+* OR *
+lightConstantAttenuation 
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The constant attenuation
+                          factor applied to the light.  If the light is fixed in
+                          space, its intensity is attenuated by the reciprocal 
+                          of the sum of the constant factor, the linear factor
+                          times the distance between the light and the surface 
+                          being lighted, and the quadratic factor times the 
+                          square of the same distance.  The initial attenuation 
+                          factors are (Constant=1, Linear=0, Quadratic=0), 
+                          resulting in no attenuation.
+       Datatype:          float
+       Possible values:   0.0 - +inf
+       Default value:     1.0
+
+lightAttenuationLinear 
+* OR *
+lightLinearAttenuation 
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The linear attenuation
+                          factor applied to the light.  If the light is fixed in
+                          space, its intensity is attenuated by the reciprocal 
+                          of the sum of the constant factor, the linear factor
+                          times the distance between the light and the surface 
+                          being lighted, and the quadratic factor times the 
+                          square of the same distance.  The initial attenuation 
+                          factors are (Constant=1, Linear=0, Quadratic=0), 
+                          resulting in no attenuation.
+       Datatype:          float
+       Possible values:   0.0 - +inf
+       Default value:     0.0
+
+lightAttenuationQuadratic 
+* OR *
+lightQuadraticAttenuation 
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The quadratic attenuation
+                          factor applied to the light.  If the light is fixed in
+                          space, its intensity is attenuated by the reciprocal 
+                          of the sum of the constant factor, the linear factor
+                          times the distance between the light and the surface 
+                          being lighted, and the quadratic factor times the 
+                          square of the same distance.  The initial attenuation 
+                          factors are (Constant=1, Linear=0, Quadratic=0), 
+                          resulting in no attenuation.
+       Datatype:          float
+       Possible values:   0.0 - +inf
+       Default value:     0.0
+
+lightDiffuse
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The greyscale intensity 
+                          of the diffuse component of the light.  0.0 is off, 
+                          1.0 is white.  The diffuse component is the amount of
+                          illumination when light directly hits an object's
+                          face.
+       Datatype:          float
+       Possible values:   0.0 - 1.0
+       Default value:     1.0
+
+lightPos
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  A vector indicating the
+                          X, Y, and Z positions of the lightsource.  
+       Datatype:          integer triplet, comma (or space) delimited
+       Possible values:   -214748367 - +2147483647 , -2147483647  - +2147483647, 
+                          -2147483647 - +2147483647
+       Default value:     screenWidth, screenHeight, -100.0 (top right corner of
+                          screen, 100 closer to the camera than the Z=0 plane).
+
+lightSpecular
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere).  The greyscale intensity 
+                          of the specular component of the light.  -1 is black 
+                          (a sort of negative speculation), 0.0 is off, 1.0 is 
+                          white.  The specular component is the light that 
+                          shines off the object's 'speculation' or shiny bit.  
+                          Setting this parameter to 0 will turn off speculation.   
+       Datatype:          float
+       Possible values:   -1.0 - 1.0
+       Default value:     1.0
+
+numObj
+        Synopsis:         Specifies the number of moving targets.  Note that 
+                          targets after the first have their parameters specified 
+                          by appending the target number to the parameter name: 
+                          So target 2's params would be: objType2, objLenX2,
+                          objLenY2, objXinit2, etc, whereas the first target would
+                          use parameters of the form: objType, objLenX, objLenY,
+                          objXinit, etc.                                   
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    REQUIRED, no default
+
+objAmbient
+  *or* 
+objAmbientN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the ambient 
+                          reflectance of the object's material.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.2 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objColor
+  *or* 
+objColorN (for objects 2 through numObj)
+        Synopsis:         Specifies the grayscale intensity of the target.  
+                          (Ignored for spheres, instead, use the light* and 
+                          ambient, diffuse, emission parameters instead for 
+                          these 3D lighted objects).
+        Datatype:         float
+        Possible values:  0.0 - 1.0 (black to white)
+        Default value:    first object: 0.0 (black)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+                          
+objDiffuse
+  *or* 
+objDiffuseN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the diffuse 
+                          reflectance of the object's material.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.8
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objEmission
+  *or* 
+objEmissionN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the emitted 
+                          light intensity of the object's material.
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.0
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objPhi
+  *or* 
+objPhiN (for objects 2 through numObj)
+        Synopsis:         Specifies the counterclockwise rotation, in degrees,
+                          for the object (or object N).  Useful for orienting the
+                          object as desired.
+        Datatype:         float
+        Possible values:  -inf - +inf 
+        Default value:    first object: 0.0 (unrotated)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objShininess
+  *or* 
+objShininessN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the specular 
+                          exponent of the object's material.  The specular 
+                          exponent is used in calculating the appearance of the
+                          object's speculation (shiny bit).
+        Datatype:         float
+        Possible values:  0.0 - 1.0 
+        Default value:    first object: 0.39
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objSpecular
+  *or* 
+objSpecularN (for objects 2 through numObj)
+        Synopsis:         Applies only to 3D objects that use lighting 
+                          (currently only the sphere).  Specifies the specular 
+                          reflectance of the object's material.  Setting this
+                          value to 0 will disable speculation on the object.
+        Datatype:         float
+        Possible values:  -1.0 - 1.0 (0.0 is off)
+        Default value:    first object: 1.0
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objSpin
+  *or* 
+objSpinN (for objects 2 through numObj)
+        Synopsis:         Specifies the spin of the object.  Or, the amount of 
+                          counterclockwise rotation to be applied to the object,
+                          in degrees, per frame.  
+        Datatype:         float
+        Possible values:  -inf - +inf 
+        Default value:    first object: 0.0 (do not spin)
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objType *or* 
+objTypeN (where N is 2 to numObj)
+        Synopsis:         Specifies the shape of the Nth moving target.  The 1st
+                          target does not use any 'N' suffix to the parameter name
+                          (objType versus objType2).
+        Datatype:         string
+        Possible values: 
+               box        - Indicates you want the target to be a square whose 
+                            sizes are of objLenX length (in pixels, see the
+                            objLenX parameter).
+               ellipse    - Indicates you want the target to be an ellipsoid
+                            of objLenX/objLenY diameter (in pixels, see the 
+                            objLenX/objLenY params). The ellipsoid is 
+                            approximated using 128 vertices.
+               sphere     - Indicates you want the target to be a 3D sphere
+                            of objLenX diameter (objLenY is ignored) (diameter 
+                            is in pixels, see the objLenX param). The sphere is 
+                            approximated using 32 vertices.  (Note that objColor
+                            is ignored for spheres.  Instead, specify intensity
+                            using the various light*, ambient, diffuse, and
+                            emission parameters.)
+                            
+        Default value:    first object: box
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objLenX 
+  *or* 
+objLenXN (where N is 2 to numObj) 
+  *or*
+xradius 
+  *or*
+xradiusN (where N is 2 to numObj) 
+        Synopsis:         Specifies the X-dimension size of the Nth moving target 
+                          in pixels.  This is the horizontal width before
+                          rotation, basically.  The 1st target does not use any
+                          'N' suffix to the parameter name (objLenX versus
+                          objLenX2).  Note that the format for this parameter
+                          is a comma-separated list of sizes if using target size
+                          cycling,  that is, if tFrames is positive.  In this
+                          case, the plugin cycles through each target's specified
+                          size every tFrames frames (after first cycling through
+                          all of the speeds for a particular size).
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  0 - +2147483647 [, 0 - +0 - +2147483647 ... ]
+        Default value:    first object: 8 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objLenY 
+  *or* 
+objLenYN (where N is 2 to numObj) 
+  *or*
+yradius 
+  *or*
+yradiusN (where N is 2 to numObj) 
+        Synopsis:         Specifies the Y-dimension size of the Nth moving target 
+                          in pixels.  This is the vertical height before
+                          rotation, basically.  The 1st target does not use any
+                          'N' suffix to the parameter name (objLenY versus
+                          objLenY2).  Note that the format for this parameter
+                          is a comma-separated list of sizes if using target size
+                          cycling,  that is, if tFrames is positive.  In this
+                          case, the plugin cycles through each target's specified
+                          size every tFrames frames (after first cycling through
+                          all of the speeds for a particular size).
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  0 - +2147483647 [, 0 - +0 - +2147483647 ... ]
+        Default value:    first object: 8 
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objVelX
+  *or*
+objVelXN (where N is 2 to numObj)
+        Synopsis:         Specifies the x-component of the velocity vector
+                          of the target.  The velocity is in units of: pixels
+                          per frame.  Note that a vector of values may be used 
+                          here if you want to do target speedcycling.  In which
+                          case the target speed is cycled every `tFrames' from 
+                          values in this vector. (See the 'tFrames' parameter).
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large velocity.  Velocities
+                          should be sufficiently small such that objects do not 
+                          cross more than one screenful in between frames.               
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +2147483647 ... ]
+        Default value:    first object: 4
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objVelY
+  *or*
+objVelYN (where N is 2 to numObj)
+        Synopsis:         Specifies the y-component of the velocity vector
+                          of the target.  The velocity is in units of: pixels
+                          per frame.  Note that a vector of values may be used 
+                          here if you want to do target speedcycling.  In which
+                          case the target speed is cycled every `tFrames' from 
+                          values in this vector. (See the 'tFrames' parameter).              
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large velocity.  Velocities
+                          should be sufficiently small such that objects do not 
+                          cross more than one screenful in between frames.               
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
+        Default value:    first object: 4
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objVelZ
+  *or*
+objVelZN (where N is 2 to numObj)
+        Synopsis:         Specifies the z-component of the velocity vector
+                          of the target.  The velocity is in units of: pixels
+                          per frame.  Note that a vector of values may be used 
+                          here if you want to do target speedcycling.  In which
+                          case the target speed is cycled every `tFrames' from 
+                          values in this vector. (See the 'tFrames' parameter).              
+                          Technical note:  When wrapEdge=false wall bouncing is 
+                          in effect and the plugin may produce screen flicker
+                          for objects with extremely large velocity.  Velocities
+                          should be sufficiently small such that objects do not 
+                          cross more than one screenful in between frames.               
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
+        Default value:    first object: 0
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+                          
+objXinit
+objXinitN (where N is 2 to numObj)
+        Synopsis:         Specifies the x-coordinate of the target's 
+                          initial position.  The second form is for targets
+                          numbered 2 and above.
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
+        Default value:    first object: 400
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+objYinit
+objYinitN (where N is 2 to numObj)
+        Synopsis:         Specifies the y-coordinate of the target's 
+                          initial position.  The second form is for targets
+                          numbered 2 and above.
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -2147483648 - +2147483647 [, -2147483648 - +214748364 ... ]
+        Default value:    first object: 400
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+                          
+objZinit
+objZinitN (where N is 2 to numObj)
+        Synopsis:         Specifies the z-coordinate of the target's 
+                          initial position.  The second form is for targets
+                          numbered 2 and above.
+        Datatype:         integer tuple, comma (or space) delimited
+        Possible values:  -500 - +1000 [, -500 - +1000 ... ]
+        Default value:    first object: 0
+                          subsequent objects: take on the value of the first
+                          object by default (unless specified, of course).
+
+rndtrial
+        Synopsis:         This parameter is used in conjunction with `tframes'.
+                          `rndtrial' is an integer specifying whether to randomly
+                          generate a new position and velocity for all targets 
+                          every `tframes' frames (and for frame 0).  `rndtrial' 
+                          determines how position and/or velocity vectors for 
+                          all targets will be reset (every `tframes' frames) as 
+                          follows:                          
+                          IF rndtrial IS 0 THEN
+                              - The target's position and velocity will be reset 
+                                to its initial position and velocity. (objXinit, 
+                                objVelX, etc). 
+                          IF rndtrial IS 1 THEN                             
+                              - Position will be a uniformly distributed random 
+                                X,Y,Z triplet within the visible area of the 
+                                screen, taking into account margins, etc, and
+                                also taking into account the 'dimensionality of 
+                                motion' of the object.  That is, if an object's
+                                (objVelX,objVelY,objVelZ) has all nonzero 
+                                components, a 3D position is generated in the 
+                                full 3D space of the simulation.  Otherwise,
+                                a 1D or 2D position is generated for all nonzero
+                                objVel* components. 
+                              - Velocity will be a uniformly distributed random
+                                velocity vector from (-objVelX,-objVelY,-objVelZ) 
+                                to (+objVelX,+objVelY,+objVelZ).                                
+                          IF rndtrial IS 2 THEN
+                              - Position will be a uniformly distributed random 
+                                X,Y,Z triplet within the visible area of the 
+                                screen, taking into account margins, etc, and
+                                also taking into account the 'dimensionality of 
+                                motion' of the object.  That is, if an object's
+                                (objVelX,objVelY,objVelZ) has all nonzero 
+                                components, a 3D position is generated in the 
+                                full 3D space of the simulation.  Otherwise,
+                                a 1D or 2D position is generated for all nonzero
+                                objVel* components. 
+                              - Velocity will have the same magnitude as the 
+                                vector (objVelX,objVelY,objVelZ) but will point 
+                                in a uniformly distributed random direction in
+                                3D space, with the exception below.
+                                Exceptions for 1D/2D Motion:  In order to 
+                                maintain that objects that were not previously 
+                                moving in Z (objVelZ = 0), not get any new 
+                                velocity components in Z (that is, objects that 
+                                previously were moving in an XY plane should 
+                                stay in an XY plane),  the following special 
+                                logic has been added:  Objects that have one of 
+                                objVelX,objVelY,objVelZ equal to 0 (that is, 
+                                they are moving in a plane or a line), will 
+                                simply get a random direction in the plane (or 
+                                line) that the object was moving in previously.  
+                                So if objVelZ is 0, the object will get a new
+                                random direction in the    XY plane.  If objVelX 
+                                was 0, the object will get a new random 
+                                direction in the YZ plane, etc. 
+                          IF rndtrial IS 3 THEN
+                              - Position will not be reset (appearance on screen
+                                will be that object has not jumped)
+                              - Velocity will be uniformly distributed randomly
+                                based on objVelX,objVelY,objVelZ range.                                
+                          IF rndtrial IS 4 THEN
+                              - Position will not be reset as 3 above.
+                              - Velocity will have the same magnitude as the 
+                                vector (objVelX,objVelY,objVelZ) but will point 
+                                in a uniformly distributed random direction in
+                                3D space, with the exception below.
+                                Exceptions for 1D/2D Motion:  In order to 
+                                maintain that objects that were not previously 
+                                moving in Z (objVelZ = 0), not get any new 
+                                velocity components in Z (that is, objects that 
+                                previously were moving in an XY plane should 
+                                stay in an XY plane),  the following special 
+                                logic has been added:  Objects that have one of 
+                                objVelX,objVelY,objVelZ equal to 0 (that is, 
+                                they are moving in a plane or a line), will 
+                                simply get a random direction in the plane (or 
+                                line) that the object was moving in previously.  
+                                So if objVelZ is 0, the object will get a new
+                                random direction in the    XY plane.  If objVelX 
+                                was 0, the object will get a new random 
+                                direction in the YZ plane, etc. 
+        Datatype:         integer
+        Possible values:  0, 1, 2, 3, 4
+        Default value:    0
+
+rseed
+        Synopsis:         Specifies the seed to use for the pseudo-random 
+                          number generator.  The sequence of random numbers
+                          generated is always the same for a particular seed.
+        Datatype:         integer
+        Possible values:  -2147483648 - +2147483647
+        Default value:    -1
+
+sharedLight
+       Synopsis:          Applies to 3D objects that make use of lighting 
+                          (currently only the sphere) .  If true, then the 
+                          spheres will all share the same light source which is 
+                          fixed in space, so as the spheres move their light/shadow 
+                          will move relative to the shared (fixed) light.  The 
+                          analogy is that this is like planets with a shared sun.
+                          Otherwise if false, each sphere gets its own private 
+                          light source which is relative to the sphere and moves 
+                          with the sphere.
+       Datatype:          boolean
+       Possible values:   0, 1, false, true, no, yes
+       Default value:     1 (true)
+
+tFrames
+        Synopsis:         Specifies the number of frames until the target's
+                          size and velocity are up for being cycled from the 
+                          object's speed or size vectors. Every tFrames frames,
+                          for each defined size of the object, the speeds
+                          of the object are iterated through.  After the last
+                          speed, the next object size is used and the first
+                          speed is used again.  So the number of frames in 
+                          an iteration become: tFrames * size_of_speed_vec *
+                          size_of_lengths_vec.  If nFrames was not defined,
+                          it gets auto-set to this product in MovingObjects only.
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    4320000 (approx 10 hours at 120fps)
+
+wrapEdge
+        Synopsis:         If true, objects wrap off the edge onto the opposite
+                          edge of the plugin drawing area.  If false, objects
+                          bounce off the edges.  
+                          How objects bounce: With wrapEdge=off, objects bounce 
+                          off the walls of the drawing area using a hybrid 
+                          frustum/box scheme to define the walls.  If an object 
+                          is moving in all three dimensions (that is, it has 
+                          nonzero X,Y and Z components to its velocity vector), 
+                          then when it hits the side of the screen (or the 
+                          zBoundsNear or zBoundsFar bondaries), it will bounce 
+                          in all 3 dimensions using the viewing frustum's 
+                          "walls" to calculate the angle of bounce. (A frustum 
+                          is a cutoff-pyramid, oriented such that its tip would 
+                          be at the camera).
+                          However, if an object lacks motion in all 3 dimensions 
+                          (at least one of X,Y,Z components to velocity is 0), 
+                          then the plugin will not use a frustum to calculate 
+                          the angle of bounce, but rather use a box or cube to 
+                          define the bounds and to determine the angle of 
+                          bounce.  So, each object either sees the sides of the 
+                          drawing area as a flat wall (box bounds) or angled 
+                          wall (frustum bounds), depending on whether that 
+                          object is moving in all 3 dimensions or not.  This 
+                          scheme allows objects to preserve their linear or 
+                          planar motion if they are moving in 1 or 2 
+                          dimensions, but to bounce correctly in 3D space 
+                          (off of a frustum and not a box) when they are moving 
+                          in all 3 dimensions.  Hence the hybrid box/frustum 
+                          nature of the walls.
+                          Technical note:  When wrapEdge=false (wall bouncing is 
+                          in effect) the plugin may produce screen flicker
+                          for objects with extremely large velocities.  
+                          Velocities should be sufficiently small such that 
+                          objects do not cross more than one screenful in 
+                          between frames.               
+        Datatype:         boolean
+        Possible values:  true, false or 1, 0
+        Default value:    false (0)
+
+zBoundsFar
+        Synopsis:         The far 'wall' for objects in z for bouncing/wrapping.  
+                          When an object's z-coordinate exceeds this value, the 
+                          object will wrap (if wrapEdge is true) or bounce back
+                          from the wall (if wrapEdge is false).
+        Datatype:         integer
+        Possible values:  0 - +2147483647
+        Default value:    1000
+
+zBoundsNear
+        Synopsis:         The near 'wall' for objects in z for bouncing/wrapping.  
+                          When an object's z-coordinate is less than this value, 
+                          the object will wrap (if wrapEdge is true) or bounce 
+                          back from the wall (if wrapEdge is false).  By default
+                          this value is 100 in front of the camera (which 
+                          varies in z depending on the width of the drawing 
+                          area, but is -409 by default for an 800x600 window).
+        Datatype:         integer
+        Possible values:  -2147483647 - -1 
+        Default value:    -CAMERA_DISTANCE + 100, which is -409 for 800x600 render 
+                          windows.  (CAMERA_DISTANCE gets printed to the console 
+                          log for user reference).
+      
+----------------------------------------------------------------------------------
+`Sawtooth' PLUGIN PARAMETERS
+----------------------------------------------------------------------------------
+fps_mode
+        (This plugin uses this variable -- see global param)
+
+Nloops
+        Synopsis:         The number of sawteeth cycles to generate.  
+                          -1 for infinite.
+        Datatype:         integer
+        Possible values:  -1 - +2147483647 (maximum value depends on hz param.)
+        Default value:    -1 (loop forever)
+
+intensity_low
+        Synopsis:         Specifies the gray level of the beginning state for 
+                          the sawtooth.  This value along with intensity_high 
+                          (plus NBlinks) determines the sawtooth's period.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    0.0
+
+intensity_high
+        Synopsis:         Specifies the gray level of the end state for the
+                          sawtooth.  This value along with intensity_low 
+                          (plus NBlinks) determines the sawtooth's period.
+        Datatype:         float
+        Possible values:  0.0 - 1.0
+        Default value:    1.0

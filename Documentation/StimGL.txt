@@ -2,18 +2,73 @@ Symphony and StimGL
 ===================
 
 The StimGL application developed by the Leonardo lab is included with Symphony.  This tool allows for the display of 
-visual stimuli in addition to any electrical stimuli.
+visual stimuli in addition to any electrical stimuli.  StimGL comes with a number of plug-ins for different types of 
+stimuli each of which can be customized with a large number of parameters.  See the StimGL Plug-in Parameters.txt 
+file for details on these parameters.
 
 
 Creating a StimGL-based protocol
 --------------------------------
 
-TODO
+In addition to the other steps for creating a protocol described in Protocols.txt you need to do the following to 
+create a StimGL protocol:
 
-(API documented in Contents.m in StimGL/@StimOpenGL)
+* Indicate which StimGL plug-in you will be using by defining the "plugInName" property.  The available plug-ins 
+  are: CheckerFlicker, Flicker, MovingGrating, MovingObjects and Sawtooth.
+* Override the epochDuration method to indicate how long the plug-in will run during the current epoch.
+* Override the pluginParameters method to add any plug-in specific parameters for the current epoch.
 
 
 Synchronization
 ---------------
 
-TODO
+There is a variable delay between the time when the Symphony .NET framework begins to send stimuli and record 
+responses and when StimGL begins displaying its visual stimuli.  If the exact amount of this delay needs to be 
+known then it is recommended that the flashing rectangle in the lower left corner of the StimGL display be used.  
+An optical diode can be mounted in front of this corner of the display and configured in Symphony as a device of 
+the rig configuration.  The response recorded from this device can be used to align the data after the fact.
+
+
+Sample protocol
+---------------
+
+class MyStimGLProtocol < StimGLProtocol
+
+    properties (Constant)
+        identifier = 'org.janelia.lab.MyStimGLProtocol'
+        version = 1
+        displayName = 'My StimGL Protocol'
+        plugInName = 'MovingObjects'
+    end
+    
+    properties
+        preStimDuration = 1;
+        stimDuration = 1;
+        stimAmp = 5;
+        postStimDuration = 1;
+    end
+    
+    methods
+    
+        function s = epochDuration(obj)
+            % Indicate how long the animation should run.
+            s = obj.preStimDuration + obj.stimDuration + obj.postStimDuration;
+        end
+        
+        function params = plugInParameters(obj)
+            % Get the base parameters from the base class.
+            params = pluginParameters@StimGLProtocol(obj);
+            
+            % Add our parameters.  Have the moving box get larger epoch.
+            params.objType = 'box';
+            params.objLenX = 10 * obj.epochNum;
+            params.objLenY = 10 * obj.epochNum;
+            params.objXInit = 400;
+            params.objYInit = 400;
+            params.objVelX = 10;
+            params.objVelY = 10;
+        end
+    
+    end
+
+end
