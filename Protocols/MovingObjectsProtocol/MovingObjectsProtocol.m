@@ -15,8 +15,8 @@ classdef MovingObjectsProtocol < StimGLProtocol
         initialYPosition = 400
         objectXVelocity = 10
         objectYVelocity = 10
-        objectZVelocity = 10;
         wrapAtEdges = true
+        movementDuration = 1;
     end
     
     
@@ -31,13 +31,18 @@ classdef MovingObjectsProtocol < StimGLProtocol
         end
         
         
+        function s = epochDuration(obj)
+            s = obj.movementDuration;
+        end
+        
+        
         function params = pluginParameters(obj)
             % Get the default StimGL parameters.
             params = pluginParameters@StimGLProtocol(obj);
             
             % The moving objects plug-in calculates the total number of frames differently than other plug-ins.
             % It can loop through a list of speeds and sizes, running each for a number of frames.  In our case 
-            % we handle looping outside of StimGL so we just need loop.
+            % we handle looping outside of StimGL so we just need one loop.
             params.tFrames = params.nFrames;
             
             % Add the moving object parameters.
@@ -48,7 +53,6 @@ classdef MovingObjectsProtocol < StimGLProtocol
             params.objYInit = obj.initialYPosition;
             params.objVelX = obj.objectXVelocity;
             params.objVelY = obj.objectYVelocity;
-            params.objVelZ = obj.objectZVelocity
             params.wrapEdge = uint8(obj.wrapAtEdges);
         end
         
