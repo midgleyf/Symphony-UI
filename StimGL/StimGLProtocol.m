@@ -11,7 +11,7 @@ classdef StimGLProtocol < SymphonyProtocol
     
     properties
         % These properties are available to all StimGL plug-ins.
-        numberOfLoops = uint32(1);       % the number of times to run the plug-in
+        numberOfLoops = uint32(1);       % the number of times (epochs) to run the plug-in
     end
     
     
@@ -35,10 +35,15 @@ classdef StimGLProtocol < SymphonyProtocol
         end
         
         
+        function s = epochDuration(obj) %#ok<MANU>
+            % Return the number of seconds the current epoch will take.
+            s = 1;
+        end
+        
+        
         function params = pluginParameters(obj)
             frameRate = double(GetRefreshRate(obj.stimGL));
-            animationDuration = 1;
-            params.nFrames = animationDuration * frameRate;
+            params.nFrames = obj.epochDuration() * frameRate;
             
             % We _don't_ set nLoops because we handle that in Symphony via multiple epochs.
             params.nLoops = 0;
@@ -49,7 +54,6 @@ classdef StimGLProtocol < SymphonyProtocol
             % Call the base class method which clears all figures.
             prepareRun@SymphonyProtocol(obj);
             
-            obj.openFigure('Response');
             obj.loopCount = 1;
         end
         
@@ -59,15 +63,16 @@ classdef StimGLProtocol < SymphonyProtocol
             prepareEpoch@SymphonyProtocol(obj);
             
             % Create a dummy output signal so the epoch runs for the desired length.
-            % TODO: use any device with an output stream, don't need to require a specific one.
-            sampleRate = obj.deviceSampleRate('Amplifier_Ch1', 'OUT');
-            animationDuration = 1;
-            stimulus = zeros(1, floor(double(animationDuration) * System.Decimal.ToDouble(sampleRate.Quantity)));
-            obj.addStimulus('Amplifier_Ch1', 'amp_ch1_stimulus', stimulus);
+            % If a sub-class adds its own stimulus then this one will be replaced.
+            % TODO: make sure to pick a device with an output stream
+            stimulus = zeros(1, floor(obj.epochDuration() * obj.sampleRate));
+            device = obj.rigConfig.devices();
+            obj.addStimulus(device{1}.Name, 'StimGL_dummy_stimulus', stimulus);
             
             % Start the StimGL plug-in.
             SetParams(obj.stimGL, obj.plugInName, obj.pluginParameters());
-            Start(obj.stimGL, obj.plugInName, 1);
+            Start(obj.stimGL, obj.plugInName, 0);
+            Unpause(obj.stimGL);
         end
         
         
