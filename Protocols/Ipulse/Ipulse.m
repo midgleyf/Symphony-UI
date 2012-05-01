@@ -22,10 +22,9 @@ classdef Ipulse < SymphonyProtocol
     
     methods
         
-        function [stimuli,sampleRate] = sampleStimuli(obj)
+        function stimuli = sampleStimuli(obj)
             % Return a set of sample stimuli, one for each value in Iamp.
             obj.loopCount = 1;
-            sampleRate = obj.rigConfig.sampleRate;
             stimuli = cell(length(obj.Iamp),1);
             for i = 1:length(obj.Iamp)
                 stimuli{i} = obj.stimulusForEpoch(i);

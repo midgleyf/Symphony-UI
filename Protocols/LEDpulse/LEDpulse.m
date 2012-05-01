@@ -31,10 +31,14 @@ classdef LEDpulse < SymphonyProtocol
     
     methods
         
-        function [stimuli,sampleRate] = sampleStimuli(obj)
+        function stimuli = sampleStimuli(obj)
             % Return a set of sample stimuli
-            stimuli = [];
-            sampleRate = obj.rigConfig.sampleRate;
+            numEpochs = max([numel(obj.LEDpulseDelay),numel(obj.LEDpulseInt),numel(obj.LEDpulseAmp)]);
+            stimuli = cell(1, numEpochs);
+            for i = 1:numEpochs
+                [~, Istim, ~] = obj.stimulusForEpoch(i);
+                stimuli{i} = Istim;
+            end
         end
         
         function prepareRun(obj)

@@ -156,8 +156,7 @@ classdef TempInt < SymphonyProtocol
         end
         
         
-       function [stimuli, sampleRate] = sampleStimuli(obj)
-           sampleRate = obj.rigConfig.sampleRate;
+       function stimuli = sampleStimuli(obj)
            stimuli = cell(obj.numberOfAverages, 1);
           for i = 1:obj.numberOfAverages
               stimuli{i} = obj.stimulusForEpoch(i);

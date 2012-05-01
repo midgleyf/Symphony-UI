@@ -29,12 +29,11 @@ classdef TestProtocol < SymphonyProtocol
         end
         
         
-        function [stimuli, sampleRate] = sampleStimuli(obj)     
+        function stimuli = sampleStimuli(obj)     
             stimuli = cell(obj.epochMax, 1);                    % create a cell for each of the epochs
             for i = 1:obj.epochMax                                % for each of the epochs
                 stimuli{i} = obj.stimulusForEpoch(i);               % put the stimulus for that epoch in the appropriate cell
             end
-            sampleRate = obj.sampleRate;                         % WHY IS THIS HERE? (Isn't sampleRate defined by the value associated with the device)?)
         end
         
         

@@ -6,7 +6,7 @@ function edited = editParameters(protocol)
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     
-    [stimuli, ~] = handles.protocolCopy.sampleStimuli();
+    stimuli = handles.protocolCopy.sampleStimuli();
     handles.showStimuli = ~isempty(stimuli);
     
     % TODO: determine the width from the actual labels using textwrap.
@@ -232,7 +232,7 @@ function updateStimuli(handles)
     if handles.showStimuli
         set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
         cla;
-        [stimuli, sampleRate] = handles.protocolCopy.sampleStimuli();
+        stimuli = handles.protocolCopy.sampleStimuli();
         if isempty(stimuli)
             plot3(0, 0, 0);
             set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
@@ -242,11 +242,11 @@ function updateStimuli(handles)
             stimulusCount = length(stimuli);
             for i = 1:stimulusCount
                 stimulus = stimuli{i};
-                plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / double(sampleRate), stimulus);
+                plot3(ones(1, length(stimulus)) * i, (1:length(stimulus)) / double(handles.protocolCopy.sampleRate), stimulus);
                 hold on
             end
             hold off
-            set(handles.stimuliAxes, 'XTick', 1:stimulusCount)
+            set(handles.stimuliAxes, 'XTick', 1:stimulusCount, 'XLim', [0.75 stimulusCount + 0.25])
             xlabel('Sample #');
             ylabel('Time (s)');
             set(gca,'YDir','reverse');

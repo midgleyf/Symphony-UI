@@ -37,8 +37,7 @@ classdef LEDFamily < SymphonyProtocol
         end
         
         
-        function [stimuli, sampleRate] = sampleStimuli(obj)
-            sampleRate = obj.sampleRate;
+        function stimuli = sampleStimuli(obj)
             stimuli = cell(obj.stepsInFamily, 1);
             for i = 1:obj.stepsInFamily
                 stimuli{i} = obj.stimulusForEpoch(i);

@@ -49,17 +49,15 @@ classdef SealAndLeakProtocol < SymphonyProtocol
         end
         
         
-        function [stimuli, sampleRate] = sampleStimuli(obj)
+        function stimuli = sampleStimuli(obj)
             if isempty(obj.rigConfig.deviceWithName('Amplifier_Ch1'))
                 stimuli = {};
-                sampleRate = [];
             else
                 if strcmp(obj.multiClampMode, 'VClamp')
                     stimuli = {obj.stimulusForDevice('Amplifier_Ch1') * 1e-3};
                 else
                     stimuli = {obj.stimulusForDevice('Amplifier_Ch1') * 1e-12};
                 end
-                sampleRate = System.Decimal.ToDouble(obj.deviceSampleRate('Amplifier_Ch1', 'OUT').Quantity);
             end
         end
         
