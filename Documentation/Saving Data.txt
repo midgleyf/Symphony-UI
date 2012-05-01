@@ -22,10 +22,11 @@ cell ID and the rig.
 Source hierarchy
 ----------------
 
-The top level epoch group in each HDF5 file must indicate which "source" the data comes from.  This is a brain region and the 
-choices are determined by the contents of the SourceHierarchy.txt file.  It is a simple text file containing a hierarchy of 
-regions indicated by tab indents.  To add additional regions simply add new lines to that file with the appropriate number of 
-tabs preceding each region.  
+The top level epoch group in each HDF5 file must indicate which "source" the data comes from.  This is an animal, brain region, 
+cell type, etc. (see the "Source Hierarchy" section of the Ovation documentation for more details) and the choices are 
+determined by the contents of the SourceHierarchy.txt file.  It is a simple text file containing a hierarchy of regions 
+indicated by tab indents.  To add additional regions simply add new lines to that file with the appropriate indentation 
+preceding each region.  
 
 The HDF5 format does not capture the hierarchy leading to the chosen source so this is stored in a separate XML file.  This file 
 is automatically created in the same folder as the HDF5 file.
@@ -36,3 +37,16 @@ Notes
 
 Any time that a protocol is paused or stopped user supplied notes can be saved with the other data.  These notes are saved 
 into the same XML file as the source hierarchy.
+
+
+Recovering from a crash
+-----------------------
+
+If MATLAB crashes while acquiring data then typically the HDF5 file is still usable.  The Symphony .NET framework does 
+not keep the file hanging open all the time, it quickly appends data at the end of each epoch and flushes the changes to 
+disk.  This leaves the file in a consistent state almost all of the time.  If you wish to acquire additional data and 
+save it to the same file then relaunch MATLAB and create a new epoch group using the same cell ID and rig.  You will then 
+be prompted to append to the existing file.  The epoch group you create will be a new top-level epoch group in the file.  
+There is currently no way to integrate the new group into the previous hierachy of groups.  This can be done later, either 
+during or after importing the file into Ovation.  The companion XML file will also be preserved and any additional notes 
+will be appended to it.

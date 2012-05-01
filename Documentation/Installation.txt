@@ -1,10 +1,35 @@
 Symphony Installation
----------------------
+=====================
 
-To run Symphony you need the following items installed:
+Installing Symphony on a rig
+----------------------------
 
-* Windows 7
+To run Symphony on an e-phys rig you need the following items installed:
+
+* Windows 7 (32 or 64 bit)
 * MultiClamp Commander
-* MATLAB 2011a (32 bit)
 * Symphony .NET Framework (available from http://download.physionconsulting.com/)
+* MATLAB 2011a (32 bit)
+* Symphony UI (available from https://subversion2/murphylab/CodeRepository/trunk/Symphony)
+
+For 32 bit Windows 7 you also need:
+
+* HEKA ITC-18 drivers (32 bit)
+
+For 64 bit Windows 7 you also need:
+
+* HEKA ITC-18 drivers (64 bit)
+
+Using Symphony with 64 bit Windows has not been extensively tested.  It is recommend to stay with 
+32 bit at this point.
+
+
+Installing Symphony for development
+-----------------------------------
+
+Symphony can be installed on any Windows or Mac in order to develop protocols, figure handlers, etc.  
+To do this the following items need to be intalled:
+
+* MATLAB 2011a (32 bit)
+* Symphony .NET Framework (for Windows, available from http://download.physionconsulting.com/)
 * Symphony UI (available from https://subversion2/murphylab/CodeRepository/trunk/Symphony)
