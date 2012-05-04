@@ -55,12 +55,14 @@ classdef MovingGrid < StimGLProtocol
             horzTrials=[];
             if any(ismember(obj.objectDir,[0,180]))
                 vertTrials=allcombs(obj.Xcoords,obj.objectDir(ismember(obj.objectDir,[0,180])));
-                obj.plotData.meanVertResp = NaN(1,numel(obj.Xcoords));
+                obj.plotData.meanUpResp = NaN(1,numel(obj.Xcoords));
+                obj.plotData.meanDownResp = obj.plotData.meanUpResp;
                 obj.openFigure('Custom','Name','VertRespFig','UpdateCallback',@updateVertRespFig);
             end
             if any(ismember(obj.objectDir,[90,270]))
                 horzTrials=allcombs(obj.Ycoords,obj.objectDir(ismember(obj.objectDir,[90,270])));
-                obj.plotData.meanHorzResp = NaN(1,numel(obj.Ycoords));
+                obj.plotData.meanRightResp = NaN(1,numel(obj.Ycoords));
+                obj.plotData.meanLeftResp = obj.plotData.meanRightResp;
                 obj.openFigure('Custom','Name','HorzRespFig','UpdateCallback',@updateHorzRespFig);
             end
             obj.trialTypes = [vertTrials; horzTrials];
@@ -101,30 +103,50 @@ classdef MovingGrid < StimGLProtocol
         end
         
         function updateVertRespFig(obj,axesHandle)
-            if ismember(obj.plotData.epochObjectDir,[0,180])
-                if nnz(~isnan(obj.plotData.meanVertResp))==1
-                    obj.plotData.meanVertRespHandle = line(obj.Xcoords,obj.plotData.meanVertResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+            if ismember(0,obj.plotData.epochObjectDir)
+                if nnz(~isnan(obj.plotData.meanUpResp))==1
+                    obj.plotData.meanUpRespHandle = line(obj.Xcoords,obj.plotData.meanUpResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none','MarkerFaceColor','g');
                     set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.Xcoords)-5,max(obj.Xcoords)+5],'XDir','reverse','Xtick',sort(obj.Xcoords));
                     xlabel(axesHandle,'azimuth (degrees)');
                     ylabel(axesHandle,'response (spikes/s)');
                 else
-                    set(obj.plotData.meanVertRespHandle,'Ydata',obj.plotData.meanVertResp);
+                    set(obj.plotData.meanUpRespHandle,'Ydata',obj.plotData.meanUpResp);
                 end
-                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
+            elseif ismember(180,obj.plotData.epochObjectDir)
+                if nnz(~isnan(obj.plotData.meanDownResp))==1
+                    obj.plotData.meanDownRespHandle = line(obj.Xcoords,obj.plotData.meanDownResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none','MarkerFaceColor','r');
+                    set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.Xcoords)-5,max(obj.Xcoords)+5],'XDir','reverse','Xtick',sort(obj.Xcoords));
+                    xlabel(axesHandle,'azimuth (degrees)');
+                    ylabel(axesHandle,'response (spikes/s)');
+                else
+                    set(obj.plotData.meanDownRespHandle,'Ydata',obj.plotData.meanDownResp);
+                end
+                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none');
             end
         end
         
         function updateHorzRespFig(obj,axesHandle)
-            if ismember(obj.plotData.epochObjectDir,[90,270])
-                if nnz(~isnan(obj.plotData.meanHorzResp))==1
-                    obj.plotData.meanHorzRespHandle = line(obj.Ycoords,obj.plotData.meanHorzResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none','MarkerFaceColor','k');
+            if ismember(90,obj.plotData.epochObjectDir)
+                if nnz(~isnan(obj.plotData.meanRightResp))==1
+                    obj.plotData.meanRightRespHandle = line(obj.Ycoords,obj.plotData.meanRightResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none','MarkerFaceColor','g');
                     set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.Ycoords)-5,max(obj.Ycoords)+5],'Xtick',obj.Ycoords);
                     xlabel(axesHandle,'elevation (degrees)');
                     ylabel(axesHandle,'response (spikes/s)');
                 else
-                    set(obj.plotData.meanHorzRespHandle,'Ydata',obj.plotData.meanHorzResp);
+                    set(obj.plotData.meanRightRespHandle,'Ydata',obj.plotData.meanRightResp);
                 end
-                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','k','Marker','o','LineStyle','none');
+                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','g','Marker','o','LineStyle','none');
+            elseif ismember(270,obj.plotData.epochObjectDir)
+                if nnz(~isnan(obj.plotData.meanLeftResp))==1
+                    obj.plotData.meanLeftRespHandle = line(obj.Ycoords,obj.plotData.meanLeftResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none','MarkerFaceColor','r');
+                    set(axesHandle,'Box','off','TickDir','out','XLim',[min(obj.Ycoords)-5,max(obj.Ycoords)+5],'Xtick',obj.Ycoords);
+                    xlabel(axesHandle,'elevation (degrees)');
+                    ylabel(axesHandle,'response (spikes/s)');
+                else
+                    set(obj.plotData.meanLeftRespHandle,'Ydata',obj.plotData.meanLeftResp);
+                end
+                line(obj.plotData.epochCoord,obj.plotData.epochResp,'Parent',axesHandle,'Color','r','Marker','o','LineStyle','none');
             end
         end
         
@@ -328,20 +350,36 @@ classdef MovingGrid < StimGLProtocol
                 obj.plotData.stimStart = obj.preTime;
             end
             spikeTimes = obj.plotData.time(obj.plotData.spikePts);
-            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime+0.25))/(obj.plotData.stimTime+0.25);
-            if ismember(obj.plotData.epochObjectDir,[0,180])
+            obj.plotData.epochResp = numel(find(spikeTimes>obj.plotData.stimStart & spikeTimes<obj.plotData.stimStart+obj.plotData.stimTime+0.5))/(obj.plotData.stimTime+0.5);
+            if any(ismember([0,180],obj.plotData.epochObjectDir))
                 coordIndex = find(obj.Xcoords==obj.plotData.epochCoord,1);
-                if obj.loopCount==1
-                    obj.plotData.meanVertResp(coordIndex) = obj.plotData.epochResp;
+                if ismember(0,obj.plotData.epochObjectDir)
+                    if obj.loopCount==1
+                        obj.plotData.meanUpResp(coordIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanUpResp(coordIndex) = mean([repmat(obj.plotData.meanUpResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
                 else
-                    obj.plotData.meanVertResp(coordIndex) = mean([repmat(obj.plotData.meanVertResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    if obj.loopCount==1
+                        obj.plotData.meanDownResp(coordIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanDownResp(coordIndex) = mean([repmat(obj.plotData.meanDownResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
                 end
-            else
+            elseif any(ismember([90,270],obj.plotData.epochObjectDir))
                 coordIndex = find(obj.Ycoords==obj.plotData.epochCoord,1);
-                if obj.loopCount==1
-                    obj.plotData.meanHorzResp(coordIndex) = obj.plotData.epochResp;
+                if ismember(90,obj.plotData.epochObjectDir)
+                    if obj.loopCount==1
+                        obj.plotData.meanRightResp(coordIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanRightResp(coordIndex) = mean([repmat(obj.plotData.meanRightResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
                 else
-                    obj.plotData.meanHorzResp(coordIndex) = mean([repmat(obj.plotData.meanHorzResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    if obj.loopCount==1
+                        obj.plotData.meanLeftResp(coordIndex) = obj.plotData.epochResp;
+                    else
+                        obj.plotData.meanLeftResp(coordIndex) = mean([repmat(obj.plotData.meanLeftResp(coordIndex),1,obj.loopCount-1),obj.plotData.epochResp]);
+                    end
                 end
             end
             
