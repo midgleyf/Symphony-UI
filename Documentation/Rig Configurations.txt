@@ -4,10 +4,7 @@ Rig Configurations
 The Symphony UI provides a base class for defining "rig configurations" which describe how a rig is wired.  
 A rig configuration consists of some number of devices, each of which has an input and/or output stream.  
 In a typical physiology rig, each amplifier channel, any stimulation devices such as an LED, valve, etc., 
-would be represented by a distinct device.
-
-[Barry: is there a good place in the Symphony .NET documentation to reference here that has a better 
-description of devices?]
+would be represented by a distinct device.  See the Symphony .NET documentation [1] for more details.
 
 
 Defining a new rig configuration
@@ -82,3 +79,9 @@ Typically the sample rate is set by the user when defining a protocol's paramete
 rate by adding the following code to your sub-class' createDevices method:
 
     obj.sampleRate = 20000;
+
+
+Footnotes
+---------
+
+(1) On Windows see C:/Program Files/Physion/Symphony/docs/external_devices.html

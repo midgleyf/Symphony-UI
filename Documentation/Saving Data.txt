@@ -23,14 +23,13 @@ Source hierarchy
 ----------------
 
 The top level epoch group in each HDF5 file must indicate which "source" the data comes from.  This is an animal, brain region, 
-cell type, etc. (see the "Source Hierarchy" section of the Ovation documentation for more details) and the choices are 
+cell type, etc. (see the "Source Hierarchy" section of the Ovation documentation [1] for more details) and the choices are 
 determined by the contents of the SourceHierarchy.txt file.  It is a simple text file containing a hierarchy of regions 
 indicated by tab indents.  To add additional regions simply add new lines to that file with the appropriate indentation 
 preceding each region.  
 
 The HDF5 format does not capture the hierarchy leading to the chosen source so this is stored in a separate XML file.  This file 
 is automatically created in the same folder as the HDF5 file.
-
 
 Notes
 -----
@@ -50,3 +49,9 @@ be prompted to append to the existing file.  The epoch group you create will be 
 There is currently no way to integrate the new group into the previous hierachy of groups.  This can be done later, either 
 during or after importing the file into Ovation.  The companion XML file will also be preserved and any additional notes 
 will be appended to it.
+
+
+Footnotes
+---------
+
+(1) On Windows see C:/Program Files/Physion/Symphony/docs/experiment_model.html#source-hierarchy
