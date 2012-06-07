@@ -1,0 +1,1 @@
+See Overview.txt in the Documentation folder to get started with Symphony.
