@@ -1,17 +1,34 @@
 classdef Converters < handle
-   
-    properties (Constant)
-        Conversions = struct('fromUnit', {}, 'toUnit', {}, 'func', {});
-    end
     
     methods (Static)
         
         function Register(fromUnit, toUnit, func)
-            % TODO: this doesn't actually work, the array remains empty.
-            c = Symphony.Core.Converters.Conversions;
-            c(end + 1) = struct('fromUnit', fromUnit, 'toUnit', toUnit, 'func', func);
-            Symphony.Core.Converters.Conversions = c;
+            global unitConversions;
+            
+            if isempty(unitConversions)
+                unitConversions = struct('fromUnit', fromUnit, 'toUnit', toUnit, 'func', func);
+            else
+                unitConversions(end + 1) = struct('fromUnit', fromUnit, 'toUnit', toUnit, 'func', func);
+            end
         end
         
+        function t = Test(fromUnit, toUnit)
+            global unitConversions;
+            
+            t = false;
+            for i = 1:length(unitConversions)
+                if strcmp(unitConversions(i).fromUnit, fromUnit) && strcmp(unitConversions(i).toUnit, toUnit)
+                    t = true;
+                    break
+                end
+            end
+        end
+        
+        function Clear()
+            global unitConversions;
+            
+            unitConversions = [];
+        end
+            
     end
 end
