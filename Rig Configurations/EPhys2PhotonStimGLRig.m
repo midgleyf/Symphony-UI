@@ -14,10 +14,10 @@ classdef EPhys2PhotonStimGLRig < RigConfiguration
         
         function createDevices(obj)
             obj.addMultiClampDevice('Amplifier_Ch1', 1, 'ANALOG_OUT.0', 'ANALOG_IN.0');
-            obj.addDevice('LED', 'ANALOG_OUT.1', '');   % output only
+            obj.addDevice('LED', 'ANALOG_OUT.1', '', 'mV');   % output only
             
             % Add the optical sensor. (input only)
-            obj.addDevice('Photodiode', '', 'ANALOG_IN.1');
+            obj.addDevice('Photodiode', '', 'ANALOG_IN.1', 'mV');
         end
         
     end

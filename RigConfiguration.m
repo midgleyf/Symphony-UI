@@ -65,11 +65,10 @@ classdef RigConfiguration < handle
         
         function daq = createDAQ(obj)
             % Create a Heka DAQ controller if on Windows or a simulation controller on Mac.
+            
             import Symphony.Core.*;
             
-            import Heka.*;
-                
-            if ~isempty(which('HekaDAQInputStream'))
+            try
                 import Heka.*;
                 
                 % Register the unit converters
@@ -93,12 +92,15 @@ classdef RigConfiguration < handle
                 
                 daq = HekaDAQController(hekaID, 0);
                 daq.InitHardware();
-            else
+            catch ME
+                daq = [];
+                disp(['Could not load the Heka driver: ' ME.message]);
+            end
+            
+            if isempty(daq)
                 import Symphony.SimulationDAQController.*;
                 
-                disp('Could not load the Heka driver, using the simulation controller instead.');
-                
-                Converters.Register('V', 'V', @(m) m);
+                disp('Using the simulation controller instead.');
                 daq = SimulationDAQController();
                 daq.BeginSetup();
                 
@@ -106,6 +108,26 @@ classdef RigConfiguration < handle
             end
             
             daq.Clock = daq;
+            
+            % Make sure the unit conversions we need are available.
+            if ~Converters.Test('V', 'V')
+                Converters.Register('V', 'V', @(m) m);
+            end
+            if ~Converters.Test('mV', 'V')
+                Converters.Register('mV', 'V', @(m) m * 1e-3);
+            end
+            if ~Converters.Test('V', 'mV')
+                Converters.Register('V', 'mV', @(m) m * 1e3);
+            end
+            if ~Converters.Test('A', 'A')
+                Converters.Register('A', 'A', @(m) m);
+            end
+            if ~Converters.Test('pA', 'A')
+                Converters.Register('pA', 'A', @(m) m * 1e-12);
+            end
+            if ~Converters.Test('A', 'pA')
+                Converters.Register('A', 'pA', @(m) m * 1e12);
+            end
         end
         
         
@@ -193,15 +215,15 @@ classdef RigConfiguration < handle
         end
         
         
-        function addDevice(obj, deviceName, outStreamName, inStreamName)
+        function addDevice(obj, deviceName, outStreamName, inStreamName, units)
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
             
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController') && strncmp(outStreamName, 'DIGITAL_OUT', 11)
                 % The digital out channels for the Heka ITC share a single device.
                 if isempty(obj.hekaDigitalOutDevice)
-                    obj.hekaDigitalOutDevice = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, 'V'));
-                    obj.hekaDigitalOutDevice.MeasurementConversionTarget = 'V';
+                    obj.hekaDigitalOutDevice = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, units));
+                    obj.hekaDigitalOutDevice.MeasurementConversionTarget = units;
                     obj.hekaDigitalOutDevice.Clock = obj.controller.DAQController;
                     
                     stream = obj.streamWithName('DIGITAL_OUT.1', true);
@@ -212,8 +234,8 @@ classdef RigConfiguration < handle
                 obj.hekaDigitalOutNames{end + 1} = deviceName;
                 obj.hekaDigitalOutChannels(end + 1) = str2double(outStreamName(end));
             else
-                dev = UnitConvertingExternalDevice(deviceName, 'unknown', obj.controller, Measurement(0, 'V'));
-                dev.MeasurementConversionTarget = 'V';
+                dev = UnitConvertingExternalDevice(deviceName, 'unknown', obj.controller, Measurement(0, units));
+                dev.MeasurementConversionTarget = units;
                 dev.Clock = obj.controller.DAQController;
                 
                 obj.addStreams(dev, outStreamName, inStreamName);
