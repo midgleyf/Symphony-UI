@@ -1,3 +1,8 @@
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html
+
 %    imgdata = DumpFrames(myobj, frameNumber, count)
 %    imgdata = DumpFrames(myobj, frameNumber, count, cropRect, downsample_pix)
 %                Retrieve count frames starting at 'frameNumber' from the currently
