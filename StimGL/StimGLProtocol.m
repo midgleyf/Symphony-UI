@@ -111,8 +111,11 @@ classdef StimGLProtocol < SymphonyProtocol
         
         
         function delete(obj)
-            Close(obj.stimGL);
-            obj.stimGL = [];
+            % We may throw during instantiation, in which case we may not have a stimGL to close
+            if (~isempty(obj.stimGL))
+                Close(obj.stimGL);
+                obj.stimGL = [];
+            end
         end
         
     end
