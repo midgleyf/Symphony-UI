@@ -84,9 +84,9 @@ classdef RigConfiguration < handle
                     if strcmp(answer, 'Cancel')
                         error('Symphony:Heka:NoBusID', 'Cannot create a Heka controller without a bus ID');
                     elseif strcmp(answer, 'PCI')
-                        hekaID = 1;
+                        hekaID = NativeInterop.ITCMM.ITC18_ID;
                     else    % USB
-                        hekaID = 5;
+                        hekaID = NativeInterop.ITCMM.USB18_ID;
                     end
                     setpref('Symphony', 'HekaBusID', hekaID);
                 end
