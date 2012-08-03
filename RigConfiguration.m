@@ -84,9 +84,10 @@ classdef RigConfiguration < handle
                     if strcmp(answer, 'Cancel')
                         error('Symphony:Heka:NoBusID', 'Cannot create a Heka controller without a bus ID');
                     elseif strcmp(answer, 'PCI')
-                        hekaID = NativeInterop.ITCMM.ITC18_ID;
+                        % Convert these to Matlab doubles because they're more flexible calling .NET functions in the future
+                        hekaID = double(NativeInterop.ITCMM.ITC18_ID);
                     else    % USB
-                        hekaID = NativeInterop.ITCMM.USB18_ID;
+                        hekaID = double(NativeInterop.ITCMM.USB18_ID);
                     end
                     setpref('Symphony', 'HekaBusID', hekaID);
                 end
