@@ -259,7 +259,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
             
-            stim = RenderedStimulus(stimulusID, units, structToDictionary(struct()), outputData);
+            stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
             
             obj.epoch.Stimuli.Add(device, stim);
         end

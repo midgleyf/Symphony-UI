@@ -10,6 +10,7 @@ function addSymphonyFramework()
         parentDir = fileparts(symphonyPath);
         addpath(fullfile(parentDir, filesep, 'Stubs'));
     else
+        %symphonyPath = 'C:\Users\Barry Wark\symphony\Symphony\Debug';
         symphonyPath = 'C:\Program Files\Physion\Symphony\bin';
         
         % Add Symphony.Core assemblies
