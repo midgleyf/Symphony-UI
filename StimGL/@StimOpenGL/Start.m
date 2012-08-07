@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 %    myobj = Start(myobj, 'PluginName')
 %    myobj = Start(myobj, 'PluginName', start_unpaused_flag)
 %
@@ -16,6 +11,12 @@
 %                state but they may be told to start unpaused, in which
 %                case the 3-argument version of this function may be used,
 %                setting start_unpaused_flag to true (1).
+
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html 
+
 function [s] = Start(varargin)
     s = varargin{1};
     pluginname = '';

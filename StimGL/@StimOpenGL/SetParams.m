@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 %    myobj = SetParams(myobj, 'PluginName', params_struct)
 %
 %                Set the configuration parameters for a particular plugin.
@@ -18,6 +13,12 @@
 %                parameters and replacing them while it is running is not
 %                defined.  Therefore, plugin parameters (if any) should be
 %                set before the desired plugin is to be started.
+
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html 
+
 function [s] = SetParams(s, plugin, params)
     if (~ischar(plugin) | ~isstruct(params)),
         error('Arguments to stop are Stop(StimOpemGLOBJ, plugin_string, params_struct)');

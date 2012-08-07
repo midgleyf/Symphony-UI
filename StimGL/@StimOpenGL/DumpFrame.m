@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 %    imgdata = DumpFrame(myobj, frameNumber)
 %    imgdata = DumpFrame(myobj, frameNumber, cropRect, downsample_pix)
 %
@@ -33,6 +28,12 @@
 %                returned pixels by every [k l]'th pixel in the X and Y
 %                directions, respectively.
 %
+
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html
+
 function [imgdat] = DumpFrame(s, frameNum, varargin)
       if (~length(varargin)),
         imgdat = DumpFrames(s, frameNum, 1);

@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 %    plugname = Running(myobj)
 %
 %                Determing which plugin, if any, is currently active and
@@ -13,6 +8,12 @@
 %                existing plugin does so).  Returns the plugin name that is
 %                running as a string, or the empty string if no plugins are
 %                running.
+
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html 
+
 function [ret] = Running(sm)
 
   ChkConn(sm);

@@ -1,22 +1,23 @@
+% Create a sub-class of this class to define a protocol.
+%
+% Interesting methods to override:
+% * prepareRun
+% * prepareEpoch
+% * completeEpoch
+% * continueRun
+% * completeRun
+%
+% Useful methods:
+% * addStimulus
+% * setDeviceBackground
+% * recordResponse
+
 %  Copyright (c) 2012 Howard Hughes Medical Institute.
 %  All rights reserved.
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 
 classdef SymphonyProtocol < handle & matlab.mixin.Copyable
-    % Create a sub-class of this class to define a protocol.
-    %
-    % Interesting methods to override:
-    % * prepareRun
-    % * prepareEpoch
-    % * completeEpoch
-    % * continueRun
-    % * completeRun
-    %
-    % Useful methods:
-    % * addStimulus
-    % * setDeviceBackground
-    % * recordResponse
     
     properties (Constant, Abstract)
         identifier
