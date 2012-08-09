@@ -10,9 +10,9 @@ function addSymphonyFramework()
         parentDir = fileparts(symphonyPath);
         addpath(fullfile(parentDir, filesep, 'Stubs'));
     else
-        isOs64bit = strcmpi(getenv('PROCESSOR_ARCHITEW6432'), 'amd64') || strcmpi(getenv('PROCESSOR_ARCHITECTURE'), 'amd64');
+        isWin64bit = strcmpi(getenv('PROCESSOR_ARCHITEW6432'), 'amd64') || strcmpi(getenv('PROCESSOR_ARCHITECTURE'), 'amd64');
         
-        if isOs64bit
+        if isWin64bit
             symphonyPath = 'C:\Program Files (x86)\Physion\Symphony\bin';
         else
             symphonyPath = 'C:\Program Files\Physion\Symphony\bin';
