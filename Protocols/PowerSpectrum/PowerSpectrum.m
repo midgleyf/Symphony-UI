@@ -1,4 +1,4 @@
-% Creates a single stimulus composed of mean + flash for multiple LEDs
+% Creates a single stimulus composed of mean + flash for Red,Green,Blue LEDs
 % Implements SymphonyProtocol
 %
 %  Copyright (c) 2012 Howard Hughes Medical Institute.
@@ -6,13 +6,14 @@
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 %
-%  Modified by TA 9.8.12 from LED Family to create a single LED pulse protocol
-classdef LEDMultiFlash < SymphonyProtocol
+%  Modified by TA 17.9.12 from LED Family to create a single LED pulse
+%  protocol but also plots the power spectrum of the input
+classdef PowerSpectrum < SymphonyProtocol
 
     properties (Constant)
         identifier = 'helsinki.yliopisto.pal'
         version = 1
-        displayName = 'Multi LED Flash'
+        displayName = 'Power Spectrum'
     end
     
     properties
@@ -70,8 +71,9 @@ classdef LEDMultiFlash < SymphonyProtocol
             prepareRun@SymphonyProtocol(obj);
 
             obj.openFigure('Response');
-            obj.openFigure('Mean Response', 'GroupByParams', {'lightAmplitude'});
-            obj.openFigure('Response Statistics', 'StatsCallback', @responseStatistics);
+            obj.openFigure('Power Spectrum','GroupByParams', {'lightAmplitude'});
+            % obj.openFigure('Mean PS', 'GroupByParams', {'lightAmplitude'});
+            % obj.openFigure('PS Response Statistics', 'StatsCallback', @responseStatistics);
         end
         
         
