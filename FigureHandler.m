@@ -52,7 +52,7 @@ classdef FigureHandler < handle
             a = [];
             for i = 1:length(children)
                 child = children(i);
-                if strcmp(get(child, 'Type'), 'axes') && ~strcmp(get(child, 'Tag'), 'Colorbar')
+                if strcmp(get(child, 'Type'), 'axes') && ~strcmp(get(child, 'Tag'), 'Colorbar') && ~strcmp(get(child, 'Tag'), 'legend')
                     a(end+1) = child; %#ok<AGROW>
                 end
             end
