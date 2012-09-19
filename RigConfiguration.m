@@ -47,7 +47,10 @@ classdef RigConfiguration < handle
             if nargin == 1 && ~allowMultiClampDevices
                 obj.allowMultiClampDevices = false;
             end
-            
+        end
+        
+        
+        function initialize(obj)
             try
                 obj.createDevices();
                 
@@ -59,7 +62,7 @@ classdef RigConfiguration < handle
                     disp(getReport(ME));
                 end
                 throw(ME);
-            end
+            end    
         end
         
         

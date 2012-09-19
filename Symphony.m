@@ -96,6 +96,7 @@ classdef Symphony < handle
             try
                 constructor = str2func(configClassName);
                 obj.rigConfig = constructor();
+                obj.rigConfig.initialize();
             
                 setpref('Symphony', 'LastChosenRigConfig', configClassName);
             catch ME
@@ -314,6 +315,7 @@ classdef Symphony < handle
                 constructor = str2func(lastChosenRigConfig);
                 try
                     obj.rigConfig = constructor();
+                    obj.rigConfig.initialize();
                 catch ME
                     % Cannot create a rig config the same as the last one chosen by the user.
                     % Try to make a default one instead.
@@ -325,9 +327,11 @@ classdef Symphony < handle
                             constructor = str2func(obj.rigConfigClassNames{i});
                             try
                                 obj.rigConfig = constructor(allowMultiClampDevices);
+                                obj.rigConfig.initialize();
                                 break
                             catch ME
                                 disp(['Could not create a ' obj.rigConfigClassNames{i}]);
+                                disp(['Exception: ' ME]);
                                 allowMultiClampDevices = ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode');
                             end
                         end
