@@ -60,10 +60,9 @@ function edited = editParameters(protocol)
         paramValue = params.(paramName);
         paramLabel = humanReadableParameterName(paramName);
         paramProps = findprop(protocol, paramName);
-        if paramProps.HasDefault
+        defaultValue = handles.protocol.defaultParameterValue(paramName);
+        if isempty(defaultValue) && paramProps.HasDefault
             defaultValue = paramProps.DefaultValue;
-        else
-            defaultValue = [];
         end
         
         uicontrol(...
@@ -267,11 +266,11 @@ end
 function value = getParamValueFromUI(handles, paramName)
     paramTag = [paramName 'Edit'];
     paramProps = findprop(handles.protocol, paramName);
-    if paramProps.HasDefault
+    defaultValue = handles.protocol.defaultParameterValue(paramName);
+    if isempty(defaultValue) && paramProps.HasDefault
         defaultValue = paramProps.DefaultValue;
-    else
-        defaultValue = [];
     end
+    
     javaHandle = findjobj(handles.(paramTag));
     if isnumeric(defaultValue)
         if length(defaultValue) > 1
@@ -285,8 +284,7 @@ function value = getParamValueFromUI(handles, paramName)
     elseif islogical(defaultValue)
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
     elseif iscell(defaultValue)
-        values = paramProps.DefaultValue;
-        value = values{get(handles.(paramTag), 'Value')};
+        value = defaultValue{get(handles.(paramTag), 'Value')};
     elseif ischar(defaultValue)
         value = get(javaHandle, 'Text');
     end
@@ -296,14 +294,14 @@ end
 function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
     paramProps = findprop(handles.protocol, paramName);
-    if paramProps.HasDefault
+    defaultValue = handles.protocol.defaultParameterValue(paramName);
+    if isempty(defaultValue) && paramProps.HasDefault
         defaultValue = paramProps.DefaultValue;
-    else
-        defaultValue = [];
     end
+    
     if iscell(defaultValue)
         paramProps = findprop(handles.protocol, paramName);
-        values = paramProps.DefaultValue;
+        values = defaultValue;
         if ischar(values{1})
             set(handles.(paramTag), 'Value', find(strcmp(values, value)));
         else
@@ -432,11 +430,11 @@ function useDefaultParameters(~, ~, handles)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocol, paramName);
-        if paramProps.HasDefault
+        defaultValue = handles.protocol.defaultParameterValue(paramName);
+        if isempty(defaultValue) && paramProps.HasDefault
             defaultValue = paramProps.DefaultValue;
-        else
-            defaultValue = [];
         end
+        
         if iscell(defaultValue)
             defaultValue = defaultValue{1};
         end
@@ -467,11 +465,11 @@ function saveEditParameters(~, ~, handles)
         paramName = paramNames{paramIndex};
         paramTag = [paramName 'Edit'];
         paramProps = findprop(handles.protocol, paramName);
-        if paramProps.HasDefault
+        defaultValue = handles.protocol.defaultParameterValue(paramName);
+        if isempty(defaultValue) && paramProps.HasDefault
             defaultValue = paramProps.DefaultValue;
-        else
-            defaultValue = [];
         end
+        
         if ~paramProps.Dependent
             if isnumeric(defaultValue)
                 if length(defaultValue) > 1
@@ -479,14 +477,13 @@ function saveEditParameters(~, ~, handles)
                 else
                     paramValue = str2double(get(handles.(paramTag), 'String'));
                 end
-                convFunc = str2func(class(paramProps.DefaultValue));
+                convFunc = str2func(class(defaultValue));
                 paramValue = convFunc(paramValue);
             elseif islogical(defaultValue)
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
             elseif iscell(defaultValue)
                 paramProps = findprop(handles.protocol, paramName);
-                values = paramProps.DefaultValue;
-                paramValue = values{get(handles.(paramTag), 'Value')};
+                paramValue = defaultValue{get(handles.(paramTag), 'Value')};
             elseif ischar(defaultValue)
                 paramValue = get(handles.(paramTag), 'String');
             end
@@ -505,7 +502,15 @@ function saveEditParameters(~, ~, handles)
     end
     
     % Remember these parameters for the next time the protocol is used.
-    setpref('Symphony', [class(handles.protocol) '_Defaults'], handles.protocol.parameters());
+    parameters = handles.protocol.parameters();
+    parameterNames = fieldnames(parameters);
+    for i = 1:numel(parameterNames)
+        % Do not save parameters that are dynamically created.
+        if ~isempty(handles.protocol.defaultParameterValue(parameterNames{i}))
+            parameters = rmfield(parameters, parameterNames{i});
+        end
+    end
+    setpref('Symphony', [class(handles.protocol) '_Defaults'], parameters);
     
     handles.edited = true;
     guidata(handles.figure, handles);

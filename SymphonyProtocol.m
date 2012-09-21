@@ -131,6 +131,13 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
+        function value = defaultParameterValue(obj, parameterName) %#ok<MANU,INUSD>
+            % Override this method to dynamically define default values for parameters
+            
+            value = [];
+        end
+        
+        
         function stimuli = sampleStimuli(obj) %#ok<MANU>
             stimuli = {};
         end
@@ -156,13 +163,13 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 device = devices{i};
                 
                 % Set each device's background for this epoch to be the same as the inter-epoch background.
-                obj.setDeviceBackground(device.Name, device.Background);
+                obj.setDeviceBackground(char(device.Name), device.Background);
                 
                 % Record the response from any device that has an input stream.
                 [~, streams] = dictionaryKeysAndValues(device.Streams);
                 for j = 1:length(streams)
                     if isa(streams{j}, 'Symphony.Core.DAQInputStream')
-                        obj.recordResponse(device.Name);
+                        obj.recordResponse(char(device.Name));
                         break
                     end
                 end

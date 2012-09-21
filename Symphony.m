@@ -107,7 +107,11 @@ classdef Symphony < handle
                 waitfor(errordlg(['Could not create the device:' char(10) char(10) ME.message], 'Symphony'));
             end
             
-            obj.protocol.rigConfig = obj.rigConfig;
+            % Recreate the protocol so that dynamically created parameters can be updated appropriately.
+            pluginIndex = get(obj.controls.protocolPopup, 'Value');
+            protocolClassName = obj.protocolClassNames{pluginIndex};
+            obj.protocol = obj.createProtocol(protocolClassName);        
+            
             obj.checkRigConfigAndProtocol();
         end
         
