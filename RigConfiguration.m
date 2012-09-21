@@ -204,8 +204,8 @@ classdef RigConfiguration < handle
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController') && strncmp(outStreamName, 'DIGITAL_OUT', 11)
                 % The digital out channels for the Heka ITC share a single device.
                 if isempty(obj.hekaDigitalOutDevice)
-                    obj.hekaDigitalOutDevice = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, 'V'));
-                    obj.hekaDigitalOutDevice.MeasurementConversionTarget = 'V';
+                    obj.hekaDigitalOutDevice = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, '_unitless_'));
+                    obj.hekaDigitalOutDevice.MeasurementConversionTarget = '_unitless_';
                     obj.hekaDigitalOutDevice.Clock = obj.controller.DAQController;
                     
                     stream = obj.streamWithName('DIGITAL_OUT.1', true);
