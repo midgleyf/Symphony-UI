@@ -170,9 +170,7 @@ function edited = editParameters(protocol)
             set(handles.(paramTag), 'Enable', 'off');
         end
     end
-    
-    % TODO: add save/load settings functionality
-    
+        
     if handles.showStimuli
         % Create axes for displaying sample stimuli.
         figure(handles.figure);
@@ -180,30 +178,50 @@ function edited = editParameters(protocol)
         updateStimuli(handles);
     end
     
-    handles.resetButton = uicontrol(...
+    handles.saveButton = uicontrol(...
+        'Parent', handles.figure,...
+        'Units', 'points', ...
+        'Callback', @(hObject,eventdata)saveParameters(hObject,eventdata,guidata(hObject)), ...
+        'Position', [10 10 56 20], ...
+        'String', 'Save', ...
+        'TooltipString', 'Save parameters to file', ...
+        'Tag', 'saveButton');    
+    
+    handles.loadButton = uicontrol(...
+        'Parent', handles.figure,...
+        'Units', 'points', ...
+        'Callback', @(hObject,eventdata)loadParameters(hObject,eventdata,guidata(hObject)), ...
+        'Position', [10 + 56 + 5 10 56 20], ...
+        'String', 'Load', ...
+        'TooltipString', 'Load parameters from file', ...
+        'Tag', 'loadButton');
+    
+    handles.defaultButton = uicontrol(...
         'Parent', handles.figure,...
         'Units', 'points', ...
         'Callback', @(hObject,eventdata)useDefaultParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [10 10 56 20], ...
-        'String', 'Reset', ...
+        'Position', [10 + 56 + 5 + 56 + 5  10 56 20], ...
+        'String', 'Default', ...
         'TooltipString', 'Restore the default parameters', ...
-        'Tag', 'resetButton');
+        'Tag', 'defaultButton');
+    
+    handles.okButton = uicontrol(...
+        'Parent', handles.figure,...
+        'Units', 'points', ...
+        'Callback', @(hObject,eventdata)okEditParameters(hObject,eventdata,guidata(hObject)), ...
+        'Position', [labelWidth + 225 - 56 - 5 - 56 - 10 10 56 20], ...
+        'String', 'OK', ...
+        'Tag', 'okButton');
+
+    setDefaultButton(handles.figure, handles.okButton);
     
     handles.cancelButton = uicontrol(...
         'Parent', handles.figure,...
         'Units', 'points', ...
         'Callback', @(hObject,eventdata)cancelEditParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [labelWidth + 225 - 56 - 10 - 56 - 10 10 56 20], ...
+        'Position', [labelWidth + 225 - 10 - 56 10 56 20], ...
         'String', 'Cancel', ...
         'Tag', 'cancelButton');
-    
-    handles.saveButton = uicontrol(...
-        'Parent', handles.figure,...
-        'Units', 'points', ...
-        'Callback', @(hObject,eventdata)saveEditParameters(hObject,eventdata,guidata(hObject)), ...
-        'Position', [labelWidth + 225 - 10 - 56 10 56 20], ...
-        'String', 'Save', ...
-        'Tag', 'saveButton');
     
     guidata(handles.figure, handles);
     
@@ -368,9 +386,9 @@ end
 function editParametersKeyPress(hObject, eventdata, handles)
     if strcmp(eventdata.Key, 'return')
         % Move focus off of any edit text so the changes can be seen.
-        uicontrol(handles.saveButton);
+        uicontrol(handles.okButton);
         
-        saveEditParameters(hObject, eventdata, handles);
+        okEditParameters(hObject, eventdata, handles);
     elseif strcmp(eventdata.Key, 'escape')
         cancelEditParameters(hObject, eventdata, handles);
     else
@@ -422,6 +440,72 @@ function stepValueDown(~, ~, handles, paramTag)
 end
 
 
+function saveParameters(~, ~, handles)
+    paramsDir = findSavedParametersDir(handles);
+
+    params = handles.protocolCopy.parameters();
+    paramNames = fieldnames(params);
+    for i = 1:numel(paramNames)
+        % Remove parameters that are dynamically created.
+        if ~isempty(handles.protocolCopy.defaultParameterValue(paramNames{i}))
+            params = rmfield(params, paramNames{i});
+        end
+    end
+    
+    [filename, pathname] = uiputfile([paramsDir '\*.mat'], 'Save Parameters');
+    if isequal(filename, 0)
+        % User selected cancel.
+        return;
+    end
+    
+    save(fullfile(pathname, filename), 'params');
+end
+
+
+function loadParameters(~, ~, handles)
+    paramsDir = findSavedParametersDir(handles);
+    
+    [filename, pathname] = uigetfile([paramsDir '\*.mat'], 'Load Parameters');
+    if isequal(filename, 0)
+        % User selected cancel.
+        return;
+    end
+    
+    paramsFile = load(fullfile(pathname, filename));
+    if ~isfield(paramsFile, 'params')
+        errordlg('Parameters file does not contain a params field');
+        return;
+    end
+    
+    params = paramsFile.params;
+    paramNames = fieldnames(params);
+    paramCount = numel(paramNames);
+    for paramIndex = 1:paramCount
+        paramName = paramNames{paramIndex};
+        paramProps = findprop(handles.protocolCopy, paramName);
+        value = params.(paramName);
+        
+        if ~isempty(paramProps) && ~paramProps.Dependent
+            handles.protocolCopy.(paramName) = value;
+            setParamValueInUI(handles, paramName, value);
+        end
+    end
+    
+    updateDependentValues(handles);
+    updateStimuli(handles);
+end
+
+
+function dir = findSavedParametersDir(handles)
+    protocolPath = which(class(handles.protocol));
+    protocolDir = fileparts(protocolPath);
+    dir = [protocolDir '\Saved Parameters'];
+    if exist(dir, 'file') ~= 7
+        mkdir(dir);
+    end
+end
+
+
 function useDefaultParameters(~, ~, handles)
     % Reset each independent parameter to its default value.
     params = handles.protocolCopy.parameters();
@@ -431,6 +515,7 @@ function useDefaultParameters(~, ~, handles)
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocol, paramName);
         defaultValue = handles.protocol.defaultParameterValue(paramName);
+        
         if isempty(defaultValue) && paramProps.HasDefault
             defaultValue = paramProps.DefaultValue;
         end
@@ -438,9 +523,11 @@ function useDefaultParameters(~, ~, handles)
         if iscell(defaultValue)
             defaultValue = defaultValue{1};
         end
+        
         if ~paramProps.Dependent
             handles.protocolCopy.(paramName) = defaultValue;
         end
+        
         setParamValueInUI(handles, paramName, defaultValue);
     end
     
@@ -456,7 +543,7 @@ function cancelEditParameters(~, ~, handles)
 end
 
 
-function saveEditParameters(~, ~, handles)
+function okEditParameters(~, ~, handles)
     params = handles.protocol.parameters();
     paramNames = sort(fieldnames(params));
     paramCount = numel(paramNames);
@@ -505,7 +592,7 @@ function saveEditParameters(~, ~, handles)
     parameters = handles.protocol.parameters();
     parameterNames = fieldnames(parameters);
     for i = 1:numel(parameterNames)
-        % Do not save parameters that are dynamically created.
+        % Remove parameters that are dynamically created.
         if ~isempty(handles.protocol.defaultParameterValue(parameterNames{i}))
             parameters = rmfield(parameters, parameterNames{i});
         end
@@ -515,4 +602,46 @@ function saveEditParameters(~, ~, handles)
     handles.edited = true;
     guidata(handles.figure, handles);
     uiresume;
+end
+
+
+function setDefaultButton(figHandle, btnHandle)
+    % Extracted from UITools
+
+    if (usejava('awt') == 1)
+        % We are running with Java Figures
+        useJavaDefaultButton(figHandle, btnHandle)
+    else
+        % We are running with Native Figures
+        useHGDefaultButton(figHandle, btnHandle);
+    end
+
+    function useJavaDefaultButton(figH, btnH)
+        % Get a UDD handle for the figure.
+        fh = handle(figH);
+        % Call the setDefaultButton method on the figure handle
+        fh.setDefaultButton(btnH);
+    end
+
+    function useHGDefaultButton(figHandle, btnHandle)
+        % First get the position of the button.
+        btnPos = getpixelposition(btnHandle);
+
+        % Next calculate offsets.
+        leftOffset   = btnPos(1) - 1;
+        bottomOffset = btnPos(2) - 2;
+        widthOffset  = btnPos(3) + 3;
+        heightOffset = btnPos(4) + 3;
+
+        % Create the default button look with a uipanel.
+        % Use black border color even on Mac or Windows-XP (XP scheme) since
+        % this is in natve figures which uses the Win2K style buttons on Windows
+        % and Motif buttons on the Mac.
+        h1 = uipanel(get(btnHandle, 'Parent'), 'HighlightColor', 'black', ...
+            'BorderType', 'etchedout', 'units', 'pixels', ...
+            'Position', [leftOffset bottomOffset widthOffset heightOffset]);
+
+        % Make sure it is stacked on the bottom.
+        uistack(h1, 'bottom');
+    end
 end
