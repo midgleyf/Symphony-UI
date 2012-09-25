@@ -132,9 +132,20 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         
         
         function value = defaultParameterValue(obj, parameterName) %#ok<MANU,INUSD>
-            % Override this method to dynamically define default values for parameters
+            % Override this method to dynamically define default values for parameters.
             
             value = [];
+        end
+        
+        
+        function units = parameterUnits(obj, parameterName) %#ok<MANU>
+            % Override this method to display units next to parameters in the GUI.
+            
+            units = [];
+            switch parameterName
+                case 'sampleRate'
+                    units = 'Hz';
+            end
         end
         
         
