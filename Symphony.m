@@ -998,7 +998,7 @@ classdef Symphony < handle
                     
                     obj.metadataDoc = com.mathworks.xml.XMLUtils.createDocument('symphony-metadata');
                     obj.metadataNode = obj.metadataDoc.getDocumentElement();
-                    
+
                     if exist(obj.persistPath, 'file')
                         % Make sure we have the same source UUID's as before.
                         [pathstr, name, ~] = fileparts(obj.persistPath);
@@ -1035,6 +1035,9 @@ classdef Symphony < handle
                     else
                         obj.persistor = EpochHDF5Persistor(obj.persistPath, '', 9);
                     end
+                    
+                    obj.saveMetadata();
+
                 end
                 
                 obj.epochGroup = group;
@@ -1064,6 +1067,8 @@ classdef Symphony < handle
                 else
                     obj.epochGroup = obj.epochGroup.parentGroup;
                 end
+                %obj.saveMetadata();
+
             else
                 obj.persistor.CloseDocument();
                 obj.persistor = [];
