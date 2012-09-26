@@ -1071,6 +1071,7 @@ classdef Symphony < handle
 
             else
                 obj.persistor.CloseDocument();
+                obj.persistor.Dispose();
                 obj.persistor = [];
                 
                 % Break the reference loop on the group hierarchy so they all get deleted.
