@@ -1032,8 +1032,8 @@ classdef Symphony < handle
                     
                     if ismac
                         obj.persistor = EpochXMLPersistor(obj.persistPath);
-                    else
-                        obj.persistor = EpochHDF5Persistor(obj.persistPath, '', 9);
+                    else 
+                        obj.persistor = EpochHDF5Persistor(obj.persistPath,System.String(''), 9);
                     end
                     
                     obj.saveMetadata();
