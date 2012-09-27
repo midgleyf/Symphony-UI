@@ -73,6 +73,12 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
+        function cn = requiredRigConfigClass(obj)
+            % Override this method to indicate that the protocol requires a rig config of the returned class name.
+            cn = [];
+        end
+        
+        
         function dn = requiredDeviceNames(obj) %#ok<MANU>
             % Override this method to indicate the names of devices that are required for this protocol.
             dn = {};

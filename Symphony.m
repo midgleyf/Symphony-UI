@@ -20,6 +20,7 @@ classdef Symphony < handle
         
         figureHandlerClasses        % The list of available figure handlers.
         
+        missingRigConfigClass
         missingDeviceName
         sources                     % The hierarchy of sources.
         controls                    % A structure containing the handles for most of the controls in the UI.
@@ -124,6 +125,12 @@ classdef Symphony < handle
         
         function checkRigConfigAndProtocol(obj)
             % Check if the current protocol is compatible with the current rig configuration.
+            obj.missingRigConfigClass = '';
+            rigConfigClass = obj.protocol.requiredRigConfigClass();
+            if ~isempty(rigConfigClass) && ~any(ismember(superclasses(obj.rigConfig), rigConfigClass))
+                obj.missingRigConfigClass = rigConfigClass;
+            end
+            
             obj.missingDeviceName = '';
             deviceNames = obj.protocol.requiredDeviceNames();
             for i = 1:length(deviceNames)
@@ -336,7 +343,7 @@ classdef Symphony < handle
                                 break
                             catch ME
                                 disp(['Could not create a ' obj.rigConfigClassNames{i}]);
-                                disp(['Exception: ' ME]);
+                                disp(['Error message: ' ME.message]);
                                 allowMultiClampDevices = ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode');
                             end
                         end
@@ -740,29 +747,41 @@ classdef Symphony < handle
             
             % Create a new protocol if the user chose a different protocol class.
             if ~isa(obj.protocol, protocolClassName)
+                requiresReset = false;
+                oldProtocol = obj.protocol;
                 try
                     newProtocol = obj.createProtocol(protocolClassName);
                 catch ME
                     waitfor(errordlg(['Could not create a ''' protocolClassName ''' instance.' char(10) char(10) ME.message], 'Symphony'));
                     newProtocol = [];
+                    requiresReset = true;
                 end
-                
-                if ~isempty(newProtocol) && editParameters(newProtocol)
-                    obj.protocol.closeFigures();
+                               
+                if ~isempty(newProtocol)
                     
                     obj.protocol = newProtocol;
-                    setpref('Symphony', 'LastChosenProtocol', protocolClassName);
+                    obj.checkRigConfigAndProtocol();
                     
-                    if ~obj.protocol.allowSavingEpochs
-                        obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
-                        set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
-                    elseif obj.wasSavingEpochs
-                        set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
+                    % Do not bother displaying the edit parameters window if the setup is missing requirements
+                    if ~isempty(obj.missingRigConfigClass) || ~isempty(obj.missingDeviceName) || editParameters(newProtocol)
+                        obj.protocol.closeFigures();
+
+                        setpref('Symphony', 'LastChosenProtocol', protocolClassName);
+
+                        if ~obj.protocol.allowSavingEpochs
+                            obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
+                            set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
+                        elseif obj.wasSavingEpochs
+                            set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
+                        end
+                    else
+                        requiresReset = true;
                     end
                     
-                    obj.checkRigConfigAndProtocol();
-                else
-                    % The user cancelled editing the parameters so switch back to the previous protocol.
+                end
+                
+                if requiresReset
+                    obj.protocol = oldProtocol;
                     protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
                     set(obj.controls.protocolPopup, 'Value', protocolValue);
                 end
@@ -851,17 +870,24 @@ classdef Symphony < handle
             if strcmp(obj.protocol.state, 'stopped')
                 set(obj.controls.rigConfigPopup, 'Enable', 'on');
                 set(obj.controls.startButton, 'String', 'Start');
-                if isempty(obj.missingDeviceName)
+                if isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
                     set(obj.controls.startButton, 'Enable', 'on');
+                    set(obj.controls.editParametersButton, 'Enable', 'on');
                 else
                     set(obj.controls.startButton, 'Enable', 'off');
-                    set(obj.controls.statusLabel, 'String', ['The protocol cannot be run because there is no ''' obj.missingDeviceName ''' device.']);
+                    set(obj.controls.editParametersButton, 'Enable', 'off');
+                    if ~isempty(obj.missingRigConfigClass)
+                        set(obj.controls.statusLabel, 'String', ...
+                            ['The protocol cannot be run because the current rig config is not of type ''' obj.missingRigConfigClass '''.']);
+                    else
+                        set(obj.controls.statusLabel, 'String', ...
+                            ['The protocol cannot be run because there is no ''' obj.missingDeviceName ''' device.']);
+                    end
                 end
                 set(obj.controls.pauseButton, 'Enable', 'off');
                 set(obj.controls.stopButton, 'Enable', 'off');
                 set(obj.controls.protocolDirPopup, 'Enable', 'on');
                 set(obj.controls.protocolPopup, 'Enable', 'on');
-                set(obj.controls.editParametersButton, 'Enable', 'on');
                 set(obj.controls.newEpochGroupButton, 'Enable', 'on');
                 if isempty(obj.epochGroup)
                     set(obj.controls.epochKeywordsEdit, 'Enable', 'off');
