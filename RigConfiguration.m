@@ -86,7 +86,7 @@ classdef RigConfiguration < handle
                     elseif strcmp(answer, 'PCI')
                         hekaID = 1;
                     else    % USB
-                        hekaID = 5;
+                        hekaID = double(NativeInterop.ITCMM.USB18_ID);
                     end
                     setpref('Symphony', 'HekaBusID', hekaID);
                 end
