@@ -333,7 +333,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     response = obj.epoch.Responses.Item(device);
                     data = response.Data;
                     r = double(Measurement.ToQuantityArray(data));
-                    u = char(Measurement.HomogenousUnits(data));
+                    u = char(Measurement.HomogenousBaseUnits(data));
                 catch ME %#ok<NASGU>
                     r = [];
                     u = '';
