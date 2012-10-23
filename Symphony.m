@@ -733,14 +733,18 @@ classdef Symphony < handle
                 % name of current protocol in protocolPopup is first protocol
                 % and that protocol is selected as the current protocol to run
                 set(obj.controls.protocolPopup, 'String', obj.protocolDisplayNames);
-                obj.chooseProtocol();
+                obj.chooseProtocol([], [], false);
             end
 
         end
         
         
-        function chooseProtocol(obj, ~, ~)
+        function chooseProtocol(obj, ~, ~, shouldShowParams)
             % The user chose a protocol from the pop-up.
+            
+            if nargin < 4
+                shouldShowParams = true;
+            end
             
             pluginIndex = get(obj.controls.protocolPopup, 'Value');
             protocolClassName = obj.protocolClassNames{pluginIndex};
@@ -758,30 +762,31 @@ classdef Symphony < handle
                 end
                                
                 if ~isempty(newProtocol)
-                    
                     obj.protocol = newProtocol;
                     obj.checkRigConfigAndProtocol();
                     
-                    % Do not bother displaying the edit parameters window if the setup is missing requirements
-                    if ~isempty(obj.missingRigConfigClass) || ~isempty(obj.missingDeviceName) || editParameters(newProtocol)
-                        obj.protocol.closeFigures();
+                    % Don't show the parameters window if the protocol can't be run (or it's requested not to).
+                    if shouldShowParams && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
+                        if editParameters(newProtocol)
+                            obj.protocol.closeFigures();
 
-                        setpref('Symphony', 'LastChosenProtocol', protocolClassName);
+                            setpref('Symphony', 'LastChosenProtocol', protocolClassName);
 
-                        if ~obj.protocol.allowSavingEpochs
-                            obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
-                            set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
-                        elseif obj.wasSavingEpochs
-                            set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
+                            if ~obj.protocol.allowSavingEpochs
+                                obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
+                                set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
+                            elseif obj.wasSavingEpochs
+                                set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
+                            end
+                        else
+                            requiresReset = true;
                         end
-                    else
-                        requiresReset = true;
-                    end
-                    
+                    end                    
                 end
                 
                 if requiresReset
                     obj.protocol = oldProtocol;
+                    obj.checkRigConfigAndProtocol();
                     protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
                     set(obj.controls.protocolPopup, 'Value', protocolValue);
                 end
