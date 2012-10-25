@@ -268,7 +268,10 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         function setDeviceBackground(obj, deviceName, background, units)
             % Set a constant stimulus value to be sent to the device.
             
+            import Symphony.*;
             import Symphony.Core.*;
+            import Symphony.ExternalDevices.*;
+            import Symphony.ExternalDevices.OperatingMode.*;
             
             device = obj.rigConfig.deviceWithName(deviceName);
             if isempty(device)
@@ -283,9 +286,25 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 error('Symphony:InvalidBackground', 'The background value for a device must be a number or a Symphony.Core.Measurement');
             end
             
-            device.Background = background;
-            if ~isempty(obj.epoch)
-                obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
+            fprintf('Setting background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
+            
+            if isa(device, 'Symphony.ExternalDevices.MultiClampDevice')
+                if strcmp(char(background.BaseUnit), 'V')
+                    device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.VClamp, background);
+                    setBackground = strcmp(obj.multiClampMode, 'VClamp');
+                else
+                    device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.IClamp, background);
+                    device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.I0, background);
+                    setBackground = ~strcmp(obj.multiClampMode, 'VClamp');
+                end
+            else
+                setBackground = true;
+            end
+            if setBackground
+                device.Background = background;
+                if ~isempty(obj.epoch)
+                    obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
+                end
             end
         end
         
@@ -333,7 +352,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     response = obj.epoch.Responses.Item(device);
                     data = response.Data;
                     r = double(Measurement.ToQuantityArray(data));
-                    u = char(Measurement.HomogenousBaseUnits(data));
+                    u = char(Measurement.HomogenousDisplayUnits(data));
                 catch ME %#ok<NASGU>
                     r = [];
                     u = '';
@@ -381,11 +400,15 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 obj.setState('running');
                 
                 % Loop until the protocol or the user tells us to stop.
+                tic
                 while obj.continueRun()
+                    fprintf('continueRun took %g seconds\n', toc);
                     % Run a single epoch.
                     
                     % Prepare the epoch: set backgrounds, add stimuli, record responses, add parameters, etc.
+                    tic;
                     obj.prepareEpoch();
+                    fprintf('prepareEpoch took %g seconds\n', toc);
                     
                     % Persist the params now that the sub-class has had a chance to tweak them.
                     pluginParams = obj.parameters(true);
@@ -404,7 +427,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     
                     try
                         % Tell the Symphony framework to run the epoch.
+                        tic
                         obj.rigConfig.controller.RunEpoch(obj.epoch, obj.persistor);
+                        fprintf('RunEpoch took %g seconds\n', toc);
                     catch e
                         % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
                         message = ['An error occurred while running the protocol.' char(10) char(10)];
@@ -417,10 +442,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     end
                     
                     % Perform any post-epoch analysis, clean up, etc.
+                    tic
                     obj.completeEpoch();
+                    fprintf('completeEpoch took %g seconds\n', toc);
                     
                     % Force any figures to redraw and any events (clicking the Pause or Stop buttons in particular) to get processed.
                     drawnow;
+                    
+                    tic
                 end
             catch e
                 waitfor(errordlg(['An error occurred while running the protocol.' char(10) char(10) getReport(e, 'extended', 'hyperlinks', 'off')]));

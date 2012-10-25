@@ -19,7 +19,8 @@ classdef LEDFamily < SymphonyProtocol
         stepsInFamily = uint8(3);
         ampStepScale = 2.0;
         lightMean = 0.0;
-        preSynapticHold = -60;
+        preSynapticHold_mV = -60;
+        preSynapticHold_pA = 0;
         numberOfAverages = uint8(5);
         interpulseInterval = 0.6;
         continuousRun = false;
@@ -56,11 +57,8 @@ classdef LEDFamily < SymphonyProtocol
             
             %obj.setDeviceBackground('LED', obj.lightMean, 'V');
             
-%             if strcmp(obj.rigConfig.multiClampMode('Amplifier_Ch1'), 'IClamp')
-%                 obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
-%             else
-%                 obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
-%             end
+            obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold_mV) * 1e-3, 'V');
+            obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold_pA) * 1e-12, 'A');
         end
         
         
@@ -82,11 +80,8 @@ classdef LEDFamily < SymphonyProtocol
             obj.addParameter('lightAmplitude', lightAmplitude);
             %obj.addStimulus('LED', 'test-stimulus', stimulus, 'V');    %
             obj.setDeviceBackground('LED', obj.lightMean, 'V');
-            if strcmp(obj.multiClampMode, 'VClamp')
-                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-3, 'V');
-            else
-                obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold) * 1e-12, 'A');
-            end 
+            obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold_mV) * 1e-3, 'V');
+            obj.setDeviceBackground('Amplifier_Ch1', double(obj.preSynapticHold_pA) * 1e-12, 'A');
             obj.addStimulus('LED', 'LED stimulus', stimulus, 'V');    %
         end
         
