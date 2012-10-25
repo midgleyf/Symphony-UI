@@ -11,7 +11,13 @@ function edited = editParameters(protocol)
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     
-    stimuli = handles.protocolCopy.sampleStimuli();
+    try
+        stimuli = handles.protocolCopy.sampleStimuli();
+    catch ME
+        waitfor(errordlg(['An error occurred when creating sample stimuli:' char(10) ...
+            ME.getReport('extended', 'hyperlinks', 'off')]));
+        stimuli = [];
+    end
     handles.showStimuli = ~isempty(stimuli);
     
     % TODO: determine the width from the actual labels using textwrap.
