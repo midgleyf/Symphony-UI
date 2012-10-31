@@ -25,6 +25,8 @@ classdef RigConfiguration < handle
         hekaDigitalOutDevice = []
         hekaDigitalOutNames = {}
         hekaDigitalOutChannels = []
+        
+        deviceGroupMap
     end
     
     
@@ -47,6 +49,8 @@ classdef RigConfiguration < handle
             if nargin == 1 && ~allowMultiClampDevices
                 obj.allowMultiClampDevices = false;
             end
+            
+            obj.deviceGroupMap = containers.Map();
         end
         
         
@@ -71,7 +75,7 @@ classdef RigConfiguration < handle
             import Symphony.Core.*;
             
             import Heka.*;
-                
+            
             if ~isempty(which('HekaDAQInputStream'))
                 import Heka.*;
                 
@@ -145,7 +149,7 @@ classdef RigConfiguration < handle
                 end
            else
                 obj.controller.DAQController.SampleRate = Measurement(rate, 'Hz');
-            end
+           end
         end
         
         
@@ -197,30 +201,56 @@ classdef RigConfiguration < handle
         end
         
         
-        function addDevice(obj, deviceName, outStreamName, inStreamName)
+        function addDevice(obj, deviceName, outStreamName, inStreamName, groupName)
+            % Specifying a group name is optional.
+            
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
+            
+            if strncmp(outStreamName, 'DIGITAL', 7) || strncmp(inStreamName, 'DIGITAL', 7)
+                units = Measurement.UNITLESS;                   
+            else
+                units = 'V';
+            end
             
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController') && strncmp(outStreamName, 'DIGITAL_OUT', 11)
                 % The digital out channels for the Heka ITC share a single device.
                 if isempty(obj.hekaDigitalOutDevice)
-                    obj.hekaDigitalOutDevice = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, '_unitless_'));
-                    obj.hekaDigitalOutDevice.MeasurementConversionTarget = '_unitless_';
-                    obj.hekaDigitalOutDevice.Clock = obj.controller.DAQController;
+                    dev = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, units));
+                    dev.MeasurementConversionTarget = units;
+                    dev.Clock = obj.controller.DAQController;
                     
                     stream = obj.streamWithName('DIGITAL_OUT.1', true);
-                    obj.hekaDigitalOutDevice.BindStream(stream);
+                    dev.BindStream(stream);
+                    
+                    obj.hekaDigitalOutDevice = dev;
+                else
+                    dev = obj.hekaDigitalOutDevice;
                 end
                 
                 % Keep track of which virtual device names map to which channel of the real device.
                 obj.hekaDigitalOutNames{end + 1} = deviceName;
                 obj.hekaDigitalOutChannels(end + 1) = str2double(outStreamName(end));
-            else
-                dev = UnitConvertingExternalDevice(deviceName, 'unknown', obj.controller, Measurement(0, 'V'));
-                dev.MeasurementConversionTarget = 'V';
+            else               
+                dev = UnitConvertingExternalDevice(deviceName, 'unknown', obj.controller, Measurement(0, units));
+                dev.MeasurementConversionTarget = units;
                 dev.Clock = obj.controller.DAQController;
                 
                 obj.addStreams(dev, outStreamName, inStreamName);
+            end
+            
+            % Associate the device with a group name, if specified.
+            if nargin > 4
+                if isKey(obj.deviceGroupMap, groupName)
+                    % Only add the device to the group if it hasn't previously been added. 
+                    if ~any(ismember(obj.deviceGroupMap(groupName), dev))
+                        groupValue = obj.deviceGroupMap(groupName);
+                        groupValue{end + 1} = dev;
+                        obj.deviceGroupMap(groupName) = groupValue;
+                    end
+                else
+                    obj.deviceGroupMap(groupName) = {dev};
+                end
             end
         end
         
@@ -336,11 +366,43 @@ classdef RigConfiguration < handle
                 end
                 throw(ME);
             end
+            
+            % Add the multiclamp device to the amp group.
+            if isKey(obj.deviceGroupMap, 'amp')
+                amps = obj.deviceGroupMap('amp');
+                amps{end + 1} = dev;
+                obj.deviceGroupMap('amp') = amps;
+            else
+                obj.deviceGroupMap('amp') = {dev};
+            end
         end
         
         
-        function d = devices(obj)
-            d = listValues(obj.controller.Devices);
+        function d = devices(obj, groupName)
+            % Returns devices associated with a specified group name or all devices if no group name is specified.
+            
+            d = {};
+            if nargin == 1
+                d = listValues(obj.controller.Devices);
+            elseif isKey(obj.deviceGroupMap, groupName)
+                d = obj.deviceGroupMap(groupName);
+            end
+        end
+        
+        
+        function names = deviceNames(obj, groupName)
+            % Returns device names associated with a specified group name or all device names if no group name is specified.
+            
+            if nargin == 1
+                devices = obj.devices();
+            else
+                devices = obj.devices(groupName);
+            end
+            
+            names = cell(1, length(devices));
+            for i = 1:length(devices)
+                names{i} = char(devices{i}.Name);
+            end
         end
         
         
