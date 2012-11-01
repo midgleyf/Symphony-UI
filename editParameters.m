@@ -67,8 +67,12 @@ function edited = editParameters(protocol)
         paramLabel = humanReadableParameterName(paramName);
         paramProps = findprop(protocol, paramName);
         defaultValue = handles.protocol.defaultParameterValue(paramName);
-        if isempty(defaultValue) && paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
+        if isempty(defaultValue)
+            if paramProps.HasDefault
+                defaultValue = paramProps.DefaultValue;
+            else
+                defaultValue = '';
+            end
         end
         
         uicontrol(...
@@ -148,6 +152,9 @@ function edited = editParameters(protocol)
             end
             if isempty(popupValue)
                 popupValue = 1;
+                paramValue = defaultValue{popupValue};
+                params.(paramName) = paramValue;
+                handles.protocolCopy.(paramName) = paramValue;
             end
             
             % Convert the items to human readable form.
@@ -173,7 +180,7 @@ function edited = editParameters(protocol)
         end
         
         % Show units next to parameter if they're defined by the protocol.
-        units = handles.protocol.parameterUnits(paramName);
+        units = handles.protocolCopy.parameterUnits(paramName);
         if ~isempty(units)           
             position = get(handles.(paramTag), 'Position');
             unitsLeft = position(1) + position(3) + 5;
@@ -183,14 +190,16 @@ function edited = editParameters(protocol)
                 unitsLeft = unitsLeft + 15;
             end
             
-            uicontrol(...
+            unitsTag = [paramName 'Units'];
+            handles.(unitsTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
-                'FontSize', 12,...
+                'FontSize', 12, ...
                 'HorizontalAlignment', 'left', ...
                 'Position', [unitsLeft dialogHeight-paramIndex*30 60 18], ...
-                'String',  units,...
-                'Style', 'text');
+                'String',  units, ...
+                'Style', 'text', ...
+                'Tag', unitsTag);
         end
         
         if paramProps.Dependent
@@ -312,8 +321,12 @@ function value = getParamValueFromUI(handles, paramName)
     paramTag = [paramName 'Edit'];
     paramProps = findprop(handles.protocol, paramName);
     defaultValue = handles.protocol.defaultParameterValue(paramName);
-    if isempty(defaultValue) && paramProps.HasDefault
-        defaultValue = paramProps.DefaultValue;
+    if isempty(defaultValue)
+        if paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
+        else
+            defaultValue = '';
+        end
     end
     
     javaHandle = findjobj(handles.(paramTag));
@@ -340,8 +353,12 @@ function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
     paramProps = findprop(handles.protocol, paramName);
     defaultValue = handles.protocol.defaultParameterValue(paramName);
-    if isempty(defaultValue) && paramProps.HasDefault
-        defaultValue = paramProps.DefaultValue;
+    if isempty(defaultValue)
+        if paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
+        else
+            defaultValue = '';
+        end
     end
     
     if iscell(defaultValue)
@@ -389,7 +406,7 @@ function updateDependentValues(handles)
         end
     end
     
-    % Now update the value of any dependent properties.
+    % Now update the value of any dependent properties and units.
     params = handles.protocolCopy.parameters();
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
@@ -405,6 +422,12 @@ function updateDependentValues(handles)
         if paramProps.Dependent
             paramTag = [paramName 'Edit'];
             set(handles.(paramTag), 'Enable', 'off');
+        end
+        
+        units = handles.protocolCopy.parameterUnits(paramName);
+        if ~isempty(units)
+            unitsTag = [paramName 'Units'];
+            set(handles.(unitsTag), 'String', units);
         end
     end
 end
@@ -541,10 +564,13 @@ function useDefaultParameters(~, ~, handles)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocol, paramName);
-        defaultValue = handles.protocol.defaultParameterValue(paramName);
-        
-        if isempty(defaultValue) && paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
+        defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
+        if isempty(defaultValue)
+            if paramProps.HasDefault
+                defaultValue = paramProps.DefaultValue;
+            else
+                defaultValue = '';
+            end
         end
         
         if iscell(defaultValue)
@@ -580,8 +606,12 @@ function okEditParameters(~, ~, handles)
         paramTag = [paramName 'Edit'];
         paramProps = findprop(handles.protocol, paramName);
         defaultValue = handles.protocol.defaultParameterValue(paramName);
-        if isempty(defaultValue) && paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
+        if isempty(defaultValue)
+            if paramProps.HasDefault
+                defaultValue = paramProps.DefaultValue;
+            else
+                defaultValue = '';
+            end
         end
         
         if ~paramProps.Dependent
