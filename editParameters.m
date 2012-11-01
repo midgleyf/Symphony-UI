@@ -272,13 +272,25 @@ function value = getParamValueFromUI(handles, paramName)
     else
         defaultValue = [];
     end
-    javaHandle = findjobj(handles.(paramTag));
+    
+    % If the field we want is being edited the we need to query the Java
+    % object.
+    uiBeingEdited = strcmp(get(gco, 'tag'), paramTag);
+    if uiBeingEdited
+        javaHandle = findjobj(handles.(paramTag));
+    end
+    
     if isnumeric(defaultValue)
+        if uiBeingEdited
+            value = get(javaHandle, 'Text');
+        else
+            value = get(handles.(paramTag), 'String');
+        end
         if length(defaultValue) > 1
             % Convert from a comma separated list, ranges, etc. to a vector of numbers.
-            paramValue = str2num(get(javaHandle, 'Text')); %#ok<ST2NM>
+            paramValue = str2num(value); %#ok<ST2NM>
         else
-            paramValue = str2double(get(javaHandle, 'Text'));
+            paramValue = str2double(value);
         end
         convFunc = str2func(class(defaultValue));
         value = convFunc(paramValue);
@@ -288,7 +300,11 @@ function value = getParamValueFromUI(handles, paramName)
         values = paramProps.DefaultValue;
         value = values{get(handles.(paramTag), 'Value')};
     elseif ischar(defaultValue)
-        value = get(javaHandle, 'Text');
+        if uiBeingEdited
+            value = get(javaHandle, 'Text');
+        else
+            value = get(handles.(paramTag), 'String');
+        end
     end
 end
 
