@@ -278,7 +278,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 % TODO: pad with zeros if different lengths
                 
                 stimulusData = existingData + (stimulusData .* 2 ^ digitalChannel);
-                units = 'V';
+                units = Measurement.UNITLESS;
                 stimDataList = Measurement.FromArray(stimulusData, units);
             end
             
