@@ -25,7 +25,7 @@ addSymphonyFramework();
 global symphonyInstance;
 
 if isempty(symphonyInstance)
-    symphonyInstance = Symphony();
+    symphonyInstance = SymphonyUI();
 else
     symphonyInstance.showMainWindow();
 end
