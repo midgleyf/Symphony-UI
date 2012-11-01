@@ -279,29 +279,34 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             end
             
             if nargin == 4
+                % The user supplied the quantity and units.
                 background = Measurement(background, units);
             elseif isnumeric(background)
+                % The user only supplied the quantity, assume volts.
                 background = Measurement(background, 'V');
             elseif ~isa(background, 'Symphony.Core.Measurement')
                 error('Symphony:InvalidBackground', 'The background value for a device must be a number or a Symphony.Core.Measurement');
             end
             
-            fprintf('Setting background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
-            
             if isa(device, 'Symphony.ExternalDevices.MultiClampDevice')
+                % Set the background for the appropriate mode and for the device if the current mode matches.
                 if strcmp(char(background.BaseUnit), 'V')
+                    fprintf('Setting VClamp background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                     device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.VClamp, background);
                     setBackground = strcmp(obj.multiClampMode, 'VClamp');
                 else
+                    fprintf('Setting IClamp background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                     device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.IClamp, background);
+                    fprintf('Setting I0 background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                     device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.I0, background);
                     setBackground = ~strcmp(obj.multiClampMode, 'VClamp');
                 end
             else
+                fprintf('Setting background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
+                device.Background = background;
                 setBackground = true;
             end
             if setBackground
-                device.Background = background;
                 if ~isempty(obj.epoch)
                     obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
                 end
