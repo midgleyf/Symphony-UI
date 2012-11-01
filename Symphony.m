@@ -241,7 +241,8 @@ classdef Symphony < handle
             paramNames = fieldnames(params);
             for i = 1:numel(paramNames)
                 paramProps = findprop(newProtocol, paramNames{i});
-                if ~isempty(paramProps) && ~paramProps.Dependent
+                defaultValue = newProtocol.defaultParameterValue(paramNames{i});
+                if ~isempty(paramProps) && ~paramProps.Dependent && isempty(defaultValue)
                     newProtocol.(paramNames{i}) = params.(paramNames{i});
                 end
             end

@@ -491,30 +491,20 @@ end
 
 
 function saveParameters(~, ~, handles)
-    paramsDir = findSavedParametersDir(handles);
-
-    params = handles.protocolCopy.parameters();
-    paramNames = fieldnames(params);
-    for i = 1:numel(paramNames)
-        % Remove parameters that are dynamically created.
-        if ~isempty(handles.protocolCopy.defaultParameterValue(paramNames{i}))
-            params = rmfield(params, paramNames{i});
-        end
-    end
-    
+    paramsDir = findSavedParametersDir(handles);    
     [filename, pathname] = uiputfile([paramsDir '\*.mat'], 'Save Parameters');
     if isequal(filename, 0)
         % User selected cancel.
         return;
     end
     
+    params = handles.protocolCopy.parameters();
     save(fullfile(pathname, filename), 'params');
 end
 
 
 function loadParameters(~, ~, handles)
     paramsDir = findSavedParametersDir(handles);
-    
     [filename, pathname] = uigetfile([paramsDir '\*.mat'], 'Load Parameters');
     if isequal(filename, 0)
         % User selected cancel.
@@ -533,9 +523,10 @@ function loadParameters(~, ~, handles)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocolCopy, paramName);
-        value = params.(paramName);
+        defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
         
-        if ~isempty(paramProps) && ~paramProps.Dependent
+        if ~isempty(paramProps) && ~paramProps.Dependent && isempty(defaultValue)
+            value = params.(paramName);
             handles.protocolCopy.(paramName) = value;
             setParamValueInUI(handles, paramName, value);
         end
@@ -647,13 +638,6 @@ function okEditParameters(~, ~, handles)
     
     % Remember these parameters for the next time the protocol is used.
     parameters = handles.protocol.parameters();
-    parameterNames = fieldnames(parameters);
-    for i = 1:numel(parameterNames)
-        % Remove parameters that are dynamically created.
-        if ~isempty(handles.protocol.defaultParameterValue(parameterNames{i}))
-            parameters = rmfield(parameters, parameterNames{i});
-        end
-    end
     setpref('Symphony', [class(handles.protocol) '_Defaults'], parameters);
     
     handles.edited = true;
