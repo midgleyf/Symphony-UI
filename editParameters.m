@@ -75,6 +75,14 @@ function edited = editParameters(protocol)
             end
         end
         
+        if isempty(paramValue)
+            if iscell(defaultValue)
+                paramValue = defaultValue{1};
+            else
+                paramValue = defaultValue;
+            end
+        end
+        
         uicontrol(...
             'Parent', handles.figure,...
             'Units', 'points', ...
@@ -152,9 +160,6 @@ function edited = editParameters(protocol)
             end
             if isempty(popupValue)
                 popupValue = 1;
-                paramValue = defaultValue{popupValue};
-                params.(paramName) = paramValue;
-                handles.protocolCopy.(paramName) = paramValue;
             end
             
             % Convert the items to human readable form.
