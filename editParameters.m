@@ -67,20 +67,8 @@ function edited = editParameters(protocol)
         paramLabel = humanReadableParameterName(paramName);
         paramProps = findprop(protocol, paramName);
         defaultValue = handles.protocol.defaultParameterValue(paramName);
-        if isempty(defaultValue)
-            if paramProps.HasDefault
-                defaultValue = paramProps.DefaultValue;
-            else
-                defaultValue = '';
-            end
-        end
-        
-        if isempty(paramValue)
-            if iscell(defaultValue)
-                paramValue = defaultValue{1};
-            else
-                paramValue = defaultValue;
-            end
+        if isempty(defaultValue) && paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
         end
         
         uicontrol(...
@@ -144,22 +132,12 @@ function edited = editParameters(protocol)
                 'Tag', paramTag);
             
             textFieldParamNames{end + 1} = paramName; %#ok<AGROW>
-        elseif iscellstr(defaultValue) || (iscell(defaultValue) && all(cellfun(@isnumeric, defaultValue)))
-            % Default to the first item in the pop-up if nothing has been chosen yet.
-            if iscell(paramValue)
-                paramValue = paramValue{1};
-                params.(paramName) = paramValue;
-                handles.protocolCopy.(paramName) = paramValue;
-            end
-            
+        elseif iscellstr(defaultValue) || (iscell(defaultValue) && all(cellfun(@isnumeric, defaultValue)))            
             % Figure out which item to select.
             if iscellstr(defaultValue)
                 popupValue = find(strcmp(defaultValue, paramValue));
             else
                 popupValue = find(cell2mat(defaultValue) == paramValue);
-            end
-            if isempty(popupValue)
-                popupValue = 1;
             end
             
             % Convert the items to human readable form.
@@ -326,12 +304,8 @@ function value = getParamValueFromUI(handles, paramName)
     paramTag = [paramName 'Edit'];
     paramProps = findprop(handles.protocol, paramName);
     defaultValue = handles.protocol.defaultParameterValue(paramName);
-    if isempty(defaultValue)
-        if paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
-        else
-            defaultValue = '';
-        end
+    if isempty(defaultValue) && paramProps.HasDefault
+        defaultValue = paramProps.DefaultValue;
     end
     
     javaHandle = findjobj(handles.(paramTag));
@@ -358,22 +332,19 @@ function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
     paramProps = findprop(handles.protocol, paramName);
     defaultValue = handles.protocol.defaultParameterValue(paramName);
-    if isempty(defaultValue)
-        if paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
-        else
-            defaultValue = '';
-        end
+    if isempty(defaultValue) && paramProps.HasDefault
+        defaultValue = paramProps.DefaultValue;
     end
     
     if iscell(defaultValue)
         paramProps = findprop(handles.protocol, paramName);
         values = defaultValue;
         if ischar(values{1})
-            set(handles.(paramTag), 'Value', find(strcmp(values, value)));
+            index = find(strcmp(values, value));
         else
-            set(handles.(paramTag), 'Value', find(cell2mat(values) == value));
+            index = find(cell2mat(values) == value);
         end
+        set(handles.(paramTag), 'Value', index);
     elseif islogical(defaultValue)
         set(handles.(paramTag), 'Value', value);
     elseif ischar(defaultValue)
@@ -529,11 +500,29 @@ function loadParameters(~, ~, handles)
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocolCopy, paramName);
         defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
+        if isempty(defaultValue) && paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
+        end
         
-        if ~isempty(paramProps) && ~paramProps.Dependent && isempty(defaultValue)
-            value = params.(paramName);
-            handles.protocolCopy.(paramName) = value;
-            setParamValueInUI(handles, paramName, value);
+        if ~isempty(paramProps) && ~paramProps.Dependent
+            savedValue = params.(paramName);
+            
+            if iscell(defaultValue)
+                % Only set the saved value if it is a member of the default value cell array.
+                if iscellstr(defaultValue)
+                    isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
+                else
+                    isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
+                end
+
+                if isMember
+                    handles.protocolCopy.(paramName) = savedValue;
+                end
+            else
+                handles.protocolCopy.(paramName) = savedValue;
+            end
+            
+            setParamValueInUI(handles, paramName, handles.protocolCopy.(paramName));
         end
     end
     
@@ -561,12 +550,8 @@ function useDefaultParameters(~, ~, handles)
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocol, paramName);
         defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
-        if isempty(defaultValue)
-            if paramProps.HasDefault
-                defaultValue = paramProps.DefaultValue;
-            else
-                defaultValue = '';
-            end
+        if isempty(defaultValue)&& paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
         end
         
         if iscell(defaultValue)
@@ -602,12 +587,8 @@ function okEditParameters(~, ~, handles)
         paramTag = [paramName 'Edit'];
         paramProps = findprop(handles.protocol, paramName);
         defaultValue = handles.protocol.defaultParameterValue(paramName);
-        if isempty(defaultValue)
-            if paramProps.HasDefault
-                defaultValue = paramProps.DefaultValue;
-            else
-                defaultValue = '';
-            end
+        if isempty(defaultValue) && paramProps.HasDefault
+            defaultValue = paramProps.DefaultValue;
         end
         
         if ~paramProps.Dependent

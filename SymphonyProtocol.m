@@ -17,7 +17,7 @@
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 
-classdef SymphonyProtocol < handle & matlab.mixin.Copyable
+classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
     
     properties (Constant, Abstract)
         identifier
@@ -85,6 +85,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         end
         
         
+        function prepareParameters(obj)
+            % Override this method to add parameters (appprop) to this protocol that depend on properties of the rig config in use. 
+        end
+        
+        
         function prepareRig(obj)
             % Override this method to perform any actions to get the rig ready for running the protocol, e.g. setting device backgrounds, etc.
             
@@ -140,14 +145,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         function value = defaultParameterValue(obj, parameterName) %#ok<MANU,INUSD>
             % Override this method to dynamically define default values for parameters.
             
-            value = [];
+            value = '';
         end
         
         
         function units = parameterUnits(obj, parameterName) %#ok<MANU>
             % Override this method to display units next to parameters in the GUI.
             
-            units = [];
+            units = '';
             switch parameterName
                 case 'sampleRate'
                     units = 'Hz';
@@ -545,6 +550,36 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             index = cellfun(@(x) x == handler, obj.figureHandlers);
             obj.figureHandlers(index) = [];
             obj.figureHandlerParams(index) = [];
+        end
+        
+    end
+    
+    
+    methods (Access = protected)
+        
+        function cpObj = copyElement(obj)          
+            cpObj = copyElement@matlab.mixin.Copyable(obj);
+            
+            % Add all dynamic properties to the copied instance.
+            paramNames = fieldnames(obj.parameters());
+            for i = 1:numel(paramNames)
+                paramName = paramNames{i};
+                paramProp = findprop(obj, paramName);
+                if isa(paramProp, 'meta.DynamicProperty')
+                    p = addprop(cpObj, paramName);
+                    
+                    cpObj.(paramName) = obj.(paramName);
+                    p.Dependent = paramProp.Dependent;
+                                        
+                    if ~isempty(paramProp.GetMethod)
+                        p.GetMethod = paramProp.GetMethod;
+                    end
+                    
+                    if ~isempty(paramProp.SetMethod)
+                        p.SetMethod = paramProp.SetMethod;
+                    end
+                end
+            end
         end
         
     end

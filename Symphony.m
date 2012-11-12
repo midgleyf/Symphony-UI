@@ -236,14 +236,47 @@ classdef Symphony < handle
             newProtocol.rigConfig = obj.rigConfig;
             newProtocol.figureHandlerClasses = obj.figureHandlerClasses;
             
-            % Use any previously set parameters.
-            params = getpref('Symphony', [className '_Defaults'], struct);
+            % Add dynamic parameters.
+            newProtocol.prepareParameters();
+            
+            % Set default or saved parameter values.
+            savedParams = getpref('Symphony', [className '_Defaults'], struct);
+            params = newProtocol.parameters();
             paramNames = fieldnames(params);
             for i = 1:numel(paramNames)
-                paramProps = findprop(newProtocol, paramNames{i});
-                defaultValue = newProtocol.defaultParameterValue(paramNames{i});
-                if ~isempty(paramProps) && ~paramProps.Dependent && isempty(defaultValue)
-                    newProtocol.(paramNames{i}) = params.(paramNames{i});
+                paramName = paramNames{i};
+                paramProps = findprop(newProtocol, paramName);
+                defaultValue = newProtocol.defaultParameterValue(paramName);
+                if isempty(defaultValue) && paramProps.HasDefault
+                    defaultValue = paramProps.DefaultValue;
+                end
+                
+                if ~paramProps.Dependent
+                    if iscell(defaultValue) && ~isempty(defaultValue)
+                        value = defaultValue{1};
+                    else
+                        value = defaultValue;
+                    end
+                
+                    if isfield(savedParams, paramName)
+                        savedValue = savedParams.(paramName);
+                        if iscell(defaultValue)
+                            % Only set the saved value if it is a member of the default value cell array.
+                            if iscellstr(defaultValue)
+                                isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
+                            else
+                                isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
+                            end
+
+                            if isMember
+                                value = savedValue;
+                            end
+                        else
+                            value = savedValue;
+                        end
+                    end
+
+                    newProtocol.(paramName) = value;
                 end
             end
             
