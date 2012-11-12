@@ -72,7 +72,7 @@ classdef StimGLProtocol < SymphonyProtocol
             % TODO: make sure to pick a device with an output stream
             stimulus = zeros(1, floor(obj.epochDuration() * obj.sampleRate));
             device = obj.rigConfig.devices();
-            obj.addStimulus(device{1}.Name, 'StimGL_dummy_stimulus', stimulus);
+            obj.addStimulus(char(device{1}.Name), 'StimGL_dummy_stimulus', stimulus);
             
             % Start the StimGL plug-in.
             SetParams(obj.stimGL, obj.plugInName, obj.pluginParameters());
