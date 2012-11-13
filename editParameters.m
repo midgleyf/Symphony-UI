@@ -58,7 +58,7 @@ function edited = editParameters(protocol)
         last = mid + r - 8;
         push_cdata(r,start:last,:) = 0;
     end
-    
+        
     % Create a control for each of the protocol's parameters.
     textFieldParamNames = {};
     for paramIndex = 1:paramCount
@@ -244,14 +244,23 @@ function edited = editParameters(protocol)
     
     guidata(handles.figure, handles);
     
+    drawnow;
+    % Store java handles for quick retrieval.
+    for i = 1:paramCount
+        paramName = paramNames{i};
+        paramTag = [paramName 'Edit'];
+        userData.javaHandle = findjobj(handles.(paramTag));
+        set(handles.(paramTag), 'UserData', userData);
+    end
+    
     % Try to add Java callbacks so that the stimuli and dependent values can be updated as new values are being typed.
-    drawnow
     for i = 1:length(textFieldParamNames)
         paramName = textFieldParamNames{i};
-        hObject = handles.([paramName 'Edit']);
+        paramTag = [paramName 'Edit'];
+        hObject = handles.(paramTag);
         try
-            javaHandle = findjobj(hObject);
-            set(javaHandle, 'KeyTypedCallback', {@valueChanged, hObject, paramName});
+            userData = get(handles.(paramTag), 'UserData');
+            set(userData.javaHandle, 'KeyTypedCallback', {@valueChanged, hObject, paramName});
         catch ME %#ok<NASGU>
         end
     end
@@ -308,7 +317,8 @@ function value = getParamValueFromUI(handles, paramName)
         defaultValue = paramProps.DefaultValue;
     end
     
-    javaHandle = findjobj(handles.(paramTag));
+    userData = get(handles.(paramTag), 'UserData');
+    javaHandle = userData.javaHandle;
     if isnumeric(defaultValue)
         if length(defaultValue) > 1
             % Convert from a comma separated list, ranges, etc. to a vector of numbers.
