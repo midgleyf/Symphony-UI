@@ -536,6 +536,7 @@ function loadParameters(~, ~, handles)
         end
     end
     
+    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
@@ -575,6 +576,7 @@ function useDefaultParameters(~, ~, handles)
         setParamValueInUI(handles, paramName, defaultValue);
     end
     
+    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
