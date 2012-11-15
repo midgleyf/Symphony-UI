@@ -1,3 +1,15 @@
+% Property Descriptions:
+%
+% DeviceName (string)
+%   Name of the device containing the response to average. This value should be specified if more than one input
+%   device is available. The default is the first input device name found (arbitrary).
+%
+% LineColor (ColorSpec)
+%   Color of the mean response line. The default is blue.
+%
+% GroupByParams (string | cell array of strings)
+%   List of epoch parameters whose values are used to group mean responses. The default is all current epoch parameters.
+
 %  Copyright (c) 2012 Howard Hughes Medical Institute.
 %  All rights reserved.
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
@@ -10,6 +22,8 @@ classdef MeanResponseFigureHandler < FigureHandler
     end
     
     properties
+        deviceName
+        lineColor
         meanPlots   % array of structures to store the properties of each class of epoch.
         meanParamNames
     end
@@ -19,25 +33,39 @@ classdef MeanResponseFigureHandler < FigureHandler
         function obj = MeanResponseFigureHandler(protocolPlugin, varargin)
             obj = obj@FigureHandler(protocolPlugin);
             
-            xlabel(obj.axesHandle(), 'sec');
-            set(obj.axesHandle(), 'XTickMode', 'auto');
-            
-            obj.resetPlots();
-            
             ip = inputParser;
+            ip.addParamValue('DeviceName', [], @(x)ischar(x));
+            ip.addParamValue('LineColor', 'b', @(x)ischar(x) || isvector(x));
             ip.addParamValue('GroupByParams', {}, @(x)iscell(x) || ischar(x));
             ip.parse(varargin{:});
+            
+            obj.deviceName = ip.Results.DeviceName;
+            obj.lineColor = ip.Results.LineColor;
+            
+            if ~isempty(obj.deviceName)
+                set(obj.figureHandle, 'Name', [obj.protocolPlugin.displayName ': ' obj.deviceName ' ' obj.figureType]);
+            end 
             
             if iscell(ip.Results.GroupByParams)
                 obj.meanParamNames = ip.Results.GroupByParams;
             else
                 obj.meanParamNames = {ip.Results.GroupByParams};
             end
+                  
+            xlabel(obj.axesHandle(), 'sec');
+            set(obj.axesHandle(), 'XTickMode', 'auto');
+            
+            obj.resetPlots();
         end
         
         
         function handleCurrentEpoch(obj)
-            [responseData, sampleRate, units] = obj.protocolPlugin.response();
+            if isempty(obj.deviceName)
+                % Use the first device response found if no device name is specified.
+                [responseData, sampleRate, units] = obj.protocolPlugin.response();
+            else
+                [responseData, sampleRate, units] = obj.protocolPlugin.response(obj.deviceName);
+            end
             
             % Get the parameters for this "class" of epoch.
             % An epoch class is defined by a set of parameter values.
@@ -69,7 +97,7 @@ classdef MeanResponseFigureHandler < FigureHandler
                 meanPlot.units = units;
                 meanPlot.count = 1;
                 hold(obj.axesHandle(), 'on');
-                meanPlot.plotHandle = plot(obj.axesHandle(), (1:length(meanPlot.data)) / sampleRate, meanPlot.data);
+                meanPlot.plotHandle = plot(obj.axesHandle(), (1:length(meanPlot.data)) / sampleRate, meanPlot.data, 'Color', obj.lineColor);
                 obj.meanPlots(end + 1) = meanPlot;
             else
                 % This class of epoch has been seen before, add the current response to the mean.
