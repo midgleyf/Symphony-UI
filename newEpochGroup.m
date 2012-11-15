@@ -15,17 +15,17 @@ function epochGroup = newEpochGroup(parentGroup, sources, prevEpochGroup, clock)
     if isempty(prevEpochGroup)
         if ispref('Symphony', 'LastChosenEpochGroup')
             s = getpref('Symphony', 'LastChosenEpochGroup');
-            lastChosenPath = s.outputPath;
+            lastChosenPath = getFieldWithDefault(s, 'outputPath');
             lastChosenLabel = s.label;
             lastChosenKeywords = s.keywords;
             if isempty(parentGroup)
-                sourcePath = s.sourcePath;
+                sourcePath = getFieldWithDefault(s, 'sourcePath');
             else
                 sourcePath = parentGroup.rootGroup().source.path();
             end
-            lastChosenMouseID = s.mouseID;
-            lastChosenCellID = s.cellID;
-            lastChosenRig = s.rigName;
+            lastChosenMouseID = getFieldWithDefault(s, 'mouseID');
+            lastChosenCellID = getFieldWithDefault(s, 'cellID');
+            lastChosenRig = getFieldWithDefault(s, 'rigName', 'A');
         else
             lastChosenPath = getpref('SymphonyEpochGroup', 'LastChosenOutputPath', '');
             lastChosenLabel = getpref('SymphonyEpochGroup', 'LastChosenLabel', '');
@@ -411,5 +411,18 @@ function saveNewGroup(~, ~, handles)
         end
         
         uiresume
+    end
+end
+
+
+function value = getFieldWithDefault(s, fieldName, default)
+    if nargin < 3
+        default = '';
+    end
+    
+    if isfield(s, fieldName)
+        value = s.(fieldName);
+    else
+        value = default;
     end
 end
