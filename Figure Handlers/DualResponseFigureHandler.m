@@ -27,16 +27,16 @@ classdef DualResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = DualResponseFigureHandler(protocolPlugin, deviceName1, deviceName2, varargin)
-            obj = obj@FigureHandler(protocolPlugin);
-            
+        function obj = DualResponseFigureHandler(protocolPlugin, deviceName1, deviceName2, varargin)            
             ip = inputParser;
+            ip.KeepUnmatched = true;
             ip.addRequired('deviceName1', @(x)ischar(x)); 
             ip.addParamValue('LineColor1', 'b', @(x)ischar(x) || isvector(x));
             ip.addRequired('deviceName2', @(x)ischar(x)); 
             ip.addParamValue('LineColor2', 'r', @(x)ischar(x) || isvector(x));
             ip.parse(deviceName1, deviceName2, varargin{:});
             
+            obj = obj@FigureHandler(protocolPlugin, ip.Unmatched);
             obj.deviceName1 = ip.Results.deviceName1;
             obj.lineColor1 = ip.Results.LineColor1;
             obj.deviceName2 = ip.Results.deviceName2;

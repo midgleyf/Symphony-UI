@@ -22,10 +22,9 @@ classdef ResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = ResponseFigureHandler(protocolPlugin, deviceName, varargin)
-            obj = obj@FigureHandler(protocolPlugin);
-            
+        function obj = ResponseFigureHandler(protocolPlugin, deviceName, varargin)            
             ip = inputParser;
+            ip.KeepUnmatched = true;
             ip.addParamValue('LineColor', 'b', @(x)ischar(x) || isvector(x));
             
             % Allow deviceName to be an optional parameter.
@@ -40,9 +39,10 @@ classdef ResponseFigureHandler < FigureHandler
             
             ip.parse(varargin{:});
             
+            obj = obj@FigureHandler(protocolPlugin, ip.Unmatched);
             obj.deviceName = deviceName;
             obj.lineColor = ip.Results.LineColor;
-
+            
             if ~isempty(obj.deviceName)
                 set(obj.figureHandle, 'Name', [obj.protocolPlugin.displayName ': ' obj.deviceName ' ' obj.figureType]);
             end   

@@ -26,10 +26,9 @@ classdef MeanResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = MeanResponseFigureHandler(protocolPlugin, deviceName, varargin)
-            obj = obj@FigureHandler(protocolPlugin);
-            
+        function obj = MeanResponseFigureHandler(protocolPlugin, deviceName, varargin)           
             ip = inputParser;
+            ip.KeepUnmatched = true;
             ip.addParamValue('LineColor', 'b', @(x)ischar(x) || isvector(x));
             ip.addParamValue('GroupByParams', {}, @(x)iscell(x) || ischar(x));
             
@@ -45,6 +44,7 @@ classdef MeanResponseFigureHandler < FigureHandler
             
             ip.parse(varargin{:});
             
+            obj = obj@FigureHandler(protocolPlugin, ip.Unmatched);
             obj.deviceName = deviceName;
             obj.lineColor = ip.Results.LineColor;
             
