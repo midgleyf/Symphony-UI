@@ -346,7 +346,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
                 device = devices{1};
             else
                 device = obj.rigConfig.deviceWithName(deviceName);
-                % TODO: what happens when there is no device with that name?
+                if isempty(device)
+                    error('Symphony:NoDeviceWithName', ['There is no device with the name ''' deviceName '''']);
+                end
             end
             
             deviceName = char(device.Name);
@@ -369,8 +371,12 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
                     u = '';
                 end
                 
-                s = System.Decimal.ToDouble(response.SampleRate.QuantityInBaseUnit);
-                % TODO: do we care about the units of the SampleRate measurement?
+                if ~isempty(r)
+                    s = System.Decimal.ToDouble(response.SampleRate.QuantityInBaseUnit);
+                    % TODO: do we care about the units of the SampleRate measurement?
+                else
+                    s = [];
+                end
                 
                 % Cache the results.
                 obj.responses(deviceName) = struct('data', r, 'sampleRate', s, 'units', u);
