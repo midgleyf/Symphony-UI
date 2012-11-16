@@ -1,9 +1,5 @@
 % Property Descriptions:
 %
-% DeviceName (string)
-%   Name of the device containing the response to average. This value should be specified if more than one input
-%   device is available. The default is the first input device name found (arbitrary).
-%
 % LineColor (ColorSpec)
 %   Color of the mean response line. The default is blue.
 %
@@ -30,27 +26,37 @@ classdef MeanResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = MeanResponseFigureHandler(protocolPlugin, varargin)
+        function obj = MeanResponseFigureHandler(protocolPlugin, deviceName, varargin)
             obj = obj@FigureHandler(protocolPlugin);
             
             ip = inputParser;
-            ip.addParamValue('DeviceName', [], @(x)ischar(x));
             ip.addParamValue('LineColor', 'b', @(x)ischar(x) || isvector(x));
             ip.addParamValue('GroupByParams', {}, @(x)iscell(x) || ischar(x));
+            
+            % Allow deviceName to be an optional parameter.
+            % inputParser.addOptional does not fully work with string variables.
+            if nargin > 1 && any(strcmp(deviceName, ip.Parameters))
+                varargin = [deviceName varargin];
+                deviceName = [];
+            end
+            if nargin == 1
+                deviceName = [];
+            end
+            
             ip.parse(varargin{:});
             
-            obj.deviceName = ip.Results.DeviceName;
+            obj.deviceName = deviceName;
             obj.lineColor = ip.Results.LineColor;
-            
-            if ~isempty(obj.deviceName)
-                set(obj.figureHandle, 'Name', [obj.protocolPlugin.displayName ': ' obj.deviceName ' ' obj.figureType]);
-            end 
             
             if iscell(ip.Results.GroupByParams)
                 obj.meanParamNames = ip.Results.GroupByParams;
             else
                 obj.meanParamNames = {ip.Results.GroupByParams};
             end
+            
+            if ~isempty(obj.deviceName)
+                set(obj.figureHandle, 'Name', [obj.protocolPlugin.displayName ': ' obj.deviceName ' ' obj.figureType]);
+            end 
                   
             xlabel(obj.axesHandle(), 'sec');
             set(obj.axesHandle(), 'XTickMode', 'auto');

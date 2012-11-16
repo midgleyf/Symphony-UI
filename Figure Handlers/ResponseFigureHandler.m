@@ -1,9 +1,5 @@
 % Property Descriptions:
 %
-% DeviceName (string)
-%   Name of the device containing the response to display. This value should be specified if more than one input
-%   device is available. The default is the first input device name found (arbitrary).
-%
 % LineColor (ColorSpec)
 %   Color of the response line. The default is blue.
 
@@ -26,15 +22,25 @@ classdef ResponseFigureHandler < FigureHandler
     
     methods
         
-        function obj = ResponseFigureHandler(protocolPlugin, varargin)
+        function obj = ResponseFigureHandler(protocolPlugin, deviceName, varargin)
             obj = obj@FigureHandler(protocolPlugin);
             
             ip = inputParser;
-            ip.addParamValue('DeviceName', [], @(x)ischar(x));
             ip.addParamValue('LineColor', 'b', @(x)ischar(x) || isvector(x));
+            
+            % Allow deviceName to be an optional parameter.
+            % inputParser.addOptional does not fully work with string variables.
+            if nargin > 1 && any(strcmp(deviceName, ip.Parameters))
+                varargin = [deviceName varargin];
+                deviceName = [];
+            end
+            if nargin == 1
+                deviceName = [];
+            end
+            
             ip.parse(varargin{:});
             
-            obj.deviceName = ip.Results.DeviceName;
+            obj.deviceName = deviceName;
             obj.lineColor = ip.Results.LineColor;
 
             if ~isempty(obj.deviceName)
