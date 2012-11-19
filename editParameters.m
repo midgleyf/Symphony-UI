@@ -249,8 +249,11 @@ function edited = editParameters(protocol)
     for i = 1:paramCount
         paramName = paramNames{i};
         paramTag = [paramName 'Edit'];
-        userData.javaHandle = findjobj(handles.(paramTag));
-        set(handles.(paramTag), 'UserData', userData);
+        try
+            userData.javaHandle = findjobj(handles.(paramTag));
+            set(handles.(paramTag), 'UserData', userData);
+        catch ME %#ok<NASGU>
+        end
     end
     
     % Try to add Java callbacks so that the stimuli and dependent values can be updated as new values are being typed.
