@@ -47,11 +47,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
     end
     
     
-    properties (Dependent = true, SetAccess = private)
-        multiClampMode = 'VClamp'
-    end
-    
-    
     events
         StateChanged
     end
@@ -490,15 +485,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
             else
                 % Set a flag that will be checked after the current epoch completes.
                 obj.setState('stopping');
-            end
-        end
-        
-        
-        function m = get.multiClampMode(obj)
-            try
-                m = obj.rigConfig.multiClampMode();
-            catch ME
-                m = ['unknown (' ME.message ')'];
             end
         end
         
