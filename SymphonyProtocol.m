@@ -384,6 +384,25 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
         end
         
         
+        function runEpoch(obj)
+            % This is a core method that runs a single epoch of the protocol.
+            
+            try
+                % Tell the Symphony framework to run the epoch.
+                obj.rigConfig.controller.RunEpoch(obj.epoch, obj.persistor);
+            catch e
+                % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
+                message = ['An error occurred while running the protocol.' char(10) char(10)];
+                if (isa(e, 'NET.NetException'))
+                    message = [message netReport(e)]; %#ok<AGROW>
+                else
+                    message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
+                end
+                waitfor(errordlg(message));
+            end 
+        end
+        
+        
         function completeEpoch(obj)
             % Override this method to perform any post-analysis, etc. on the current epoch.
             obj.updateFigures();
@@ -438,20 +457,8 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
                         obj.epoch.ProtocolParameters.Add(fieldName{1}, fieldValue);
                     end
                     
-                    try
-                        % Tell the Symphony framework to run the epoch.
-                        obj.rigConfig.controller.RunEpoch(obj.epoch, obj.persistor);
-                    catch e
-                        % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
-                        message = ['An error occurred while running the protocol.' char(10) char(10)];
-                        if (isa(e, 'NET.NetException'))
-                            message = [message netReport(e)]; %#ok<AGROW>
-                        else
-                            message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
-                        end
-                        waitfor(errordlg(message));
-                    end
-                    
+                    obj.runEpoch();
+                                        
                     % Perform any post-epoch analysis, clean up, etc.
                     obj.completeEpoch();
                     
