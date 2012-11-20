@@ -246,38 +246,41 @@ classdef Symphony < handle
             for i = 1:numel(paramNames)
                 paramName = paramNames{i};
                 paramProps = findprop(newProtocol, paramName);
+                if paramProps.Dependent
+                    % This saved parameter does not need to be loaded.
+                    continue;
+                end
+                
                 defaultValue = newProtocol.defaultParameterValue(paramName);
                 if isempty(defaultValue) && paramProps.HasDefault
                     defaultValue = paramProps.DefaultValue;
                 end
                 
-                if ~paramProps.Dependent
-                    if iscell(defaultValue) && ~isempty(defaultValue)
-                        value = defaultValue{1};
-                    else
-                        value = defaultValue;
-                    end
-                
-                    if isfield(savedParams, paramName)
-                        savedValue = savedParams.(paramName);
-                        if iscell(defaultValue)
-                            % Only set the saved value if it is a member of the default value cell array.
-                            if iscellstr(defaultValue)
-                                isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
-                            else
-                                isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
-                            end
+                if iscell(defaultValue) && ~isempty(defaultValue)
+                    value = defaultValue{1};
+                else
+                    value = defaultValue;
+                end
 
-                            if isMember
-                                value = savedValue;
-                            end
+                if isfield(savedParams, paramName)
+                    savedValue = savedParams.(paramName);
+                    if iscell(defaultValue)
+                        % Only set the saved value if it is a member of the default value cell array.
+                        if iscellstr(defaultValue)
+                            isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
                         else
+                            isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
+                        end
+
+                        if isMember
                             value = savedValue;
                         end
+                    else
+                        value = savedValue;
                     end
-
-                    newProtocol.(paramName) = value;
                 end
+
+                newProtocol.(paramName) = value;
             end
             
             addlistener(newProtocol, 'StateChanged', @(source, event)protocolStateChanged(obj, source, event));

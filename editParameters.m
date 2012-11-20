@@ -512,31 +512,34 @@ function loadParameters(~, ~, handles)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramProps = findprop(handles.protocolCopy, paramName);
+        if isempty(paramProps) || paramProps.Dependent
+            % This saved parameter does not need to be loaded.
+            continue;
+        end
+        
         defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
         if isempty(defaultValue) && paramProps.HasDefault
             defaultValue = paramProps.DefaultValue;
         end
         
-        if ~isempty(paramProps) && ~paramProps.Dependent
-            savedValue = params.(paramName);
-            
-            if iscell(defaultValue)
-                % Only set the saved value if it is a member of the default value cell array.
-                if iscellstr(defaultValue)
-                    isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
-                else
-                    isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
-                end
+        savedValue = params.(paramName);
 
-                if isMember
-                    handles.protocolCopy.(paramName) = savedValue;
-                end
+        if iscell(defaultValue)
+            % Only set the saved value if it is a member of the default value cell array.
+            if iscellstr(defaultValue)
+                isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
             else
+                isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
+            end
+
+            if isMember
                 handles.protocolCopy.(paramName) = savedValue;
             end
-            
-            setParamValueInUI(handles, paramName, handles.protocolCopy.(paramName));
+        else
+            handles.protocolCopy.(paramName) = savedValue;
         end
+
+        setParamValueInUI(handles, paramName, handles.protocolCopy.(paramName));
     end
     
     drawnow;
