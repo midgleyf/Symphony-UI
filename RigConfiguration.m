@@ -240,13 +240,9 @@ classdef RigConfiguration < handle
                 device = obj.deviceWithName(deviceName);
             else
                 % Find a MultiClamp device to query.
-                device = [];
-                devices = listValues(obj.controller.Devices);
-                for i = 1:length(devices)
-                    if isa(devices{i}, 'Symphony.ExternalDevices.MultiClampDevice')
-                        device = devices{i};
-                        break;
-                    end
+                devices = obj.multiClampDevices();
+                if ~isempty(devices)
+                    device = devices{1};
                 end
             end
 
@@ -354,6 +350,22 @@ classdef RigConfiguration < handle
         end
         
         
+        function d = multiClampDevices(obj)
+            d = {};
+            devices = obj.devices();
+            for i = 1:length(devices)
+                if isa(devices{i}, 'Symphony.ExternalDevices.MultiClampDevice')
+                    d{end + 1} = devices{i};
+                end
+            end
+        end
+        
+        
+        function n = numMultiClampDevices(obj)
+            n = length(obj.multiClampDevices());
+        end
+                
+        
         function names = deviceNames(obj, expr)
             % Returns all device names with a match of the given regular expression.
             names = {};
@@ -364,6 +376,15 @@ classdef RigConfiguration < handle
                     names{end + 1} = name;
                 end
             end            
+        end
+        
+        
+        function names = multiClampDeviceNames(obj)            
+            names = {};
+            devices = obj.multiClampDevices();
+            for i = 1:length(devices)
+                names{end + 1} = char(devices{i}.Name);
+            end
         end
         
         
