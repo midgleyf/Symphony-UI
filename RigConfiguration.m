@@ -25,8 +25,6 @@ classdef RigConfiguration < handle
         hekaDigitalOutDevice = []
         hekaDigitalOutNames = {}
         hekaDigitalOutChannels = []
-        
-        deviceGroupMap
     end
     
     
@@ -49,8 +47,6 @@ classdef RigConfiguration < handle
             if nargin == 1 && ~allowMultiClampDevices
                 obj.allowMultiClampDevices = false;
             end
-            
-            obj.deviceGroupMap = containers.Map();
         end
         
         
@@ -201,9 +197,7 @@ classdef RigConfiguration < handle
         end
         
         
-        function addDevice(obj, deviceName, outStreamName, inStreamName, groupName)
-            % Specifying a group name is optional.
-            
+        function addDevice(obj, deviceName, outStreamName, inStreamName)            
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
             
@@ -237,20 +231,6 @@ classdef RigConfiguration < handle
                 dev.Clock = obj.controller.DAQController;
                 
                 obj.addStreams(dev, outStreamName, inStreamName);
-            end
-            
-            % Associate the device with a group name, if specified.
-            if nargin > 4
-                if isKey(obj.deviceGroupMap, groupName)
-                    % Only add the device to the group if it hasn't previously been added. 
-                    if ~any(ismember(obj.deviceGroupMap(groupName), dev))
-                        groupValue = obj.deviceGroupMap(groupName);
-                        groupValue{end + 1} = dev;
-                        obj.deviceGroupMap(groupName) = groupValue;
-                    end
-                else
-                    obj.deviceGroupMap(groupName) = {dev};
-                end
             end
         end
         
@@ -366,43 +346,24 @@ classdef RigConfiguration < handle
                 end
                 throw(ME);
             end
-            
-            % Add the multiclamp device to the amp group.
-            if isKey(obj.deviceGroupMap, 'amp')
-                amps = obj.deviceGroupMap('amp');
-                amps{end + 1} = dev;
-                obj.deviceGroupMap('amp') = amps;
-            else
-                obj.deviceGroupMap('amp') = {dev};
-            end
         end
         
         
-        function d = devices(obj, groupName)
-            % Returns devices associated with a specified group name or all devices if no group name is specified.
-            
-            d = {};
-            if nargin == 1
-                d = listValues(obj.controller.Devices);
-            elseif isKey(obj.deviceGroupMap, groupName)
-                d = obj.deviceGroupMap(groupName);
-            end
+        function d = devices(obj)
+            d = listValues(obj.controller.Devices);
         end
         
         
-        function names = deviceNames(obj, groupName)
-            % Returns device names associated with a specified group name or all device names if no group name is specified.
-            
-            if nargin == 1
-                devices = obj.devices();
-            else
-                devices = obj.devices(groupName);
-            end
-            
-            names = cell(1, length(devices));
+        function names = deviceNames(obj, expr)
+            % Returns all device names with a match of the given regular expression.
+            names = {};
+            devices = obj.devices();
             for i = 1:length(devices)
-                names{i} = char(devices{i}.Name);
-            end
+                name = char(devices{i}.Name);
+                if ~isempty(regexpi(name, expr, 'once'))
+                    names{end + 1} = name;
+                end
+            end            
         end
         
         
