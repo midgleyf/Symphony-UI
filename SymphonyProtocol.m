@@ -17,7 +17,7 @@
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 
-classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
+classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     
     properties (Constant, Abstract)
         identifier
@@ -77,11 +77,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
         function dn = requiredDeviceNames(obj) %#ok<MANU>
             % Override this method to indicate the names of devices that are required for this protocol.
             dn = {};
-        end
-        
-        
-        function prepareParameters(obj)
-            % Override this method to add parameters (appprop) to this protocol that depend on properties of the rig config in use. 
         end
         
         
@@ -549,36 +544,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable & dynamicprops
             index = cellfun(@(x) x == handler, obj.figureHandlers);
             obj.figureHandlers(index) = [];
             obj.figureHandlerParams(index) = [];
-        end
-        
-    end
-    
-    
-    methods (Access = protected)
-        
-        function cpObj = copyElement(obj)          
-            cpObj = copyElement@matlab.mixin.Copyable(obj);
-            
-            % Add all dynamic properties to the copied instance.
-            paramNames = fieldnames(obj.parameters());
-            for i = 1:numel(paramNames)
-                paramName = paramNames{i};
-                paramProp = findprop(obj, paramName);
-                if isa(paramProp, 'meta.DynamicProperty')
-                    p = addprop(cpObj, paramName);
-                    
-                    cpObj.(paramName) = obj.(paramName);
-                    p.Dependent = paramProp.Dependent;
-                                        
-                    if ~isempty(paramProp.GetMethod)
-                        p.GetMethod = paramProp.GetMethod;
-                    end
-                    
-                    if ~isempty(paramProp.SetMethod)
-                        p.SetMethod = paramProp.SetMethod;
-                    end
-                end
-            end
         end
         
     end

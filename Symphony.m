@@ -236,9 +236,6 @@ classdef Symphony < handle
             newProtocol.rigConfig = obj.rigConfig;
             newProtocol.figureHandlerClasses = obj.figureHandlerClasses;
             
-            % Add dynamic parameters.
-            newProtocol.prepareParameters();
-            
             % Set default or saved parameter values.
             savedParams = getpref('Symphony', [className '_Defaults'], struct);
             params = newProtocol.parameters();
