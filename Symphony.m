@@ -13,7 +13,7 @@ classdef Symphony < handle
         rigConfig
         
         protocolDirPopupNames       % directory names (to look for protocols)
-        protocolsDir            % path to directory containing currently listed protocols
+        protocolsDir                % path to directory containing currently listed protocols
         protocolClassNames          % The list of protocol class names.
         protocolDisplayNames
         protocol                    % The current protocol instance.
@@ -124,21 +124,26 @@ classdef Symphony < handle
         
         
         function checkRigConfigAndProtocol(obj)
-            % Check if the current protocol is compatible with the current rig configuration.
-            obj.missingRigConfigClass = '';
-            rigConfigClass = obj.protocol.requiredRigConfigClass();
-            if ~isempty(rigConfigClass) && ~any(ismember(superclasses(obj.rigConfig), rigConfigClass))
-                obj.missingRigConfigClass = rigConfigClass;
-            end
-            
-            obj.missingDeviceName = '';
-            deviceNames = obj.protocol.requiredDeviceNames();
-            for i = 1:length(deviceNames)
-                device = obj.rigConfig.deviceWithName(deviceNames{i});
-                if isempty(device)
-                    obj.missingDeviceName = deviceNames{i};
-                    break;
+            if ~isempty(obj.rigConfig) && ~isempty(obj.protocol)
+                % Check if the current protocol is compatible with the current rig configuration.
+                obj.missingRigConfigClass = '';
+                rigConfigClass = obj.protocol.requiredRigConfigClass();
+                if ~isempty(rigConfigClass) && ~any(ismember(superclasses(obj.rigConfig), rigConfigClass))
+                    obj.missingRigConfigClass = rigConfigClass;
                 end
+
+                obj.missingDeviceName = '';
+                deviceNames = obj.protocol.requiredDeviceNames();
+                for i = 1:length(deviceNames)
+                    device = obj.rigConfig.deviceWithName(deviceNames{i});
+                    if isempty(device)
+                        obj.missingDeviceName = deviceNames{i};
+                        break;
+                    end
+                end
+            else
+                obj.missingRigConfigClass = '';
+                obj.missingDeviceName = '';
             end
             
             obj.updateUIState();
@@ -151,11 +156,11 @@ classdef Symphony < handle
         function discoverProtocols(obj)
             % Get the list of protocols from the selected folder.
             
-            % Default folder on startup is 'Protocols/org.janelia.research.murphy' folder in Symphony UI directory
+            % Default folder on startup is 'Protocols' folder in Symphony UI directory
             if isempty(obj.protocolsDir)
                 symphonyPath = mfilename('fullpath');
                 parentDir = fileparts(symphonyPath);
-                defaultDir = fullfile(parentDir, 'Protocols/org.janelia.research.murphy');
+                defaultDir = fullfile(parentDir, 'Protocols');
                 obj.protocolsDir = getpref('Symphony', 'LastChosenProtocolDir', defaultDir);
             else
                 popupSelectionIndex = get(obj.controls.protocolDirPopup, 'Value');
@@ -226,11 +231,16 @@ classdef Symphony < handle
                 end
             end
             obj.protocolClassNames = obj.protocolClassNames(1:protocolCount);
-            obj.protocolDisplayNames = obj.protocolDisplayNames(1:protocolCount);
+            obj.protocolDisplayNames = obj.protocolDisplayNames(1:protocolCount);                
         end
         
         
         function newProtocol = createProtocol(obj, className)
+            if isempty(className)
+                newProtocol = [];
+                return;
+            end
+            
             % Create an instance of the protocol class.
             constructor = str2func(className);
             newProtocol = constructor();
@@ -392,23 +402,22 @@ classdef Symphony < handle
                 
                 % Create a default protocol plug-in.
                 
-                lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
-                order = 1:length(obj.protocolClassNames);
-                index = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
-                if ~isempty(index)
-                    order(index) = [];
-                    order = [index order(:)'];
-                end
-                for protocolValue = order
-                    try
-                        obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
-                        break;
-                    catch ME
-                        disp(['Could not create a ' obj.protocolClassNames{protocolValue} '(' ME.message ')']);
+                if ~isempty(obj.protocolClassNames)
+                    lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
+                    order = 1:length(obj.protocolClassNames);
+                    index = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
+                    if ~isempty(index)
+                        order(index) = [];
+                        order = [index order(:)'];
                     end
-                end
-                if isempty(obj.protocol)
-                    error('Symphony:NoProtocol', 'Could not create any protocol');
+                    for protocolValue = order
+                        try
+                            obj.protocol = obj.createProtocol(obj.protocolClassNames{protocolValue});
+                            break;
+                        catch ME
+                            disp(['Could not create a ' obj.protocolClassNames{protocolValue} '(' ME.message ')']);
+                        end
+                    end
                 end
                 
                 obj.wasSavingEpochs = true;
@@ -492,13 +501,20 @@ classdef Symphony < handle
                     'Value', 1, ...
                     'Tag', 'protocolDirPopup');
                 
+                if ~isempty(obj.protocolDisplayNames)
+                    protocolNames = obj.protocolDisplayNames;
+                else
+                    protocolNames = {''};
+                    protocolValue = 1;
+                end
+                    
                 obj.controls.protocolPopup = uicontrol(...
                     'Parent', obj.controls.protocolPanel, ...
                     'Units', 'points', ...
                     'Callback', @(hObject,eventdata)chooseProtocol(obj,hObject,eventdata), ...
                     'Position', [10 24 130 22], ...
                     'BackgroundColor', bgColor, ...
-                    'String', obj.protocolDisplayNames, ...
+                    'String', protocolNames, ...
                     'Style', 'popupmenu', ...
                     'Value', protocolValue, ...
                     'Tag', 'protocolPopup');
@@ -555,6 +571,12 @@ classdef Symphony < handle
                 
                 % Save epochs checkbox
                 
+                if ~isempty(obj.protocol)
+                    allowSavingEpochs = obj.protocol.allowSavingEpochs;
+                else
+                    allowSavingEpochs = false;
+                end
+                
                 obj.controls.saveEpochsCheckbox = uicontrol(...
                     'Parent', obj.mainWindow, ...
                     'Units', 'points', ...
@@ -562,7 +584,7 @@ classdef Symphony < handle
                     'Position', [10 170 250 18], ...
                     'BackgroundColor', bgColor, ...
                     'String', 'Save Epochs with Group', ...
-                    'Value', uint8(obj.protocol.allowSavingEpochs), ...
+                    'Value', allowSavingEpochs, ...
                     'Style', 'checkbox', ...
                     'Tag', 'saveEpochsCheckbox');
                 
@@ -762,16 +784,16 @@ classdef Symphony < handle
             set(obj.controls.protocolPopup, 'Value', 1);
             if isempty(obj.protocolDisplayNames)
                 % if there are no protocols in the selected directory
-                % current protocol to run is not changed
-                % but current protocol displayed in protocolPopup menu is empty string ' '
+                % the current protocol displayed in protocolPopup menu is an empty string
                 set(obj.controls.protocolPopup, 'String', {''});
             else
                 % if selected directory contains protocols
                 % name of current protocol in protocolPopup is first protocol
-                % and that protocol is selected as the current protocol to run
                 set(obj.controls.protocolPopup, 'String', obj.protocolDisplayNames);
-                obj.chooseProtocol([], [], false);
             end
+            
+            % Choose the protocol but do not display the edit params window.
+            obj.chooseProtocol([], [], false);
 
             % Remember the new protocols directory.
             setpref('Symphony', 'LastChosenProtocolDir', obj.protocolsDir);
@@ -786,47 +808,49 @@ classdef Symphony < handle
             end
             
             pluginIndex = get(obj.controls.protocolPopup, 'Value');
-            protocolClassName = obj.protocolClassNames{pluginIndex};
+            if ~isempty(obj.protocolClassNames)
+                protocolClassName = obj.protocolClassNames{pluginIndex};
+            else
+                protocolClassName = '';
+            end
             
             % Create a new protocol if the user chose a different protocol class.
             if ~isa(obj.protocol, protocolClassName)
-                requiresReset = false;
-                oldProtocol = obj.protocol;
                 try
                     newProtocol = obj.createProtocol(protocolClassName);
                 catch ME
                     waitfor(errordlg(['Could not create a ''' protocolClassName ''' instance.' char(10) char(10) ME.message], 'Symphony'));
-                    newProtocol = [];
-                    requiresReset = true;
-                end
-                               
-                if ~isempty(newProtocol)
-                    obj.protocol.closeFigures();
-                    obj.protocol = newProtocol;
-                    obj.checkRigConfigAndProtocol();
-                    
-                    % Don't show the parameters window if the protocol can't be run (or it's requested not to).
-                    if shouldShowParams && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
-                        if editParameters(newProtocol)
-                            setpref('Symphony', 'LastChosenProtocol', protocolClassName);
-
-                            if ~obj.protocol.allowSavingEpochs
-                                obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
-                                set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
-                            elseif obj.wasSavingEpochs
-                                set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
-                            end
-                        else
-                            requiresReset = true;
-                        end
-                    end                    
-                end
-                
-                if requiresReset
-                    obj.protocol = oldProtocol;
-                    obj.checkRigConfigAndProtocol();
                     protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
                     set(obj.controls.protocolPopup, 'Value', protocolValue);
+                    return;
+                end
+                               
+                if ~isempty(obj.protocol)
+                    obj.protocol.closeFigures();
+                end
+                oldProtocol = obj.protocol;
+                obj.protocol = newProtocol;
+                obj.checkRigConfigAndProtocol();
+
+                % Don't show the parameters window if the protocol can't be run (or it's requested not to).
+                if shouldShowParams && ~isempty(obj.protocol) && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
+                    if editParameters(obj.protocol)
+                        setpref('Symphony', 'LastChosenProtocol', protocolClassName);
+
+                        if ~obj.protocol.allowSavingEpochs
+                            obj.wasSavingEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
+                            set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Min'));
+                        elseif obj.wasSavingEpochs
+                            set(obj.controls.saveEpochsCheckbox, 'Value', get(obj.controls.saveEpochsCheckbox, 'Max'));
+                        end
+                    else
+                        % User selected cancel on the initial edit params window.
+                        % Revert back to the old protocol.
+                        obj.protocol = oldProtocol;
+                        obj.checkRigConfigAndProtocol();
+                        protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
+                        set(obj.controls.protocolPopup, 'Value', protocolValue);
+                    end
                 end
             end
         end
@@ -908,12 +932,17 @@ classdef Symphony < handle
         
         function updateUIState(obj, varargin)
             % Update the state of the UI based on the state of the protocol.
-            set(obj.controls.statusLabel, 'String', ['Status: ' obj.protocol.state]);
+            if ~isempty(obj.protocol)
+                state = obj.protocol.state;
+            else
+                state = 'No protocol selected.';
+            end
+            set(obj.controls.statusLabel, 'String', ['Status: ' state]);
             
-            if strcmp(obj.protocol.state, 'stopped')
+            if isempty(obj.protocol) || strcmp(obj.protocol.state, 'stopped')
                 set(obj.controls.rigConfigPopup, 'Enable', 'on');
                 set(obj.controls.startButton, 'String', 'Start');
-                if isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
+                if ~isempty(obj.protocol) && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
                     set(obj.controls.startButton, 'Enable', 'on');
                     set(obj.controls.editParametersButton, 'Enable', 'on');
                 else
@@ -922,9 +951,9 @@ classdef Symphony < handle
                     if ~isempty(obj.missingRigConfigClass)
                         set(obj.controls.statusLabel, 'String', ...
                             ['The protocol cannot be run because the current rig config is not of type ''' obj.missingRigConfigClass '''.']);
-                    else
+                    elseif ~isempty(obj.missingDeviceName)
                         set(obj.controls.statusLabel, 'String', ...
-                            ['The protocol cannot be run because there is no ''' obj.missingDeviceName ''' device.']);
+                            ['The protocol cannot be run because there is no ''' obj.missingDeviceName ''' device.']); 
                     end
                 end
                 set(obj.controls.pauseButton, 'Enable', 'off');
@@ -944,7 +973,7 @@ classdef Symphony < handle
                 else
                     set(obj.controls.closeEpochGroupButton, 'Enable', 'on');
                 end
-                if isempty(obj.epochGroup) || ~obj.protocol.allowSavingEpochs
+                if isempty(obj.protocol) || isempty(obj.epochGroup) || ~obj.protocol.allowSavingEpochs
                     set(obj.controls.saveEpochsCheckbox, 'Enable', 'off');
                 else
                     set(obj.controls.saveEpochsCheckbox, 'Enable', 'on');
@@ -975,7 +1004,7 @@ classdef Symphony < handle
             end
             
             saveEpochs = get(obj.controls.saveEpochsCheckbox, 'Value') == get(obj.controls.saveEpochsCheckbox, 'Max');
-            if ~isempty(obj.epochGroup) && obj.protocol.allowSavingEpochs && ~saveEpochs
+            if ~isempty(obj.protocol) && ~isempty(obj.epochGroup) && obj.protocol.allowSavingEpochs && ~saveEpochs
                 set(obj.controls.notSavingEpochsText, 'Visible', 'on');
             else
                 set(obj.controls.notSavingEpochsText, 'Visible', 'off');
@@ -1027,7 +1056,9 @@ classdef Symphony < handle
         function closeRequestFcn(obj, ~, ~)
             % TODO: need to stop the protocol?
             
-            obj.protocol.closeFigures();
+            if ~isempty(obj.protocol)
+                obj.protocol.closeFigures();
+            end
             
             if ~isempty(obj.epochGroup)
                 while ~isempty(obj.persistor)
@@ -1039,7 +1070,9 @@ classdef Symphony < handle
             delete(obj.sources);
             
             % Release any hold we have on hardware.
-            obj.rigConfig.close()
+            if ~isempty(obj.rigConfig)
+                obj.rigConfig.close();
+            end
             
             % Remember the window position.
             setpref('Symphony', 'MainWindow_Position', get(obj.mainWindow, 'Position'));
