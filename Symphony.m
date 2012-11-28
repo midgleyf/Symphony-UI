@@ -151,11 +151,12 @@ classdef Symphony < handle
         function discoverProtocols(obj)
             % Get the list of protocols from the selected folder.
             
-            % Default folder on startup is 'Protocols' folder in Symphony UI directory
+            % Default folder on startup is 'Protocols/org.janelia.research.murphy' folder in Symphony UI directory
             if isempty(obj.protocolsDir)
                 symphonyPath = mfilename('fullpath');
                 parentDir = fileparts(symphonyPath);
-                obj.protocolsDir = fullfile(parentDir, 'Protocols');
+                defaultDir = fullfile(parentDir, 'Protocols/org.janelia.research.murphy');
+                obj.protocolsDir = getpref('Symphony', 'LastChosenProtocolDir', defaultDir);
             else
                 popupSelectionIndex = get(obj.controls.protocolDirPopup, 'Value');
                 if popupSelectionIndex==2
@@ -201,7 +202,8 @@ classdef Symphony < handle
             obj.protocolDirPopupNames = obj.protocolDirPopupNames(1:protocolDirCount);
             % set name of current directory and parent directory in
             % protocolDirPopup menu to something more informative than '.' and '..'
-            [parentDir, currentProtocolsDirName] = fileparts(obj.protocolsDir);
+            [parentDir, currentProtocolsDirName, ext] = fileparts(obj.protocolsDir);
+            currentProtocolsDirName = [currentProtocolsDirName ext];
             [~, protocolsDirParentName] = fileparts(parentDir);
             obj.protocolDirPopupNames{1} = ['. (' currentProtocolsDirName ')'];
             obj.protocolDirPopupNames{2} = ['.. (' protocolsDirParentName ')'];
@@ -770,6 +772,8 @@ classdef Symphony < handle
                 obj.chooseProtocol([], [], false);
             end
 
+            % Remember the new protocols directory.
+            setpref('Symphony', 'LastChosenProtocolDir', obj.protocolsDir);
         end
         
         
