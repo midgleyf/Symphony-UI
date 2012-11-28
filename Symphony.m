@@ -391,6 +391,7 @@ classdef Symphony < handle
                 end
                 
                 % Create a default protocol plug-in.
+                
                 lastChosenProtocol = getpref('Symphony', 'LastChosenProtocol', obj.protocolClassNames{1});
                 order = 1:length(obj.protocolClassNames);
                 index = find(strcmp(obj.protocolClassNames, lastChosenProtocol));
@@ -800,14 +801,13 @@ classdef Symphony < handle
                 end
                                
                 if ~isempty(newProtocol)
+                    obj.protocol.closeFigures();
                     obj.protocol = newProtocol;
                     obj.checkRigConfigAndProtocol();
                     
                     % Don't show the parameters window if the protocol can't be run (or it's requested not to).
                     if shouldShowParams && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
                         if editParameters(newProtocol)
-                            obj.protocol.closeFigures();
-
                             setpref('Symphony', 'LastChosenProtocol', protocolClassName);
 
                             if ~obj.protocol.allowSavingEpochs
