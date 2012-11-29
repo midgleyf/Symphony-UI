@@ -556,7 +556,7 @@ end
 function dir = findSavedParametersDir(handles)
     protocolPath = which(class(handles.protocol));
     protocolDir = fileparts(protocolPath);
-    dir = [protocolDir '\Saved Parameters'];
+    dir = [protocolDir '\saved_parameters'];
     if exist(dir, 'file') ~= 7
         mkdir(dir);
     end
