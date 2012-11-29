@@ -285,7 +285,12 @@ function updateStimuli(handles)
     if handles.showStimuli
         set(handles.figure, 'CurrentAxes', handles.stimuliAxes)
         cla;
-        stimuli = handles.protocolCopy.sampleStimuli();
+        try
+            stimuli = handles.protocolCopy.sampleStimuli();
+        catch ME
+            disp(['An error occurred when creating sample stimuli:' ME.getReport('extended', 'hyperlinks', 'off')]);
+            stimuli = [];
+        end
         if isempty(stimuli)
             plot3(0, 0, 0);
             set(handles.stimuliAxes, 'XTick', [], 'YTick', [], 'ZTick', [])
