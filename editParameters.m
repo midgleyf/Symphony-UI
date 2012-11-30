@@ -149,6 +149,12 @@ function edited = editParameters(protocol)
                 end
             end
             
+            % An empty default value should show an empty popup menu.
+            if isempty(defaultValue)
+                defaultValue = {''};
+                popupValue = 1;
+            end
+            
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure, ...
                 'Units', 'points', ...
@@ -339,7 +345,11 @@ function value = getParamValueFromUI(handles, paramName)
     elseif islogical(defaultValue)
         value = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
     elseif iscell(defaultValue)
-        value = defaultValue{get(handles.(paramTag), 'Value')};
+        if ~isempty(defaultValue)
+            value = defaultValue{get(handles.(paramTag), 'Value')};
+        else
+            value = {};
+        end
     elseif ischar(defaultValue)
         value = get(javaHandle, 'Text');
     end
@@ -357,7 +367,9 @@ function setParamValueInUI(handles, paramName, value)
     if iscell(defaultValue)
         paramProps = findprop(handles.protocol, paramName);
         values = defaultValue;
-        if ischar(values{1})
+        if isempty(values)
+            index = 1;
+        elseif ischar(values{1})
             index = find(strcmp(values, value));
         else
             index = find(cell2mat(values) == value);
@@ -579,7 +591,11 @@ function useDefaultParameters(~, ~, handles)
         end
         
         if iscell(defaultValue)
-            defaultValue = defaultValue{1};
+            if ~isempty(defaultValue)
+                defaultValue = defaultValue{1};
+            else
+                defaultValue = {};
+            end
         end
         
         if ~paramProps.Dependent
@@ -629,7 +645,11 @@ function okEditParameters(~, ~, handles)
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
             elseif iscell(defaultValue)
                 paramProps = findprop(handles.protocol, paramName);
-                paramValue = defaultValue{get(handles.(paramTag), 'Value')};
+                if ~isempty(defaultValue)
+                    paramValue = defaultValue{get(handles.(paramTag), 'Value')};
+                else
+                    paramValue = {};
+                end
             elseif ischar(defaultValue)
                 paramValue = get(handles.(paramTag), 'String');
             end
