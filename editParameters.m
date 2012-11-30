@@ -471,6 +471,7 @@ end
 function stepValueUp(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue + 1));
+    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
@@ -479,6 +480,7 @@ end
 function stepValueDown(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue - 1));
+    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
