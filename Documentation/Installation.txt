@@ -31,8 +31,18 @@ Installing Symphony for development
 -----------------------------------
 
 Symphony can be installed on any Windows or Mac in order to develop protocols, figure handlers, etc.  
-To do this the following items need to be intalled:
+To do this the following items need to be installed:
 
 * MATLAB 2011a (32 bit)
 * Symphony .NET Framework (if on Windows, available from http://download.physionconsulting.com/)
 * Symphony UI (the package containing this document)
+
+
+Configuring Symphony
+--------------------
+
+Copy the SymphonyConfiguration.m script from the Symphony UI directory into the MATLAB user path 
+directory.  Edit the copied configuration script to define the location of rig configurations, 
+protocols, etc.
+
+The MATLAB user path can be determined by running the userpath function at the MATLAB command line. 

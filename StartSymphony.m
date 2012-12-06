@@ -9,14 +9,11 @@ if verLessThan('matlab', '7.12')
     error('Symphony requires MATLAB 7.12.0 (R2011a) or later');
 end
 
-% Add our utility and figure handler folders to the search path.
+% Add base directories to the path.
 symphonyPath = mfilename('fullpath');
 parentDir = fileparts(symphonyPath);
 addpath(fullfile(parentDir, 'Utility'));
-addpath(fullfile(parentDir, 'Rig Configurations'));
-addpath(fullfile(parentDir, 'Figure Handlers'));
 addpath(fullfile(parentDir, 'StimGL'));
-clear symphonyPath parentDir
 
 % Load the Symphony .NET framework
 addSymphonyFramework();
@@ -25,7 +22,20 @@ addSymphonyFramework();
 global symphonyInstance;
 
 if isempty(symphonyInstance)
-    symphonyInstance = Symphony();
+    % Run the built-in configuration script.
+    run('SymphonyConfiguration');
+    
+    % Run the user specific configuration script.
+    up = userpath;
+    up = regexprep(up, ';', ''); % Remove semicolon at end of userpath
+    if exist(fullfile(up, 'SymphonyConfiguration.m'), 'file')
+        run(fullfile(up, 'SymphonyConfiguration'));
+    end
+    
+    symphonyInstance = Symphony(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile);
 else
     symphonyInstance.showMainWindow();
 end
+
+% Clean up
+clear symphonyPath parentDir configFile rigConfigsDir protocolsDir figureHandlersDir sourcesFile up var
