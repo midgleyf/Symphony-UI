@@ -18,10 +18,10 @@ classdef ExamplePulseFamily < SymphonyProtocol
         tailTime = 50
         firstPulseSignal = 100
         incrementPerPulse = 10
-        pulsesInFamily = uint8(11)
+        pulsesInFamily = uint16(11)
         preAndTailSignal = -60
         ampHoldSignal = -60
-        numberOfAverages = uint8(5)
+        numberOfAverages = uint16(5)
     end
     
     methods           

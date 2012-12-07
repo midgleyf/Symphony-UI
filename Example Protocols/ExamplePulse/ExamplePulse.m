@@ -19,7 +19,7 @@ classdef ExamplePulse < SymphonyProtocol
         pulseAmplitude = 100
         preAndTailSignal = -60
         ampHoldSignal = -60
-        numberOfAverages = uint8(5)
+        numberOfAverages = uint16(5)
     end
     
     methods           
