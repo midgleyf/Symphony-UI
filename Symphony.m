@@ -109,7 +109,7 @@ classdef Symphony < handle
                     end
                 end
             end
-            
+                                 
             % Don't allow an empty list of rig configurations.
             if isempty(obj.rigConfigClassNames)
                 error(['Could not find any rig configurations in the rigConfigsDir: ' obj.rigConfigsDir]);
@@ -271,7 +271,6 @@ classdef Symphony < handle
             % Create an instance of the protocol class.
             constructor = str2func(className);
             newProtocol = constructor();
-            
             newProtocol.rigConfig = obj.rigConfig;
             newProtocol.figureHandlerClasses = obj.figureHandlerClasses;
             
@@ -310,7 +309,6 @@ classdef Symphony < handle
                         else
                             isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
                         end
-
                         if isMember
                             value = savedValue;
                         end
@@ -848,14 +846,15 @@ classdef Symphony < handle
                 shouldShowParams = true;
             end
             
-            pluginIndex = get(obj.controls.protocolPopup, 'Value');
-            if ~isempty(obj.protocolClassNames)
-                protocolClassName = obj.protocolClassNames{pluginIndex};
-            else
-                % There are no protocols to create.
+            if isempty(obj.protocolClassNames)
+                % There are no protocols to choose.
                 obj.protocol = [];
+                obj.checkRigConfigAndProtocol();
                 return;
             end
+            
+            pluginIndex = get(obj.controls.protocolPopup, 'Value');
+            protocolClassName = obj.protocolClassNames{pluginIndex};
             
             if isa(obj.protocol, protocolClassName)
                 % The current protocol was selected again. No action needed.
@@ -867,7 +866,11 @@ classdef Symphony < handle
                 newProtocol = obj.createProtocol(protocolClassName);
             catch ME
                 waitfor(errordlg(['Could not create a ''' protocolClassName ''' instance.' char(10) char(10) ME.message], 'Symphony'));
-                protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
+                if ~isempty(obj.protocol)
+                    protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
+                else
+                    protocolValue = 1;
+                end
                 set(obj.controls.protocolPopup, 'Value', protocolValue);
                 return;
             end
@@ -895,7 +898,11 @@ classdef Symphony < handle
                     % Revert back to the old protocol.
                     obj.protocol = oldProtocol;
                     obj.checkRigConfigAndProtocol();
-                    protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
+                    if ~isempty(obj.protocol)
+                        protocolValue = find(strcmp(obj.protocolClassNames, class(obj.protocol)));
+                    else
+                        protocolValue = 1;
+                    end
                     set(obj.controls.protocolPopup, 'Value', protocolValue);
                 end
             end
