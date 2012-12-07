@@ -47,10 +47,7 @@ classdef RigConfiguration < handle
             if nargin == 1 && ~allowMultiClampDevices
                 obj.allowMultiClampDevices = false;
             end
-        end
-        
-        
-        function initialize(obj)
+
             try
                 obj.createDevices();
                 
