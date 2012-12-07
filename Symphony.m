@@ -118,6 +118,9 @@ classdef Symphony < handle
         
         
         function chooseRigConfiguration(obj, ~, ~)
+            % The user chose a new rig configuration from the pop-up.
+            
+            % Determine the new selection.
             configIndex = get(obj.controls.rigConfigPopup, 'Value');
             configClassName = obj.rigConfigClassNames{configIndex};
             if isa(obj.rigConfig, configClassName)
@@ -135,14 +138,14 @@ classdef Symphony < handle
             
                 setpref('Symphony', 'LastChosenRigConfig', configClassName);
             catch ME
-                % The user cancelled editing the parameters so switch back to the previous protocol.
+                % The user cancelled editing the parameters so switch back to the previous rig configuration.
                 configValue = find(strcmp(obj.rigConfigClassNames, class(obj.rigConfig)));
                 set(obj.controls.rigConfigPopup, 'Value', configValue);
                 
                 waitfor(errordlg(['Could not create the device:' char(10) char(10) ME.message], 'Symphony'));
             end
             
-            % Recreate the protocol so that dynamically created parameters can be updated appropriately.
+            % Recreate the current protocol for the with the new rig configuration.
             if ~isempty(obj.protocol)
                 pluginIndex = get(obj.controls.protocolPopup, 'Value');
                 protocolClassName = obj.protocolClassNames{pluginIndex};
@@ -160,17 +163,20 @@ classdef Symphony < handle
         
         
         function checkRigConfigAndProtocol(obj)
+            % Check the compatibility of the current rig configuration with the current protocol.
+            
             % Clear properties from last check.
             obj.missingRigConfigClass = '';
             obj.missingDeviceName = '';
             
             if ~isempty(obj.rigConfig) && ~isempty(obj.protocol)
-                % Check if the current protocol is compatible with the current rig configuration.
+                % Does the current rig configuration match the rig configuration class required by the current protocol?
                 rigConfigClass = obj.protocol.requiredRigConfigClass();
                 if ~isempty(rigConfigClass) && ~any(ismember(superclasses(obj.rigConfig), rigConfigClass))
                     obj.missingRigConfigClass = rigConfigClass;
                 end
 
+                % Does the current rig configuration contain all the devices required by the current protocol?
                 deviceNames = obj.protocol.requiredDeviceNames();
                 for i = 1:length(deviceNames)
                     device = obj.rigConfig.deviceWithName(deviceNames{i});
@@ -281,6 +287,7 @@ classdef Symphony < handle
                     continue;
                 end
                 
+                % Get the parameter's default value from the defaultParameterValue method or the class property block.
                 defaultValue = newProtocol.defaultParameterValue(paramName);
                 if isempty(defaultValue) && paramProps.HasDefault
                     defaultValue = paramProps.DefaultValue;
@@ -292,8 +299,10 @@ classdef Symphony < handle
                     value = defaultValue;
                 end
 
+                % Is there a saved value for this parameter? If so, override the default value.
                 if isfield(savedParams, paramName)
                     savedValue = savedParams.(paramName);
+                    
                     if iscell(defaultValue)
                         % Only set the saved value if it is a member of the default value cell array.
                         if iscellstr(defaultValue)
@@ -361,6 +370,8 @@ classdef Symphony < handle
 
 
         function discoverSources(obj)
+            % Populate the list of sources from the current source hierarchy file.
+            
             fid = fopen(obj.sourcesFile);
             sourceText = fread(fid, '*char');
             fclose(fid);
@@ -832,6 +843,7 @@ classdef Symphony < handle
         
         function chooseProtocol(obj, ~, ~, shouldShowParams)
             % The user chose a protocol from the pop-up.
+            
             if nargin < 4
                 shouldShowParams = true;
             end
