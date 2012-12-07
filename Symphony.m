@@ -414,20 +414,16 @@ classdef Symphony < handle
                 catch ME
                     % Cannot create a rig config the same as the last one chosen by the user.
                     % Try to make a default one instead.
-                    disp(['Could not create a ' lastChosenRigConfig]);
-                    disp(['Error message: ' ME.message]);
-                    allowMultiClampDevices = ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode');
+                    disp(['Could not create a ' lastChosenRigConfig '. Error: ' ME.message]);
 
                     for i = 1:length(obj.rigConfigClassNames)
                         if ~strcmp(obj.rigConfigClassNames{i}, lastChosenRigConfig)
                             constructor = str2func(obj.rigConfigClassNames{i});
                             try
-                                obj.rigConfig = constructor(allowMultiClampDevices);
-                                break
+                                obj.rigConfig = constructor();
+                                break;
                             catch ME
-                                disp(['Could not create a ' obj.rigConfigClassNames{i}]);
-                                disp(['Error message: ' ME.message]);
-                                allowMultiClampDevices = ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode');
+                                disp(['Could not create a ' obj.rigConfigClassNames{i} '. Error: ' ME.message]);
                             end
                         end
                     end

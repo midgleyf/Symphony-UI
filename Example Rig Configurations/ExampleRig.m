@@ -9,16 +9,7 @@ classdef ExampleRig < RigConfiguration
         displayName = 'Example Rig'
     end
     
-    methods
-        
-        function obj = ExampleRig(allowMultiClampDevices)
-            args = {};
-            if nargin > 0
-                args{1} = allowMultiClampDevices;
-            end
-            obj = obj@RigConfiguration(args{:});
-        end
-        
+    methods      
         
         function createDevices(obj)     
             % Add a multiclamp device named 'Amplifier_Ch1'.

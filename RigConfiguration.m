@@ -12,7 +12,6 @@ classdef RigConfiguration < handle
     
     properties
         controller
-        allowMultiClampDevices = true
     end
     
     
@@ -35,7 +34,7 @@ classdef RigConfiguration < handle
     
     methods
         
-        function obj = RigConfiguration(allowMultiClampDevices)
+        function obj = RigConfiguration()
             import Symphony.Core.*;
             
             obj.controller = Controller();
@@ -43,10 +42,6 @@ classdef RigConfiguration < handle
             obj.controller.Clock = obj.controller.DAQController;
             
             obj.sampleRate = 10000;
-            
-            if nargin == 1 && ~allowMultiClampDevices
-                obj.allowMultiClampDevices = false;
-            end
 
             try
                 obj.createDevices();
@@ -55,9 +50,6 @@ classdef RigConfiguration < handle
                 obj.controller.DAQController.SetStreamsBackground();
             catch ME
                 obj.close();
-                if ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode')
-                    disp(getReport(ME));
-                end
                 throw(ME);
             end    
         end
@@ -269,10 +261,6 @@ classdef RigConfiguration < handle
         function addMultiClampDevice(obj, deviceName, channel, outStreamName, inStreamName)
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
-            
-            if ~obj.allowMultiClampDevices
-                error('Symphony:MultiClamp:UnknownMode', 'The MultiClamp mode could not be determined.');
-            end
             
             if channel ~= 1 && channel ~= 2
                 error('Symphony:MultiClamp:InvalidChannel', 'The MultiClamp channel must be either 1 or 2.');
