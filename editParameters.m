@@ -14,8 +14,7 @@ function edited = editParameters(protocol)
     try
         stimuli = handles.protocolCopy.sampleStimuli();
     catch ME
-        waitfor(errordlg(['An error occurred when creating sample stimuli:' char(10) ...
-            ME.getReport('extended', 'hyperlinks', 'off')]));
+        warning(['An error occurred when creating sample stimuli:' ME.getReport('extended', 'hyperlinks', 'off')]);
         stimuli = [];
     end
     handles.showStimuli = ~isempty(stimuli);
@@ -48,6 +47,13 @@ function edited = editParameters(protocol)
         'Tag', 'figure');
     
     uicontrolcolor = reshape(get(0,'defaultuicontrolbackgroundcolor'), [1,1,3]);
+        
+    if handles.showStimuli
+        % Create axes for displaying sample stimuli.
+        figure(handles.figure);
+        handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight - 10]);
+        updateStimuli(handles);
+    end
 
     % array for pushbutton's CData
     button_size = 16;
@@ -195,13 +201,6 @@ function edited = editParameters(protocol)
             set(handles.(paramTag), 'Enable', 'off');
         end
     end
-        
-    if handles.showStimuli
-        % Create axes for displaying sample stimuli.
-        figure(handles.figure);
-        handles.stimuliAxes = axes('Units', 'points', 'Position', [labelWidth + 225 + 30 40 axesHeight axesHeight - 10]);
-        updateStimuli(handles);
-    end
     
     handles.saveButton = uicontrol(...
         'Parent', handles.figure,...
@@ -250,8 +249,8 @@ function edited = editParameters(protocol)
     
     guidata(handles.figure, handles);
     
-    drawnow;
     % Store java handles for quick retrieval.
+    drawnow;
     for i = 1:paramCount
         paramName = paramNames{i};
         paramTag = [paramName 'Edit'];
@@ -294,7 +293,7 @@ function updateStimuli(handles)
         try
             stimuli = handles.protocolCopy.sampleStimuli();
         catch ME
-            disp(['An error occurred when creating sample stimuli:' ME.getReport('extended', 'hyperlinks', 'off')]);
+            warning(['An error occurred when creating sample stimuli:' ME.getReport('extended', 'hyperlinks', 'off')]);
             stimuli = [];
         end
         if isempty(stimuli)
@@ -391,6 +390,9 @@ end
 
 
 function updateDependentValues(handles)
+    % Redraw the GUI to ensure all controls are showing their lastest values before grabbing them.
+    drawnow;
+
     % Push all values into the copy of the plug-in.
     params = handles.protocolCopy.parameters();
     paramNames = fieldnames(params);
@@ -447,9 +449,6 @@ function editParametersKeyPress(hObject, eventdata, handles)
         okEditParameters(hObject, eventdata, handles);
     elseif strcmp(eventdata.Key, 'escape')
         cancelEditParameters(hObject, eventdata, handles);
-    else
-        updateDependentValues(handles);
-        updateStimuli(handles);
     end
 end
 
@@ -473,7 +472,6 @@ function valueChanged(~, ~, hObject, paramName)
         handles.protocolCopy.(paramName) = paramValue;
         updateDependentValues(handles);
         updateStimuli(handles);
-        drawnow
     catch ME %#ok<NASGU>
         % The current text may be invalid so just ignore the exception.
     end
@@ -483,7 +481,6 @@ end
 function stepValueUp(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue + 1));
-    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
@@ -492,7 +489,6 @@ end
 function stepValueDown(~, ~, handles, paramTag)
     curValue = int32(str2double(get(handles.(paramTag), 'String')));
     set(handles.(paramTag), 'String', num2str(curValue - 1));
-    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
@@ -542,10 +538,10 @@ function loadParameters(~, ~, handles)
         end
         
         savedValue = params.(paramName);
-
+        
         if iscell(defaultValue)
             % Only set the saved value if it is a member of the default value cell array.
-            if iscellstr(defaultValue)
+            if iscellstr(defaultValue)               
                 isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
             else
                 isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
@@ -561,7 +557,6 @@ function loadParameters(~, ~, handles)
         setParamValueInUI(handles, paramName, handles.protocolCopy.(paramName));
     end
     
-    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
@@ -605,7 +600,6 @@ function useDefaultParameters(~, ~, handles)
         setParamValueInUI(handles, paramName, defaultValue);
     end
     
-    drawnow;
     updateDependentValues(handles);
     updateStimuli(handles);
 end
@@ -674,46 +668,4 @@ function okEditParameters(~, ~, handles)
     handles.edited = true;
     guidata(handles.figure, handles);
     uiresume;
-end
-
-
-function setDefaultButton(figHandle, btnHandle)
-    % Extracted from UITools
-
-    if (usejava('awt') == 1)
-        % We are running with Java Figures
-        useJavaDefaultButton(figHandle, btnHandle)
-    else
-        % We are running with Native Figures
-        useHGDefaultButton(figHandle, btnHandle);
-    end
-
-    function useJavaDefaultButton(figH, btnH)
-        % Get a UDD handle for the figure.
-        fh = handle(figH);
-        % Call the setDefaultButton method on the figure handle
-        fh.setDefaultButton(btnH);
-    end
-
-    function useHGDefaultButton(figHandle, btnHandle)
-        % First get the position of the button.
-        btnPos = getpixelposition(btnHandle);
-
-        % Next calculate offsets.
-        leftOffset   = btnPos(1) - 1;
-        bottomOffset = btnPos(2) - 2;
-        widthOffset  = btnPos(3) + 3;
-        heightOffset = btnPos(4) + 3;
-
-        % Create the default button look with a uipanel.
-        % Use black border color even on Mac or Windows-XP (XP scheme) since
-        % this is in natve figures which uses the Win2K style buttons on Windows
-        % and Motif buttons on the Mac.
-        h1 = uipanel(get(btnHandle, 'Parent'), 'HighlightColor', 'black', ...
-            'BorderType', 'etchedout', 'units', 'pixels', ...
-            'Position', [leftOffset bottomOffset widthOffset heightOffset]);
-
-        % Make sure it is stacked on the bottom.
-        uistack(h1, 'bottom');
-    end
 end
