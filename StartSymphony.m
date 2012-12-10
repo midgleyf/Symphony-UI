@@ -23,13 +23,13 @@ global symphonyInstance;
 
 if isempty(symphonyInstance)
     % Run the built-in configuration script.
-    run('SymphonyConfiguration');
+    run('symconfig');
     
     % Run the user specific configuration script.
     up = userpath;
     up = regexprep(up, ';', ''); % Remove semicolon at end of userpath
-    if exist(fullfile(up, 'SymphonyConfiguration.m'), 'file')
-        run(fullfile(up, 'SymphonyConfiguration'));
+    if exist(fullfile(up, 'symconfig.m'), 'file')
+        run(fullfile(up, 'symconfig'));
     end
     
     symphonyInstance = Symphony(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile);

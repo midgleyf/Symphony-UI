@@ -175,9 +175,8 @@ the Symphony .NET framework objects directly:
 Saving protocols
 ----------------	
 
-Symphony will initially search for protocols in the directory defined by the protocolsDir variable in the
-SymphonyConfiguration.m script. Each protocol must be contained within a directory of the same name as the protocol 
-class itself.
+Symphony will initially search for protocols in the directory defined by the protocolsDir variable in the symconfig.m 
+script. Each protocol must be contained within a directory of the same name as the protocol class itself.
 
 
 A simple protocol

@@ -41,8 +41,7 @@ To do this the following items need to be installed:
 Configuring Symphony
 --------------------
 
-Copy the SymphonyConfiguration.m script from the Symphony UI directory into the MATLAB user path 
-directory.  Edit the copied configuration script to define the location of rig configurations, 
-protocols, etc.
+Copy the symconfig.m script from the Symphony UI directory into the MATLAB user path directory.  
+Edit the copied configuration script to define the location of rig configurations, protocols, etc.
 
 The MATLAB user path can be determined by running the userpath function at the MATLAB command line. 

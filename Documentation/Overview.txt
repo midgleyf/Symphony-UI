@@ -41,7 +41,7 @@ High-level descriptions of the main source files
 StartSymphony.m:
     adds Symphony folders to the MATLAB path
     calls addSymphonyFramework() to load the Symphony .NET framework
-	calls the SymphonyConfiguration script to configure user specific locations for rig configurations, protocol, etc.
+	calls the symconfig.m script to configure user specific locations for rig configurations, protocol, etc.
     creates the Symphony object to launch the GUI
 
 
