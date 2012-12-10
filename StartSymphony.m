@@ -14,11 +14,12 @@ symphonyPath = mfilename('fullpath');
 parentDir = fileparts(symphonyPath);
 addpath(fullfile(parentDir, 'Utility'));
 addpath(fullfile(parentDir, 'StimGL'));
+clear symphonyPath parentDir
 
 % Load the Symphony .NET framework
 addSymphonyFramework();
 
-% Launch the user interface
+% Declare or retrieve the current Symphony instance
 global symphonyInstance;
 
 if isempty(symphonyInstance)
@@ -31,11 +32,11 @@ if isempty(symphonyInstance)
     if exist(fullfile(up, 'symconfig.m'), 'file')
         run(fullfile(up, 'symconfig'));
     end
+    clear up
     
+    % Create the Symphony instance
     symphonyInstance = Symphony(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile);
+    clear rigConfigsDir protocolsDir figureHandlersDir sourcesFile
 else
     symphonyInstance.showMainWindow();
 end
-
-% Clean up
-clear symphonyPath parentDir configFile rigConfigsDir protocolsDir figureHandlersDir sourcesFile up var

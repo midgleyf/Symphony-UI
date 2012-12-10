@@ -144,7 +144,7 @@ classdef Symphony < handle
                 waitfor(errordlg(['Could not create the device:' char(10) char(10) ME.message], 'Symphony'));
             end
             
-            % Recreate the current protocol for the with the new rig configuration.
+            % Recreate the current protocol with the new rig configuration.
             if ~isempty(obj.protocol)
                 pluginIndex = get(obj.controls.protocolPopup, 'Value');
                 protocolClassName = obj.protocolClassNames{pluginIndex};
