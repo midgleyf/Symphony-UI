@@ -22,7 +22,6 @@ classdef Symphony < handle
         figureHandlersDir           % path to directory containing additional figure handlers not built-in
         figureHandlerClasses        % The list of available figure handlers.
         
-        missingRigConfigClass
         missingDeviceName
         sourcesFile
         sources                     % The hierarchy of sources.
@@ -166,16 +165,9 @@ classdef Symphony < handle
             % Check the compatibility of the current rig configuration with the current protocol.
             
             % Clear properties from last check.
-            obj.missingRigConfigClass = '';
             obj.missingDeviceName = '';
             
             if ~isempty(obj.rigConfig) && ~isempty(obj.protocol)
-                % Does the current rig configuration match the rig configuration class required by the current protocol?
-                rigConfigClass = obj.protocol.requiredRigConfigClass();
-                if ~isempty(rigConfigClass) && ~any(ismember(superclasses(obj.rigConfig), rigConfigClass))
-                    obj.missingRigConfigClass = rigConfigClass;
-                end
-
                 % Does the current rig configuration contain all the devices required by the current protocol?
                 deviceNames = obj.protocol.requiredDeviceNames();
                 for i = 1:length(deviceNames)
@@ -883,7 +875,7 @@ classdef Symphony < handle
             obj.checkRigConfigAndProtocol();
 
             % Don't show the parameters window if the protocol can't be run (or it's requested not to).
-            if shouldShowParams && ~isempty(obj.protocol) && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
+            if shouldShowParams && ~isempty(obj.protocol) && isempty(obj.missingDeviceName)
                 if editParameters(obj.protocol)
                     setpref('Symphony', 'LastChosenProtocol', protocolClassName);
 
@@ -995,16 +987,13 @@ classdef Symphony < handle
             if isempty(obj.protocol) || strcmp(obj.protocol.state, 'stopped')
                 set(obj.controls.rigConfigPopup, 'Enable', 'on');
                 set(obj.controls.startButton, 'String', 'Start');
-                if ~isempty(obj.protocol) && isempty(obj.missingRigConfigClass) && isempty(obj.missingDeviceName)
+                if ~isempty(obj.protocol) && isempty(obj.missingDeviceName)
                     set(obj.controls.startButton, 'Enable', 'on');
                     set(obj.controls.editParametersButton, 'Enable', 'on');
                 else
                     set(obj.controls.startButton, 'Enable', 'off');
                     set(obj.controls.editParametersButton, 'Enable', 'off');
-                    if ~isempty(obj.missingRigConfigClass)
-                        set(obj.controls.statusLabel, 'String', ...
-                            ['The protocol cannot be run because the current rig config is not of type ''' obj.missingRigConfigClass '''.']);
-                    elseif ~isempty(obj.missingDeviceName)
+                    if ~isempty(obj.missingDeviceName)
                         set(obj.controls.statusLabel, 'String', ...
                             ['The protocol cannot be run because there is no ''' obj.missingDeviceName ''' device.']); 
                     end
