@@ -146,6 +146,7 @@ classdef Symphony < handle
             
             % Recreate the current protocol with the new rig configuration.
             if ~isempty(obj.protocol)
+                obj.protocol.closeFigures();
                 pluginIndex = get(obj.controls.protocolPopup, 'Value');
                 protocolClassName = obj.protocolClassNames{pluginIndex};
                 obj.protocol = obj.createProtocol(protocolClassName); 
