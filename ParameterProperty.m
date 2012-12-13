@@ -15,7 +15,8 @@ classdef ParameterProperty < handle
     
     properties
         defaultValue
-        units
+        description = ''
+        units = ''
     end
     
     methods
@@ -45,6 +46,14 @@ classdef ParameterProperty < handle
             elseif obj.meta.HasDefault
                 value = obj.meta.DefaultValue;
             end
+        end
+        
+        
+        function set.description(obj, value)
+            if ~ischar(value)
+                error('description must be of class char');
+            end
+            obj.description = value;
         end
         
     end
