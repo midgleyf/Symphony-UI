@@ -267,24 +267,19 @@ classdef Symphony < handle
             newProtocol.rigConfig = obj.rigConfig;
             newProtocol.figureHandlerClasses = obj.figureHandlerClasses;
             
-            % Set default or saved parameter values.
+            % Set default or saved values for each parameter.
             savedParams = getpref('Symphony', [className '_Defaults'], struct);
             params = newProtocol.parameters();
             paramNames = fieldnames(params);
             for i = 1:numel(paramNames)
                 paramName = paramNames{i};
-                paramProps = findprop(newProtocol, paramName);
-                if paramProps.Dependent
-                    % This saved parameter does not need to be loaded.
+                paramProps = newProtocol.parameterProperty(paramName);
+                if paramProps.meta.Dependent
+                    % Dependent parameters do not need to be loaded.
                     continue;
                 end
                 
-                % Get the parameter's default value from the defaultParameterValue method or the class property block.
-                defaultValue = newProtocol.defaultParameterValue(paramName);
-                if isempty(defaultValue) && paramProps.HasDefault
-                    defaultValue = paramProps.DefaultValue;
-                end
-                
+                defaultValue = paramProps.defaultValue;               
                 if iscell(defaultValue) && ~isempty(defaultValue)
                     value = defaultValue{1};
                 else
@@ -295,7 +290,9 @@ classdef Symphony < handle
                 if isfield(savedParams, paramName)
                     savedValue = savedParams.(paramName);
                     
-                    if iscell(defaultValue)
+                    if ~iscell(defaultValue)
+                        value = savedValue;
+                    else
                         % Only set the saved value if it is a member of the default value cell array.
                         if iscellstr(defaultValue)
                             isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
@@ -305,8 +302,6 @@ classdef Symphony < handle
                         if isMember
                             value = savedValue;
                         end
-                    else
-                        value = savedValue;
                     end
                 end
 

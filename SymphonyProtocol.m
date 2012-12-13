@@ -108,6 +108,18 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             end
             pn = pn';
         end
+              
+               
+        function p = parameterProperty(obj, parameterName)
+            % Return a ParameterProperty object for the specified parameter.
+            
+            metaProp = findprop(obj, parameterName);
+            p = ParameterProperty(metaProp);
+            switch parameterName
+                case 'sampleRate'
+                    p.units = 'Hz';
+            end
+        end
         
         
         function p = parameters(obj, includeConstant)
@@ -122,24 +134,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             for nameIndex = 1:numel(names)
                 name = names{nameIndex};
                 p.(name) = obj.(name);
-            end
-        end
-        
-        
-        function value = defaultParameterValue(obj, parameterName) %#ok<MANU,INUSD>
-            % Override this method to dynamically define default values for parameters.
-            
-            value = '';
-        end
-        
-        
-        function units = parameterUnits(obj, parameterName) %#ok<MANU>
-            % Override this method to display units next to parameters in the GUI.
-            
-            units = '';
-            switch parameterName
-                case 'sampleRate'
-                    units = 'Hz';
             end
         end
         

@@ -79,7 +79,7 @@ EpochGroup.m:
 Source.m:
     Classes to manage persistence of metadata.
 
-
+	
 editParameters.m:
     Dynamic GUI for editing the parameters of a protocol.
 
@@ -96,4 +96,7 @@ SymphonyProtocol.m:
 FigureHandler.m:
     Base class that provides default behaviors for displaying figures.
     See the Figure Handlers.txt file for details on using existing handlers or implementing new ones.
+	
 
+ParameterProperty.m:
+	Class that describes protocol parameters.

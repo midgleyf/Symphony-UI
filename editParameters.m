@@ -71,11 +71,8 @@ function edited = editParameters(protocol)
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
         paramLabel = humanReadableParameterName(paramName);
-        paramProps = findprop(protocol, paramName);
-        defaultValue = handles.protocol.defaultParameterValue(paramName);
-        if isempty(defaultValue) && paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
-        end
+        paramProps = protocol.parameterProperty(paramName);
+        defaultValue = paramProps.defaultValue;
         
         uicontrol(...
             'Parent', handles.figure,...
@@ -87,7 +84,7 @@ function edited = editParameters(protocol)
             'Style', 'text');
         
         paramTag = [paramName 'Edit'];
-        if isinteger(defaultValue) && ~paramProps.Dependent
+        if isinteger(defaultValue) && ~paramProps.meta.Dependent
             handles.(paramTag) = uicontrol(...
                 'Parent', handles.figure,...
                 'Units', 'points', ...
@@ -174,14 +171,13 @@ function edited = editParameters(protocol)
             error('Unhandled param type for param ''%s''', paramName);
         end
         
-        % Show units next to parameter if they're defined by the protocol.
-        units = handles.protocolCopy.parameterUnits(paramName);
-        if ~isempty(units)           
+        % Show units next to parameter if they're defined.
+        if ~isempty(paramProps.units)           
             position = get(handles.(paramTag), 'Position');
             unitsLeft = position(1) + position(3) + 5;
             
             % Shift units over to fit up/down stepper if necessary
-            if isinteger(defaultValue) && ~paramProps.Dependent
+            if isinteger(defaultValue) && ~paramProps.meta.Dependent
                 unitsLeft = unitsLeft + 15;
             end
             
@@ -192,12 +188,12 @@ function edited = editParameters(protocol)
                 'FontSize', 12, ...
                 'HorizontalAlignment', 'left', ...
                 'Position', [unitsLeft dialogHeight-paramIndex*30 60 18], ...
-                'String',  units, ...
+                'String', paramProps.units, ...
                 'Style', 'text', ...
                 'Tag', unitsTag);
         end
         
-        if paramProps.Dependent
+        if paramProps.meta.Dependent
             set(handles.(paramTag), 'Enable', 'off');
         end
     end
@@ -324,11 +320,8 @@ end
 
 function value = getParamValueFromUI(handles, paramName)
     paramTag = [paramName 'Edit'];
-    paramProps = findprop(handles.protocol, paramName);
-    defaultValue = handles.protocol.defaultParameterValue(paramName);
-    if isempty(defaultValue) && paramProps.HasDefault
-        defaultValue = paramProps.DefaultValue;
-    end
+    paramProps = handles.protocol.parameterProperty(paramName);
+    defaultValue = paramProps.defaultValue;
     
     userData = get(handles.(paramTag), 'UserData');
     javaHandle = userData.javaHandle;
@@ -357,14 +350,10 @@ end
 
 function setParamValueInUI(handles, paramName, value)
     paramTag = [paramName 'Edit'];
-    paramProps = findprop(handles.protocol, paramName);
-    defaultValue = handles.protocol.defaultParameterValue(paramName);
-    if isempty(defaultValue) && paramProps.HasDefault
-        defaultValue = paramProps.DefaultValue;
-    end
+    paramProps = handles.protocol.parameterProperty(paramName);
+    defaultValue = paramProps.defaultValue;
     
     if iscell(defaultValue)
-        paramProps = findprop(handles.protocol, paramName);
         values = defaultValue;
         if isempty(values)
             index = 1;
@@ -399,8 +388,8 @@ function updateDependentValues(handles)
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
-        paramProps = findprop(handles.protocolCopy, paramName);
-        if ~paramProps.Dependent
+        paramProps = handles.protocolCopy.parameterProperty(paramName);
+        if ~paramProps.meta.Dependent
             paramValue = getParamValueFromUI(handles, paramName);
             try
                 handles.protocolCopy.(paramName) = paramValue;
@@ -414,28 +403,22 @@ function updateDependentValues(handles)
         end
     end
     
-    % Now update the value of any dependent properties and units.
+    % Now update the value of any dependent properties.
     params = handles.protocolCopy.parameters();
     paramNames = fieldnames(params);
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramValue = params.(paramName);
-        paramProps = findprop(handles.protocolCopy, paramName);
+        paramProps = handles.protocolCopy.parameterProperty(paramName);
         
-        if paramProps.Dependent
+        if paramProps.meta.Dependent
             setParamValueInUI(handles, paramName, paramValue);
         end
         
-        if paramProps.Dependent
+        if paramProps.meta.Dependent
             paramTag = [paramName 'Edit'];
             set(handles.(paramTag), 'Enable', 'off');
-        end
-        
-        units = handles.protocolCopy.parameterUnits(paramName);
-        if ~isempty(units)
-            unitsTag = [paramName 'Units'];
-            set(handles.(unitsTag), 'String', units);
         end
     end
 end
@@ -526,32 +509,27 @@ function loadParameters(~, ~, handles)
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
-        paramProps = findprop(handles.protocolCopy, paramName);
-        if isempty(paramProps) || paramProps.Dependent
+        paramProps = handles.protocolCopy.parameterProperty(paramName);
+        if isempty(paramProps.meta) || paramProps.meta.Dependent
             % This saved parameter does not need to be loaded.
             continue;
         end
+        defaultValue = paramProps.defaultValue;
         
-        defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
-        if isempty(defaultValue) && paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
-        end
-        
+        % Assign the saved value if possible.
         savedValue = params.(paramName);
-        
-        if iscell(defaultValue)
+        if ~iscell(defaultValue)
+            handles.protocolCopy.(paramName) = savedValue;
+        else
             % Only set the saved value if it is a member of the default value cell array.
             if iscellstr(defaultValue)               
                 isMember = ~isempty(find(strcmp(defaultValue, savedValue), 1));
             else
                 isMember = ~isempty(find(cell2mat(defaultValue) == savedValue, 1));
             end
-
             if isMember
                 handles.protocolCopy.(paramName) = savedValue;
             end
-        else
-            handles.protocolCopy.(paramName) = savedValue;
         end
 
         setParamValueInUI(handles, paramName, handles.protocolCopy.(paramName));
@@ -579,11 +557,8 @@ function useDefaultParameters(~, ~, handles)
     paramCount = numel(paramNames);
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
-        paramProps = findprop(handles.protocol, paramName);
-        defaultValue = handles.protocolCopy.defaultParameterValue(paramName);
-        if isempty(defaultValue)&& paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
-        end
+        paramProps = handles.protocol.parameterProperty(paramName);
+        defaultValue = paramProps.defaultValue;
         
         if iscell(defaultValue)
             if ~isempty(defaultValue)
@@ -593,7 +568,7 @@ function useDefaultParameters(~, ~, handles)
             end
         end
         
-        if ~paramProps.Dependent
+        if ~paramProps.meta.Dependent
             handles.protocolCopy.(paramName) = defaultValue;
         end
         
@@ -620,13 +595,10 @@ function okEditParameters(~, ~, handles)
     for paramIndex = 1:paramCount
         paramName = paramNames{paramIndex};
         paramTag = [paramName 'Edit'];
-        paramProps = findprop(handles.protocol, paramName);
-        defaultValue = handles.protocol.defaultParameterValue(paramName);
-        if isempty(defaultValue) && paramProps.HasDefault
-            defaultValue = paramProps.DefaultValue;
-        end
+        paramProps = handles.protocol.parameterProperty(paramName);
+        defaultValue = paramProps.defaultValue;
         
-        if ~paramProps.Dependent
+        if ~paramProps.meta.Dependent
             if isnumeric(defaultValue)
                 if length(defaultValue) > 1
                     paramValue = str2num(get(handles.(paramTag), 'String')); %#ok<ST2NM>
@@ -638,7 +610,6 @@ function okEditParameters(~, ~, handles)
             elseif islogical(defaultValue)
                 paramValue = get(handles.(paramTag), 'Value') == get(handles.(paramTag), 'Max');
             elseif iscell(defaultValue)
-                paramProps = findprop(handles.protocol, paramName);
                 if ~isempty(defaultValue)
                     paramValue = defaultValue{get(handles.(paramTag), 'Value')};
                 else

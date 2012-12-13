@@ -24,32 +24,22 @@ classdef ExamplePulse < SymphonyProtocol
     
     methods           
         
-        function units = parameterUnits(obj, parameterName)
-            % Call the base method to include any units it may already define.
-            units = parameterUnits@SymphonyProtocol(obj, parameterName);
+        function p = parameterProperty(obj, parameterName)
+            % Call the base method to create the property object.
+            p = parameterProperty@SymphonyProtocol(obj, parameterName);
             
-            % Return the appropriate units for each parameter in the protocol.
-            switch parameterName
-                case {'preTime', 'stimTime', 'tailTime'}
-                    units = 'ms';
-                case {'pulseAmplitude', 'preAndTailSignal', 'ampHoldSignal'}
-                    units = 'mV or pA';
-            end
-        end     
-       
-        
-        function value = defaultParameterValue(obj, parameterName)
-            % Call the base method to include any default values it may define.
-            value = defaultParameterValue@SymphonyProtocol(obj, parameterName);
-            
-            % This method is useful if a default value can't be defined in the properties block (i.e. it is not a constant or simple expression).
-            % For instance, if a default value depends on properties of the current rig configuration it must be defined here.
+            % Return properties for the specified parameter (see ParameterProperty class).
             switch parameterName
                 case 'amp'
-                    % Allow the amp to be selected from a list of all amps in the current rig configuration.
-                    value = obj.rigConfig.multiClampDeviceNames();
+                    % Prefer assigning default values in the property block above.
+                    % However if a default value cannot be defined as a constant or expression, it must be defined here.
+                    p.defaultValue = obj.rigConfig.multiClampDeviceNames();
+                case {'preTime', 'stimTime', 'tailTime'}
+                    p.units = 'ms';
+                case {'pulseAmplitude', 'preAndTailSignal', 'ampHoldSignal'}
+                    p.units = 'mV or pA';
             end
-        end
+        end     
         
         
         function prepareRun(obj)
