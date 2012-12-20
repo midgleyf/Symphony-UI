@@ -267,7 +267,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             
             outputData = OutputData(stimDataList, obj.deviceSampleRate(device, 'OUT'), true);
             
-            stim = RenderedStimulus(stimulusID, units, structToDictionary(struct()), outputData);
+            stim = RenderedStimulus(stimulusID, structToDictionary(struct()), outputData);
             
             obj.epoch.Stimuli.Add(device, stim);
         end
@@ -276,7 +276,10 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
         function setDeviceBackground(obj, deviceName, background, units)
             % Set a constant stimulus value to be sent to the device.
             
+            import Symphony.*;
             import Symphony.Core.*;
+            import Symphony.ExternalDevices.*;
+            import Symphony.ExternalDevices.OperatingMode.*;
             
             device = obj.rigConfig.deviceWithName(deviceName);
             if isempty(device)
@@ -284,16 +287,33 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             end
             
             if nargin == 4
+                % The user supplied the quantity and units.
                 background = Measurement(background, units);
             elseif isnumeric(background)
+                % The user only supplied the quantity, assume volts.
                 background = Measurement(background, 'V');
             elseif ~isa(background, 'Symphony.Core.Measurement')
                 error('Symphony:InvalidBackground', 'The background value for a device must be a number or a Symphony.Core.Measurement');
             end
             
-            device.Background = background;
-            if ~isempty(obj.epoch)
-                obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
+            if isa(device, 'Symphony.ExternalDevices.MultiClampDevice')
+                % Set the background for the appropriate mode and for the device if the current mode matches.
+                if strcmp(char(background.BaseUnit), 'V')
+                    device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.VClamp, background);
+                    setBackground = strcmp(obj.rigConfig.multiClampMode(char(device.Name)), 'VClamp');
+                else
+                    device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.IClamp, background);
+                    device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.I0, background);
+                    setBackground = ~strcmp(obj.rigConfig.multiClampMode(char(device.Name)), 'VClamp');
+                end
+            else
+                device.Background = background;
+                setBackground = true;
+            end
+            if setBackground
+                if ~isempty(obj.epoch)
+                    obj.epoch.SetBackground(device, background, obj.deviceSampleRate(device, 'OUT'));
+                end
             end
         end
         
@@ -343,7 +363,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     response = obj.epoch.Responses.Item(device);
                     data = response.Data;
                     r = double(Measurement.ToQuantityArray(data));
-                    u = char(Measurement.HomogenousUnits(data));
+                    u = char(Measurement.HomogenousDisplayUnits(data));
                 catch ME %#ok<NASGU>
                     r = [];
                     u = '';

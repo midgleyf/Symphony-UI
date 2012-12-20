@@ -35,7 +35,7 @@ if isempty(symphonyInstance)
     clear up
     
     % Create the Symphony instance
-    symphonyInstance = Symphony(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile);
+    symphonyInstance = SymphonyUI(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile);
     clear rigConfigsDir protocolsDir figureHandlersDir sourcesFile
 else
     symphonyInstance.showMainWindow();

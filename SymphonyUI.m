@@ -3,7 +3,7 @@
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 
-classdef Symphony < handle
+classdef SymphonyUI < handle
     
     properties
         mainWindow                  % Figure handle of the main window
@@ -41,9 +41,11 @@ classdef Symphony < handle
     
     methods
         
-        function obj = Symphony(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile)
+        function obj = SymphonyUI(rigConfigsDir, protocolsDir, figureHandlersDir, sourcesFile)
             import Symphony.Core.*;
                         
+            obj = obj@handle();
+            
             symphonyDir = fileparts(mfilename('fullpath'));
             symphonyParentDir = fileparts(symphonyDir);
             if ~exist([symphonyParentDir '/debug_logs'],'dir')

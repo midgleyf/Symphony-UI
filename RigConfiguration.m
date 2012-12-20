@@ -144,7 +144,7 @@ classdef RigConfiguration < handle
                 rate = obj.proxySampleRate;
             else
                 m = obj.controller.DAQController.SampleRate;
-                if ~strcmp(char(m.Unit), 'Hz')
+                if ~strcmp(char(m.BaseUnit), 'Hz')
                     error('Symphony:SampleRateNotInHz', 'The sample rate is not in Hz.');
                 end
                 rate = System.Decimal.ToDouble(m.QuantityInBaseUnit);

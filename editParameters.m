@@ -633,7 +633,7 @@ function okEditParameters(~, ~, handles)
         handles.protocol.rigPrepared = true;
     catch ME
         % TODO: What should be done if the rig can't be prepared?
-        throw(ME);
+        rethrow(ME);
     end
     
     % Remember these parameters for the next time the protocol is used.

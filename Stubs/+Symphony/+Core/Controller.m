@@ -70,13 +70,13 @@ classdef Controller < Symphony.Core.ITimelineProducer
                     stimulus = epoch.Stimuli.Item(device);
                     epoch.Responses.Values{i} = InputData(stimulus.Data.Data, stimulus.Data.SampleRate, now);
                 else
-                    % Generate one second of random noise for a response.
-                    samples = 10000;
+                    % Generate random noise for the response.
+                    response = epoch.Responses.Values{i};
+                    samples = epochDuration * response.SampleRate.Quantity;
                     data = GenericList();
                     for j = 1:samples
                         data.Add(Measurement((rand(1, 1) * 1000 - 500) / 1000000, 'A'));
                     end
-                    response = epoch.Responses.Values{i};
                     response.Data = data;
                     respones.InputTime = now;
                 end
