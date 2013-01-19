@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 % SYNOPSIS
 %
 % The @StimOpenGL class is a Matlab object with methods to access the
@@ -377,3 +372,7 @@
 %                The program's VSync may be disabled with the
 %                SetVSyncDisabled call.  
 
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html

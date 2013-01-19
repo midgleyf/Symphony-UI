@@ -12,7 +12,6 @@ classdef RigConfiguration < handle
     
     properties
         controller
-        allowMultiClampDevices = true
     end
     
     
@@ -35,7 +34,7 @@ classdef RigConfiguration < handle
     
     methods
         
-        function obj = RigConfiguration(allowMultiClampDevices)
+        function obj = RigConfiguration()
             import Symphony.Core.*;
             
             obj.controller = Controller();
@@ -43,11 +42,7 @@ classdef RigConfiguration < handle
             obj.controller.Clock = obj.controller.DAQController;
             
             obj.sampleRate = 10000;
-            
-            if nargin == 1 && ~allowMultiClampDevices
-                obj.allowMultiClampDevices = false;
-            end
-            
+
             try
                 obj.createDevices();
                 
@@ -55,11 +50,8 @@ classdef RigConfiguration < handle
                 obj.controller.DAQController.SetStreamsBackground();
             catch ME
                 obj.close();
-                if ~strcmp(ME.identifier, 'Symphony:MultiClamp:UnknownMode')
-                    disp(getReport(ME));
-                end
                 throw(ME);
-            end
+            end    
         end
         
         
@@ -68,7 +60,7 @@ classdef RigConfiguration < handle
             import Symphony.Core.*;
             
             import Heka.*;
-                
+            
             if ~isempty(which('HekaDAQInputStream'))
                 import Heka.*;
                 
@@ -84,9 +76,10 @@ classdef RigConfiguration < handle
                     if strcmp(answer, 'Cancel')
                         error('Symphony:Heka:NoBusID', 'Cannot create a Heka controller without a bus ID');
                     elseif strcmp(answer, 'PCI')
-                        hekaID = 1;
+                        % Convert these to Matlab doubles because they're more flexible calling .NET functions in the future
+                        hekaID = double(NativeInterop.ITCMM.ITC18_ID);
                     else    % USB
-                        hekaID = 5;
+                        hekaID = double(NativeInterop.ITCMM.USB18_ID);
                     end
                     setpref('Symphony', 'HekaBusID', hekaID);
                 end
@@ -141,7 +134,7 @@ classdef RigConfiguration < handle
                 end
            else
                 obj.controller.DAQController.SampleRate = Measurement(rate, 'Hz');
-            end
+           end
         end
         
         
@@ -193,27 +186,37 @@ classdef RigConfiguration < handle
         end
         
         
-        function addDevice(obj, deviceName, outStreamName, inStreamName)
+        function addDevice(obj, deviceName, outStreamName, inStreamName)            
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
+            
+            if strncmp(outStreamName, 'DIGITAL', 7) || strncmp(inStreamName, 'DIGITAL', 7)
+                units = Measurement.UNITLESS;                   
+            else
+                units = 'V';
+            end
             
             if isa(obj.controller.DAQController, 'Heka.HekaDAQController') && strncmp(outStreamName, 'DIGITAL_OUT', 11)
                 % The digital out channels for the Heka ITC share a single device.
                 if isempty(obj.hekaDigitalOutDevice)
-                    obj.hekaDigitalOutDevice = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, 'V'));
-                    obj.hekaDigitalOutDevice.MeasurementConversionTarget = 'V';
-                    obj.hekaDigitalOutDevice.Clock = obj.controller.DAQController;
+                    dev = UnitConvertingExternalDevice('Heka Digital Out', 'HEKA Instruments', obj.controller, Measurement(0, units));
+                    dev.MeasurementConversionTarget = units;
+                    dev.Clock = obj.controller.DAQController;
                     
                     stream = obj.streamWithName('DIGITAL_OUT.1', true);
-                    obj.hekaDigitalOutDevice.BindStream(stream);
+                    dev.BindStream(stream);
+                    
+                    obj.hekaDigitalOutDevice = dev;
+                else
+                    dev = obj.hekaDigitalOutDevice;
                 end
                 
                 % Keep track of which virtual device names map to which channel of the real device.
                 obj.hekaDigitalOutNames{end + 1} = deviceName;
                 obj.hekaDigitalOutChannels(end + 1) = str2double(outStreamName(end));
-            else
-                dev = UnitConvertingExternalDevice(deviceName, 'unknown', obj.controller, Measurement(0, 'V'));
-                dev.MeasurementConversionTarget = 'V';
+            else               
+                dev = UnitConvertingExternalDevice(deviceName, 'unknown', obj.controller, Measurement(0, units));
+                dev.MeasurementConversionTarget = units;
                 dev.Clock = obj.controller.DAQController;
                 
                 obj.addStreams(dev, outStreamName, inStreamName);
@@ -226,13 +229,9 @@ classdef RigConfiguration < handle
                 device = obj.deviceWithName(deviceName);
             else
                 % Find a MultiClamp device to query.
-                device = [];
-                devices = listValues(obj.controller.Devices);
-                for i = 1:length(devices)
-                    if isa(devices{i}, 'Symphony.ExternalDevices.MultiClampDevice')
-                        device = devices{i};
-                        break;
-                    end
+                devices = obj.multiClampDevices();
+                if ~isempty(devices)
+                    device = devices{1};
                 end
             end
 
@@ -262,10 +261,6 @@ classdef RigConfiguration < handle
         function addMultiClampDevice(obj, deviceName, channel, outStreamName, inStreamName)
             import Symphony.Core.*;
             import Symphony.ExternalDevices.*;
-            
-            if ~obj.allowMultiClampDevices
-                error('Symphony:MultiClamp:UnknownMode', 'The MultiClamp mode could not be determined.');
-            end
             
             if channel ~= 1 && channel ~= 2
                 error('Symphony:MultiClamp:InvalidChannel', 'The MultiClamp channel must be either 1 or 2.');
@@ -337,6 +332,44 @@ classdef RigConfiguration < handle
         
         function d = devices(obj)
             d = listValues(obj.controller.Devices);
+        end
+        
+        
+        function d = multiClampDevices(obj)
+            d = {};
+            devices = obj.devices();
+            for i = 1:length(devices)
+                if isa(devices{i}, 'Symphony.ExternalDevices.MultiClampDevice')
+                    d{end + 1} = devices{i};
+                end
+            end
+        end
+        
+        
+        function n = numMultiClampDevices(obj)
+            n = length(obj.multiClampDevices());
+        end
+                
+        
+        function names = deviceNames(obj, expr)
+            % Returns all device names with a match of the given regular expression.
+            names = {};
+            devices = obj.devices();
+            for i = 1:length(devices)
+                name = char(devices{i}.Name);
+                if ~isempty(regexpi(name, expr, 'once'))
+                    names{end + 1} = name;
+                end
+            end            
+        end
+        
+        
+        function names = multiClampDeviceNames(obj)            
+            names = {};
+            devices = obj.multiClampDevices();
+            for i = 1:length(devices)
+                names{end + 1} = char(devices{i}.Name);
+            end
         end
         
         

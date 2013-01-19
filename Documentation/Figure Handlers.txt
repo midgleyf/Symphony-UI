@@ -8,11 +8,13 @@ open one of the figure windows using the openFigure() method from the SymphonyPr
 Response figure
 ---------------
 
-This figure plots the response from the most recent epoch.  No arguments are required.
+This figure plots the response from the most recent epoch.  No arguments are required.  If there is more than one 
+device with a response, however, the device name containing the response to plot should be specified.
 
 Example:
 
     obj.openFigure('Response');
+	obj.openFigure('Response', 'Amplifier_Ch1');
 
 
 Mean Response figure
@@ -20,19 +22,21 @@ Mean Response figure
 
 This figure displays the mean response of all epochs run so far.  The epochs are grouped by a set of parameters and 
 the mean of each group is plotted.  The grouping parameters can be specified using the 'GroupByParams' argument or 
-they will be determined automatically.
+they will be determined automatically.  The device name containing the response can also be specified as the second 
+argument.
 
 Examples:
 
     obj.openFigure('Mean Response');
     obj.openFigure('Mean Response', 'GroupByParams', {'param1', 'param2'});
+	obj.openFigure('Mean Response', 'Amplifier_Ch1');
 
 
 Response Statistics figure
 --------------------------
 
 This figure plots statistics for each epoch that has been run.  A callback function must be provided that returns a 
-structure containing the statistics for the current epoch.  The response() method can be called to get the resonse 
+structure containing the statistics for the current epoch.  The response() method can be called to get the response 
 of the most recent epoch.
 
 Example:

@@ -2,7 +2,7 @@ Symphony protocols
 ==================
 
 An experimental protocol consists of a series of epochs, each of which can apply a different set of stimuli to and 
-record responses from the devices defiened by the current rig configuration.  The number and behavior of epochs are 
+record responses from the devices defined by the current rig configuration.  The number and behavior of epochs are 
 controlled by a set of mostly user-editable parameters defined by the protocol.
 
 
@@ -172,6 +172,13 @@ the Symphony .NET framework objects directly:
     obj.epoch: the current Symphony.Core.Epoch instance, only available after prepareEpoch() has run
 
 
+Saving protocols
+----------------	
+
+Symphony will initially search for protocols in the directory defined by the protocolsDir variable in the symconfig.m 
+script. Each protocol must be contained within a directory of the same name as the protocol class itself.
+
+
 A simple protocol
 -----------------
 
@@ -228,4 +235,5 @@ class SimpleProtocol < SymphonyProtocol
     end
 end
 
-Save this to SimpleProtocol.m in a folder named 'SimpleProtocol' and place the folder in the Symphony 'Protocols' folder.
+Save this to SimpleProtocol.m in a folder named 'SimpleProtocol' and place the folder in the protocols directory defined
+by the Symphony configuration file.

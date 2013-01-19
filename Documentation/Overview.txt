@@ -18,7 +18,8 @@ If you run into problems be sure to look at Troubleshooting.txt.
 Customizing Symphony
 --------------------
 
-There are three areas where Symphony can be customized: rig configurations, protocols and figure handlers.
+There are four areas where Symphony can be customized: rig configurations, protocols, figure handlers and 
+the source hierarchy.
 
 Rig configurations define how the components of a rig are connected.  This includes the DAQ controller and 
 all connected devices.  See Rig Configurations.txt for more information on creating your own.
@@ -31,6 +32,8 @@ Figure handlers are shared by protocols and graphically present any desired data
 of a device from the most recent epoch or statistics gathered across all epochs run so far.  See Figure 
 Handlers.txt for more information on using the existing handlers or creating your own.
 
+The source hierarchy defines the list of available experimental subjects and their hierarchical relationship.
+See Saving Data.txt for more information on creating your own.
 
 High-level descriptions of the main source files
 ------------------------------------------------
@@ -38,6 +41,7 @@ High-level descriptions of the main source files
 StartSymphony.m:
     adds Symphony folders to the MATLAB path
     calls addSymphonyFramework() to load the Symphony .NET framework
+	calls the symconfig.m script to configure user specific locations for rig configurations, protocol, etc.
     creates the Symphony object to launch the GUI
 
 
@@ -75,7 +79,7 @@ EpochGroup.m:
 Source.m:
     Classes to manage persistence of metadata.
 
-
+	
 editParameters.m:
     Dynamic GUI for editing the parameters of a protocol.
 
@@ -92,4 +96,7 @@ SymphonyProtocol.m:
 FigureHandler.m:
     Base class that provides default behaviors for displaying figures.
     See the Figure Handlers.txt file for details on using existing handlers or implementing new ones.
+	
 
+ParameterProperty.m:
+	Class that describes protocol parameters.

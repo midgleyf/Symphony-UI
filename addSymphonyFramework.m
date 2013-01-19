@@ -10,8 +10,13 @@ function addSymphonyFramework()
         parentDir = fileparts(symphonyPath);
         addpath(fullfile(parentDir, filesep, 'Stubs'));
     else
-        %symphonyPath = 'C:\Users\Barry Wark\symphony\Symphony\Debug';
-        symphonyPath = 'C:\Program Files\Physion\Symphony\bin';
+        isWin64bit = strcmpi(getenv('PROCESSOR_ARCHITEW6432'), 'amd64') || strcmpi(getenv('PROCESSOR_ARCHITECTURE'), 'amd64');
+        
+        if isWin64bit
+            symphonyPath = 'C:\Program Files (x86)\Physion\Symphony\bin';
+        else
+            symphonyPath = 'C:\Program Files\Physion\Symphony\bin';
+        end
         
         % Add Symphony.Core assemblies
         NET.addAssembly(fullfile(symphonyPath, 'Symphony.Core.dll'));

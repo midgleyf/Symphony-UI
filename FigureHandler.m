@@ -1,3 +1,10 @@
+% Property Descriptions:
+%
+% ID (valid variable name)
+%   Identifier for saving and loading window positions. The default saves a single window position for all figure
+%   handlers of the same class. A unique ID distinguishes two figure handlers of the same class and saves their window
+%   positions separately.
+
 %  Copyright (c) 2012 Howard Hughes Medical Institute.
 %  All rights reserved.
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
@@ -12,6 +19,7 @@ classdef FigureHandler < handle
     properties
         protocolPlugin
         figureHandle
+        id
     end
     
     events
@@ -20,13 +28,21 @@ classdef FigureHandler < handle
     
     methods
         
-        function obj = FigureHandler(protocolPlugin)
-            obj = obj@handle();
+        function obj = FigureHandler(protocolPlugin, varargin)           
+            ip = inputParser;
+            ip.addParamValue('ID', [], @(x)isvarname(x));
+            ip.parse(varargin{:});
             
+            obj = obj@handle();
             obj.protocolPlugin = protocolPlugin;
+            obj.id = ip.Results.ID;
             
             % Restore the previous window position.
-            prefName = [class(obj) '_Position'];
+            if isempty(obj.id)
+                prefName = [class(obj) '_Position'];
+            else
+                prefName = [class(obj) '_' obj.id '_Position'];
+            end
             if ispref('Symphony', prefName)
                 addlProps = {'Position', getpref('Symphony', prefName)};
             else
@@ -52,7 +68,7 @@ classdef FigureHandler < handle
             a = [];
             for i = 1:length(children)
                 child = children(i);
-                if strcmp(get(child, 'Type'), 'axes') && ~strcmp(get(child, 'Tag'), 'Colorbar')
+                if strcmp(get(child, 'Type'), 'axes') && ~strcmp(get(child, 'Tag'), 'Colorbar') && ~strcmp(get(child, 'Tag'), 'legend')
                     a(end+1) = child; %#ok<AGROW>
                 end
             end
@@ -87,7 +103,11 @@ classdef FigureHandler < handle
         
         function closeRequestFcn(obj, ~, ~)
             % Remember the window position.
-            prefName = [class(obj) '_Position'];
+            if isempty(obj.id)
+                prefName = [class(obj) '_Position'];
+            else
+                prefName = [class(obj) '_' obj.id '_Position'];
+            end
             setpref('Symphony', prefName, get(obj.figureHandle, 'Position'));
             delete(obj.figureHandle);
             obj.figureHandle = [];

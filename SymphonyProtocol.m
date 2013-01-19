@@ -1,22 +1,23 @@
+% Create a sub-class of this class to define a protocol.
+%
+% Interesting methods to override:
+% * prepareRun
+% * prepareEpoch
+% * completeEpoch
+% * continueRun
+% * completeRun
+%
+% Useful methods:
+% * addStimulus
+% * setDeviceBackground
+% * recordResponse
+
 %  Copyright (c) 2012 Howard Hughes Medical Institute.
 %  All rights reserved.
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 
 classdef SymphonyProtocol < handle & matlab.mixin.Copyable
-    % Create a sub-class of this class to define a protocol.
-    %
-    % Interesting methods to override:
-    % * prepareRun
-    % * prepareEpoch
-    % * completeEpoch
-    % * continueRun
-    % * completeRun
-    %
-    % Useful methods:
-    % * addStimulus
-    % * setDeviceBackground
-    % * recordResponse
     
     properties (Constant, Abstract)
         identifier
@@ -43,11 +44,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
     
     properties
         sampleRate = {10000, 20000, 50000}      % in Hz
-    end
-    
-    
-    properties (Dependent = true, SetAccess = private)
-        multiClampMode = 'VClamp'
     end
     
     
@@ -112,6 +108,18 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             end
             pn = pn';
         end
+              
+               
+        function p = parameterProperty(obj, parameterName)
+            % Return a ParameterProperty object for the specified parameter.
+            
+            metaProp = findprop(obj, parameterName);
+            p = ParameterProperty(metaProp);
+            switch parameterName
+                case 'sampleRate'
+                    p.units = 'Hz';
+            end
+        end
         
         
         function p = parameters(obj, includeConstant)
@@ -155,13 +163,13 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 device = devices{i};
                 
                 % Set each device's background for this epoch to be the same as the inter-epoch background.
-                obj.setDeviceBackground(device.Name, device.Background);
+                obj.setDeviceBackground(char(device.Name), device.Background);
                 
                 % Record the response from any device that has an input stream.
                 [~, streams] = dictionaryKeysAndValues(device.Streams);
                 for j = 1:length(streams)
                     if isa(streams{j}, 'Symphony.Core.DAQInputStream')
-                        obj.recordResponse(device.Name);
+                        obj.recordResponse(char(device.Name));
                         break
                     end
                 end
@@ -253,7 +261,7 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 % TODO: pad with zeros if different lengths
                 
                 stimulusData = existingData + (stimulusData .* 2 ^ digitalChannel);
-                units = 'V';
+                units = Measurement.UNITLESS;
                 stimDataList = Measurement.FromArray(stimulusData, units);
             end
             
@@ -291,18 +299,14 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             if isa(device, 'Symphony.ExternalDevices.MultiClampDevice')
                 % Set the background for the appropriate mode and for the device if the current mode matches.
                 if strcmp(char(background.BaseUnit), 'V')
-                    fprintf('Setting VClamp background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                     device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.VClamp, background);
-                    setBackground = strcmp(obj.multiClampMode, 'VClamp');
+                    setBackground = strcmp(obj.rigConfig.multiClampMode(char(device.Name)), 'VClamp');
                 else
-                    fprintf('Setting IClamp background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                     device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.IClamp, background);
-                    fprintf('Setting I0 background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                     device.SetBackgroundForMode(Symphony.ExternalDevices.OperatingMode.I0, background);
-                    setBackground = ~strcmp(obj.multiClampMode, 'VClamp');
+                    setBackground = ~strcmp(obj.rigConfig.multiClampMode(char(device.Name)), 'VClamp');
                 end
             else
-                fprintf('Setting background for %s to %s %s\n', char(device.Name), char(background.Quantity.ToString()), char(background.DisplayUnit));
                 device.Background = background;
                 setBackground = true;
             end
@@ -340,7 +344,9 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 device = devices{1};
             else
                 device = obj.rigConfig.deviceWithName(deviceName);
-                % TODO: what happens when there is no device with that name?
+                if isempty(device)
+                    error('Symphony:NoDeviceWithName', ['There is no device with the name ''' deviceName '''']);
+                end
             end
             
             deviceName = char(device.Name);
@@ -363,12 +369,35 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                     u = '';
                 end
                 
-                s = System.Decimal.ToDouble(response.SampleRate.QuantityInBaseUnit);
-                % TODO: do we care about the units of the SampleRate measurement?
+                if ~isempty(r)
+                    s = System.Decimal.ToDouble(response.SampleRate.QuantityInBaseUnit);
+                    % TODO: do we care about the units of the SampleRate measurement?
+                else
+                    s = [];
+                end
                 
                 % Cache the results.
                 obj.responses(deviceName) = struct('data', r, 'sampleRate', s, 'units', u);
             end
+        end
+        
+        
+        function runEpoch(obj)
+            % This is a core method that runs a single epoch of the protocol.
+            
+            try
+                % Tell the Symphony framework to run the epoch.
+                obj.rigConfig.controller.RunEpoch(obj.epoch, obj.persistor);
+            catch e
+                % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
+                message = ['An error occurred while running the protocol.' char(10) char(10)];
+                if (isa(e, 'NET.NetException'))
+                    message = [message netReport(e)]; %#ok<AGROW>
+                else
+                    message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
+                end
+                waitfor(errordlg(message));
+            end 
         end
         
         
@@ -405,15 +434,11 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                 obj.setState('running');
                 
                 % Loop until the protocol or the user tells us to stop.
-                tic
                 while obj.continueRun()
-                    fprintf('continueRun took %g seconds\n', toc);
                     % Run a single epoch.
                     
                     % Prepare the epoch: set backgrounds, add stimuli, record responses, add parameters, etc.
-                    tic;
                     obj.prepareEpoch();
-                    fprintf('prepareEpoch took %g seconds\n', toc);
                     
                     % Persist the params now that the sub-class has had a chance to tweak them.
                     pluginParams = obj.parameters(true);
@@ -430,31 +455,13 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
                         obj.epoch.ProtocolParameters.Add(fieldName{1}, fieldValue);
                     end
                     
-                    try
-                        % Tell the Symphony framework to run the epoch.
-                        tic
-                        obj.rigConfig.controller.RunEpoch(obj.epoch, obj.persistor);
-                        fprintf('RunEpoch took %g seconds\n', toc);
-                    catch e
-                        % TODO: is it OK to hold up the run with the error dialog or should errors be logged and displayed at the end?
-                        message = ['An error occurred while running the protocol.' char(10) char(10)];
-                        if (isa(e, 'NET.NetException'))
-                            message = [message netReport(e)]; %#ok<AGROW>
-                        else
-                            message = [message getReport(e, 'extended', 'hyperlinks', 'off')]; %#ok<AGROW>
-                        end
-                        waitfor(errordlg(message));
-                    end
-                    
+                    obj.runEpoch();
+                                        
                     % Perform any post-epoch analysis, clean up, etc.
-                    tic
                     obj.completeEpoch();
-                    fprintf('completeEpoch took %g seconds\n', toc);
                     
                     % Force any figures to redraw and any events (clicking the Pause or Stop buttons in particular) to get processed.
                     drawnow;
-                    
-                    tic
                 end
             catch e
                 waitfor(errordlg(['An error occurred while running the protocol.' char(10) char(10) getReport(e, 'extended', 'hyperlinks', 'off')]));
@@ -481,15 +488,6 @@ classdef SymphonyProtocol < handle & matlab.mixin.Copyable
             else
                 % Set a flag that will be checked after the current epoch completes.
                 obj.setState('stopping');
-            end
-        end
-        
-        
-        function m = get.multiClampMode(obj)
-            try
-                m = obj.rigConfig.multiClampMode();
-            catch ME
-                m = ['unknown (' ME.message ')'];
             end
         end
         
