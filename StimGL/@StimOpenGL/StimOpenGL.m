@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 %    myobj = StimOpenGL()
 %    myobj = StimOpenGL(host)
 %    myobj = StimOpenGL(host, port)
@@ -13,6 +8,12 @@
 %                (no arguments) attempts to connect to 'localhost' port
 %                4141.  Additional versions of this constructor support
 %                specifying a host and port.
+
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html 
+
 function [s] = StimOpenGL(varargin) 
     host = 'localhost';
     port = 4141;

@@ -24,9 +24,9 @@ Source hierarchy
 
 The top level epoch group in each HDF5 file must indicate which "source" the data comes from.  This is an animal, brain region, 
 cell type, etc. (see the "Source Hierarchy" section of the Ovation documentation [1] for more details) and the choices are 
-determined by the contents of the SourceHierarchy.txt file.  It is a simple text file containing a hierarchy of regions 
+determined by the contents of the source hierarchy file.  It is a simple text file containing a hierarchy of regions 
 indicated by tab indents.  To add additional regions simply add new lines to that file with the appropriate indentation 
-preceding each region.  
+preceding each region. The symconfig.m script defines the location of the source hierarchy text file to use. 
 
 The HDF5 format does not capture the hierarchy leading to the chosen source so this is stored in a separate XML file.  This file 
 is automatically created in the same folder as the HDF5 file.

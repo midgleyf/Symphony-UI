@@ -17,14 +17,14 @@ classdef CustomFigureHandler < FigureHandler
     
     methods
         
-        function obj = CustomFigureHandler(protocolPlugin, varargin)
-            obj = obj@FigureHandler(protocolPlugin);
-            
+        function obj = CustomFigureHandler(protocolPlugin, varargin)            
             ip = inputParser;
+            ip.KeepUnmatched = true;
             ip.addParamValue('Name', '', @ischar);
             ip.addParamValue('UpdateCallback', [], @(x)isa(x, 'function_handle'));
             ip.parse(varargin{:});
             
+            obj = obj@FigureHandler(protocolPlugin, ip.Unmatched);
             obj.updateCallback = ip.Results.UpdateCallback;
             
             if isempty(ip.Results.Name)

@@ -1,8 +1,3 @@
-%  Copyright (c) 2012 Howard Hughes Medical Institute.
-%  All rights reserved.
-%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
-%  http://license.janelia.org/license/jfrc_copyright_1_1.html
-
 %    stats = GetStats(myobj)
 %                
 %                Get stats command.  Retrieves a collection of various 
@@ -11,6 +6,12 @@
 %                separate calls as well (the time via GetTime, program 
 %                version via GetVersion, window dimensions via GetHeight 
 %                and GetWidth, etc).  The returned data is a struct.
+
+%  Copyright (c) 2012 Howard Hughes Medical Institute.
+%  All rights reserved.
+%  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
+%  http://license.janelia.org/license/jfrc_copyright_1_1.html
+
 function [stats] = GetStats(s)
     stats = struct();
     res = DoGetResultsCmd(s, 'GETSTATS');

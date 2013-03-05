@@ -1,11 +1,11 @@
+% Returns the left, bottom, width and height to use to center a window of the given size on the indicated or main screen.
+
 %  Copyright (c) 2012 Howard Hughes Medical Institute.
 %  All rights reserved.
 %  Use is subject to Janelia Farm Research Campus Software Copyright 1.1 license terms.
 %  http://license.janelia.org/license/jfrc_copyright_1_1.html
 
 function dims = centerWindowOnScreen(width, height, screen)
-    % Returns the left, bottom, width and height to use to center a window of the given size on the indicated or main screen.
-    
     if nargin < 3
         screen = 1;
     end

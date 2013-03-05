@@ -50,7 +50,14 @@ Example:
 
     obj.addDevice('LED', 'ANALOG_OUT.1', '');   % output only
 
+	
+Saving rig configurations
+-------------------------
 
+Symphony will search for rig configurations in the directory defined by the rigConfigsDir variable in the 
+symconfig.m script. All rig configurations must be at the top level of the rig configurations directory.
+	
+	
 A simple configuration
 ----------------------
 
