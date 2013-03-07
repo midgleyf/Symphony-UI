@@ -791,9 +791,13 @@ classdef SymphonyUI < handle
                     drawnow
                     
                     jFigPeer = get(handle(obj.mainWindow),'JavaFrame');
-                    jWindow = jFigPeer.fFigureClient.getWindow;
+                    if verLessThan('matlab', '7.14')
+                        jWindow = jFigPeer.fFigureClient.getWindow;
+                    else
+                        jWindow = jFigPeer.fHG1Client.getWindow;
+                    end
                     if ~isempty(jWindow)
-                        jWindow.setMinimumSize(java.awt.Dimension(540, 280));
+                        jWindow.setMinimumSize(java.awt.Dimension(540, 370));
                     end
                 catch ME %#ok<NASGU>
                 end
